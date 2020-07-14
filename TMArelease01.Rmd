@@ -562,6 +562,46 @@ these.hoos = hoos.regular
 ```
 
 
+```{r maskHelperFunction}
+
+mask = function(df,                         #data frame to apply mask on
+                mask,                       #mask (vector with ncol same as df, or matrix with 
+                                            #same size as original)
+                convertMaskToVector = T,    #if true, mask is in the for of an adjacency matrix,
+                                            #which gets converted to a vector
+                undirectedModel = T,        #setting for directed or undirected model (only used
+                                            #if convertMaskToVector = TRUE)
+                dfIsMatrixOfVectors = T){   #when true, df is a set of adjacency vectors;
+                                            #when false, df is 
+  
+  if (dfIsMatrixOfVectors) {
+    
+    if (convertMaskToVector) {
+      if(undirectedModel) {
+        mask = mask[upper.tri(mask)]
+      } else {
+          mask = as.vector(mask)
+        }
+    } 
+    print(mask)
+    for (i in 1:nrow(df)){
+      df[i,] = df[i,] * mask
+    }
+    
+    output = df
+    
+  } else {
+    
+    output = df * mask
+    
+  }
+  
+  return(output)
+  
+}
+
+```
+
 So, now we're ready to make a decay model.
 
 The basic approach of the model is to loop over the contexts from the get.contexts function. Each context is associated with one unit of analysis, and carries all of the rows of data that the unit can "see".
@@ -635,10 +675,12 @@ default.decay.function = function(x) ifelse(
 
 
 accumulate.units = function(context.object, 
-                            time.column, 
+                            time.column = NA,  #if no time column is given, 
+                                               #use model with equal time = 1 between lines in a hoo
                             codes, 
                             decay.function = default.decay.function, 
                             mode.column = NA, 
+                            mask = NA,
                             time.limit = NA,
                             weight.by = sqrt,
                             meta.data = NA,
@@ -657,6 +699,8 @@ f.raw = context.object$raw.data
 
 use.modes = ifelse(any(is.na(f.mode)), FALSE, TRUE)
 use.meta = ifelse(any(is.na(f.meta.data)), FALSE, TRUE)
+use.mask = ifelse(any(is.na(mask)), FALSE, TRUE)
+use.window = ifelse(any(is.na(f.time)), TRUE, FALSE)
 
 #initialize metadata matrix, if needed
 output.meta.data = ifelse(use.meta, f.raw[0,c(names(f.units),f.meta.data)], NA)
@@ -685,11 +729,14 @@ for (this.hoo in 1:length(f.contexts)) {
   #get data from this context
   this.context = f.contexts[[this.hoo]]$context
   
+
+  #if using a time model
   #remove rows with no codes from the data
   #we don't need them as "spacers" for the rest of the data
   #because we are using time to define our connections
-  this.context = this.context[rowSums(as.matrix(this.context[,f.codes])) > 0,]
-
+  if (!use.window) {
+    this.context = this.context[rowSums(as.matrix(this.context[,f.codes])) > 0,]
+  }
   #set row numbers
   Rows = 1:nrow(this.context)
   f.data.augmented = cbind(Rows, this.context)
@@ -711,7 +758,15 @@ for (this.hoo in 1:length(f.contexts)) {
       #get rows associated with this unit
       unit.rows = this.unit.data$Rows
     
-      this.time = this.context[,f.time]
+      #get times, or if window model (ie, not times given), use rows
+      if(use.window) {
+        this.time = Rows
+      } else {
+        this.time = this.context[,f.time]
+      }
+      
+      print(this.time)
+      
       if(use.modes) these.modes = this.context[,f.mode]
     
       #loop on  unit (ie, response) rows
@@ -782,6 +837,9 @@ for (this.hoo in 1:length(f.contexts)) {
         #due to multiplication of weighted code values
         #we do the same thing in weighted ENA
         this.code.matrix = this.code.matrix + f.weighting.function(this.connection.matrix)
+        
+        #apply mask to the adjacency matrix
+        if(use.mask) this.code.matrix = this.code.matrix * mask
         
         #go back to next row for this unit
         
@@ -922,6 +980,70 @@ view.decay.function( (1:10)-1 )
 
 
   
+```
+
+
+
+```{r testMaskAndTraditionalWindowModel}
+
+
+#window decay function, window size = 4
+chat.decay.function = function(x) {ifelse(x<4, 1, 0)}
+
+#decay function with a bigger window size
+view.decay.function = function(x) {ifelse(x<20, 1, 0)}
+
+
+#construct list for passing to accumulate,units
+modal.decay.function = list()
+modal.decay.function$view = view.decay.function
+modal.decay.function$chat = chat.decay.function
+
+#only let data communicate with itself and tech constraints
+
+my.mask = t(matrix(
+                c(1,1,0,0,0,0,
+                  0,0,0,0,0,0,
+                  0,0,0,0,0,0,
+                  0,0,0,0,0,0,
+                  0,0,0,0,0,0,
+                  0,0,0,0,0,0)
+                ,6,6))
+
+
+#debug(accumulate.units)
+
+my.accumulation = accumulate.units(context.object = these.hoos, 
+                                   codes = c('Data',
+                                              'Technical.Constraints',
+                                              'Performance.Parameters',
+                                              'Client.and.Consultant.Requests',
+                                              'Design.Reasoning',
+                                              'Collaboration'
+                                              ), 
+                                   #time.column = "time", 
+                                   #decay.function = decay.function, 
+                                   decay.function = modal.decay.function, 
+                                   mode.column = "CommunicationType",
+                                   weight.by = sqrt,
+                                   mask = my.mask,
+                                   #time.limit = 7,
+                                   meta.data = c("CONFIDENCE.Pre", "CONFIDENCE.Change"),
+                                   return.ena.set = TRUE)
+
+#show results
+print("For ENA:")
+my.accumulation$for.ena
+print("Contexts (with adjacency matrices):")
+my.accumulation$contexts
+print("units:")
+my.accumulation$units
+print("Directed adjacency vectors")
+my.accumulation$directed.adjacency.vectors
+print("::")
+
+
+
 ```
 
 # Try Plotting
