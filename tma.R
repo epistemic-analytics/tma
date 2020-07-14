@@ -233,7 +233,6 @@ accumulate.units = function(context.object,
   directed.adjacency.vectors = as.matrix(
     data.frame(matrix(NA, nrow = 1, ncol = length(f.codes)^2)[0,])
   )
-
   #create blank code matrix template
   n = length(f.codes)
   blank.code.matrix = matrix(0, n, n)
