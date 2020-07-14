@@ -68,6 +68,28 @@ merge.on = function(x, y, order.column = NA) {
 }
 
 
+# get.decay was originally for RSData
+#define generic function to return decay values
+#TIME IS IN MINUTES
+get.decay = function(now, event.time=0, decay.function) {
+  #trap for POSIX times
+  times = as.numeric(event.time)
+  #compute lag
+  x = as.numeric(now) - times
+  #trap negative lag times (ie, events in the future)
+  ok.values = (x>=0)
+  #initialize output
+  output = rep(0, length(x))
+  if(any(ok.values)) {
+    #compute decay
+    decays = call_eq(x = x[ok.values], eq = decay.function(x))
+    #zero out negative decays
+    decays[decays<0] = 0
+    output[ok.values] = decays
+  }
+  return(output)
+}
+
 #function takes a data frame and returns the value for each column if it has one
 ##or, if there is more than one value in a column, returns NA for that column
 get.unique.col.values = function(df){
@@ -96,4 +118,32 @@ get.quoted.columns = function(x, as.one.line = FALSE){
   #  for (i in n) cat('"', i,'"', ifelse(as.one.line, "' ", ",\n"))
   for (i in n) cat("'", i, "'", ifelse(as.one.line, ", ", ",\n"), sep = "")
   return(NULL)
+}
+
+mask = function(df,                         #data frame to apply mask on
+                mask,                       #mask (vector with ncol same as df, or matrix with
+                #same size as original)
+                convertMaskToVector = T,    #if true, mask is in the for of an adjacency matrix,
+                #which gets converted to a vector
+                undirectedModel = T,        #setting for directed or undirected model (only used
+                #if convertMaskToVector = TRUE)
+                dfIsMatrixOfVectors = T){   #when true, df is a set of adjacency vectors;
+  #when false, df is
+  if (dfIsMatrixOfVectors) {
+    if (convertMaskToVector) {
+      if(undirectedModel) {
+        mask = mask[upper.tri(mask)]
+      } else {
+        mask = as.vector(mask)
+      }
+    }
+    for (i in 1:nrow(df)){
+      df[i,] = df[i,] * mask
+    }
+    output = df
+  } else {
+    output = df * mask
+  }
+  return(output)
+
 }

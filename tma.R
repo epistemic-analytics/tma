@@ -11,12 +11,14 @@ library(openxlsx)
 require(optimbase)
 library(optimbase)
 
-setwd('/Users/arielfogel/Epistemic Analytics/tma');
+# choose the directory that contains TMA
+setwd(rstudioapi::selectDirectory());
 source('./helpers.R');
-
-# helper functions
+# this contains constantly, like the colors for red and blue
+source('./constants.R');
 
 d = read.csv('./test_data/TADMUSCoded.csv');
+# data transformation for TADMUS data. Feel free to comment out if not working with TADMUS.
 d = d %>%
   group_by(Team, Scenario, TimeImputed) %>%
   mutate(average_secs =
@@ -30,9 +32,11 @@ d = d %>%
 mean_time = d[,c('average_secs')] %>% t %>% as.vector %>% mean;
 d = d %>% group_by(Team) %>% arrange(X, .by_group = TRUE) %>% mutate(time = 1:n());
 
+# step decay function
 decay.function = function(x) {
   if (x==0) {
-    return(.5)
+    return(0.5);
+    # return(1)
   } else if(x<=5) {
     return(1)
   } else {
@@ -40,29 +44,7 @@ decay.function = function(x) {
   }
 }
 
-#define generic function to retuen decay calues
-#TIME IS IN MINUTES
-get.decay = function(now, event.time=0, decay.function) {
-  #trap for POSIX times
-  times = as.numeric(event.time)
-
-  #compute lag
-  x = as.numeric(now) - times
-  #trap negative lag times (ie, events in the future)
-  ok.values = (x>=0)
-
-  #initialize output
-  output = rep(0, length(x))
-  if(any(ok.values)) {
-    #compute decay
-    decays = call_eq(x = x[ok.values], eq = decay.function(x))
-    #zero out negative decays
-    decays[decays<0] = 0
-    output[ok.values] = decays
-  }
-  return(output)
-}
-
+# TODO: this is tightly coupled to the get.decay function in helpers.
 get.decay.modes = function(now, event.time=0, modes = NA, decay.function) {
   #if modes not specifieed, assume a single decay function and call get.decay
   if (any(is.na(modes))) {
@@ -97,8 +79,8 @@ get.decay.modes = function(now, event.time=0, modes = NA, decay.function) {
 get.contexts = function(units, data, hoo.rules){
   #This is a hack I use to create functions. When I start, I assign these
   #temporary names to variables. I can assign values and step through the function
-  #while I am writing/deebugging. Then when the function works, I can create the function
-  #call and pass the parameters to these termporary variables.
+  #while I am writing/debugging. Then when the function works, I can create the function
+  #call and pass the parameters to these temporary variables.
   f.data = data
   # TODO: BUG!!!!! this method can't handle units of a single column; must be 2 columns
   f.units = data.frame(units)
@@ -158,7 +140,7 @@ get.contexts = function(units, data, hoo.rules){
             )
           )
         }
-      }#finished with all conditions for this rule
+      }
 
       #if this is the first rulw (or otherwise the list is empty), store temporary output
       if (nrow(hoos[[i]][["context"]]) == 0) hoos[[i]][["context"]] = this.output
@@ -167,14 +149,10 @@ get.contexts = function(units, data, hoo.rules){
       #This merge function removes duplicate rows and keeps output in the order
       #of column "Rows"
       else hoos[[i]][["context"]] = merge.on(hoos[[i]][["context"]], this.output, "Rows")
-
-
-    }#finished with rules
-
+    }
     #remove row numbers
     hoos[[i]][["context"]] = hoos[[i]][["context"]][,-1]
-
-  }#finished with unit
+  }
 
   #add unit names to context lists
   output.names = c()
@@ -183,19 +161,15 @@ get.contexts = function(units, data, hoo.rules){
   }
   names(hoos) = output.names
 
-  #begin constructing output
-  output = list()             #initialize output list
-  output$contexts = hoos      #store named contexts
-  output$hoo.rules = f.hoo    #add rules used
-
+  output = list()
+  output$contexts = hoos
+  output$hoo.rules = f.hoo
   #add information ENA needs
-  output$units = f.units      #units
-  output$raw.data = f.data    #raw data
+  output$units = f.units
+  output$raw.data = f.data
   return(output)
 }
 
-
-# d$Channel_Unimodal = 'ALL'
 
 #specify hoo rules as list of lists
 #note that options here are...
@@ -214,23 +188,20 @@ my.hoo.usualENA[[1]] = list(Team = "<UNIT>", Scenario = "<UNIT>")
 # my.hoo.TMA[[2]] = list(Condition = "<UNIT>", UserName = "<UNIT>")
 
 #set units
-#get all possible units in the set
 my.units = unique(d[,c('COND', 'Team', 'MacroRole', 'Speaker')])
-#use only a few for this analysis
-# my.units = my.units[1:3,]
 
 #generate contexts for this data: REGULAR ENA
 hoos.regular = get.contexts(units = my.units, data = d, hoo.rules = my.hoo.usualENA)
 my.hoo.usualENA = list()
 my.hoo.usualENA[[1]] = list(Team = "<UNIT>", Scenario = "<UNIT>")
-hoos.regular$contexts$`Experimental::3/31/99::Other::KUWAIT TOWER`$context
-these.hoos = hoos.regular
+# hoos.regular$contexts$`Experimental::3/31/99::Other::KUWAIT TOWER`$context
 
 accumulate.units = function(context.object,
-                            time.column,
+                            time.column = NA,  #if no time column is given, use model with equal time = 1 between lines in a hoo
                             codes,
                             decay.function = default.decay.function,
                             mode.column = NA,
+                            mask = NA,
                             time.limit = NA,
                             weight.by = sqrt,
                             meta.data = NA,
@@ -249,6 +220,8 @@ accumulate.units = function(context.object,
 
   use.modes = ifelse(any(is.na(f.mode)), FALSE, TRUE)
   use.meta = ifelse(any(is.na(f.meta.data)), FALSE, TRUE)
+  use.mask = ifelse(any(is.na(mask)), FALSE, TRUE)
+  use.window = ifelse(any(is.na(f.time)), TRUE, FALSE)
 
   #initialize metadata matrix, if needed
   output.meta.data = ifelse(use.meta, f.raw[0,c(names(f.units),f.meta.data)], NA)
@@ -260,38 +233,57 @@ accumulate.units = function(context.object,
   directed.adjacency.vectors = as.matrix(
     data.frame(matrix(NA, nrow = 1, ncol = length(f.codes)^2)[0,])
   )
+
   #create blank code matrix template
   n = length(f.codes)
   blank.code.matrix = matrix(0, n, n)
   colnames(blank.code.matrix) = f.codes
   rownames(blank.code.matrix) = f.codes
-  #loop over contexts
+
   for (this.hoo in 1:length(f.contexts)) {
     #initialize connection  matrix for this unit
     this.code.matrix = blank.code.matrix
+
     #get data from this context
-    this.context = f.contexts[[this.hoo]]$context %>% as.data.frame
+    this.context = f.contexts[[this.hoo]]$context
+
+    #if using a time model
     #remove rows with no codes from the data
     #we don't need them as "spacers" for the rest of the data
     #because we are using time to define our connections
-    this.context = this.context[rowSums(as.matrix(this.context[,f.codes])) > 0,]
+    if (!use.window) {
+      this.context = this.context[rowSums(as.matrix(this.context[,f.codes])) > 0,]
+    }
     #set row numbers
     Rows = 1:nrow(this.context)
     f.data.augmented = cbind(Rows, this.context)
+
     #get unit name
     this.unit = f.contexts[[this.hoo]]$unit
+
     #find rows belonging to unit
     this.unit.data = semi_join(f.data.augmented, this.unit, by = names(this.unit))
+
     #get meta data for this unit and add to the the meta data dataframe
     if(use.meta) {
       output.meta.data = rbind(output.meta.data, get.unique.col.values(this.unit.data[,f.meta.data]))
     }
+
     #if there are non-zero rows for this unit, compute adjacencies
     if(nrow(this.unit.data) > 0) {
+
       #get rows associated with this unit
       unit.rows = this.unit.data$Rows
-      this.time = this.context[,f.time]
+
+      #get times, or if window model (ie, not times given), use rows
+      if(use.window) {
+        this.time = Rows
+      } else {
+        this.time = this.context[,f.time]
+      }
+
       if(use.modes) these.modes = this.context[,f.mode]
+
       #loop on  unit (ie, response) rows
       for (response in unit.rows){
         #for each response, find earlier chats
@@ -300,16 +292,19 @@ accumulate.units = function(context.object,
 
         #if there is a limit on how far back in time to look, take only rows
         #that are after that limit
-
         if(!any(is.na(f.window.limit))) {
           ground = which(this.time[ground] >= (response.time - f.window.limit))
         }
+
         #find row numbers of the current response row WITHIN GROUND
         response.in.ground = which(ground == response)
+
         #get codes for ground and response
         response.codes = as.matrix(this.context[response, f.codes])
         ground.codes = as.matrix(this.context[ground, f.codes])
-        #compute decays, Get modes, if needed
+
+        #compute decays
+        #Get modes, if needed
         ground.modes = NA
         if(use.modes) ground.modes = these.modes[ground]
 
@@ -330,20 +325,17 @@ accumulate.units = function(context.object,
           #by a different scalar from a vector of scalars
           ground.codes = t(t(ground.codes) %*% diag(my.decays))
         }
-        #find the ground code corresponsing the the response line
+
+        #find the ground code corresponding to the response line
         #since the response line is in its own "window" for connections
         #and we can't assume that for its mode the decay at time_0 = 1
         this.response.in.ground = t(ground.codes[response.in.ground,])
-
         #collapse the ground codes into a vector colsums
         this.ground = t(as.matrix(.colSums(ground.codes, m = length(ground), n = length(f.codes))))
-
         #compute connections
         this.connection.matrix = crossprod(this.ground, response.codes)
-
         #compute the connections from the response to itself
         this.self.connection = crossprod(this.response.in.ground, response.codes)
-
         #remove self-references in response code from from the adjacency counts
         diag(this.connection.matrix) = diag(this.connection.matrix) - diag(this.self.connection)
 
@@ -352,9 +344,10 @@ accumulate.units = function(context.object,
         #we do the same thing in weighted ENA
         this.code.matrix = this.code.matrix + f.weighting.function(this.connection.matrix)
 
+        #apply mask to the adjacency matrix
+        if(use.mask) this.code.matrix = this.code.matrix * mask
         #go back to next row for this unit
-
-      } #done looping over rows for this unit
+      }
 
     } #end of if statement -- the above is all skipped if there are no
     #non-zero rows to loop over for the unit
@@ -366,14 +359,13 @@ accumulate.units = function(context.object,
 
     #construct directed adjacency vector
     directed.adjacency.vectors = rbind(directed.adjacency.vectors, as.vector(this.code.matrix))
-    #next, undirected
 
+    #next, undirected
     #commenting this out keeps self-connections in undirecteed matrix
     #but it will be removed for ena adjacency vectors
     #diag(this.code.matrix) = 0
 
     #turn directed into undirected
-
     #upper triangle is some of directed connections
     this.code.matrix[upper.tri(this.code.matrix)] =
       this.code.matrix[upper.tri(this.code.matrix)] + this.code.matrix[lower.tri(this.code.matrix)]
@@ -386,17 +378,9 @@ accumulate.units = function(context.object,
       undirected.adjacency.vectors,
       this.code.matrix[upper.tri(this.code.matrix)]
     )
-
-    #go back to next context
-
-  }#done looping over contexts
-
-  #construct output
+  }
   output = list()
-
-  #add contexts (with additions of adjacency matrices) to output
   output$contexts = f.contexts
-  #add additional information for modeling
   output$directed.adjacency.vectors = directed.adjacency.vectors
   output$units = f.units
 
@@ -408,16 +392,14 @@ accumulate.units = function(context.object,
   enadata$raw = data.table::as.data.table(f.raw)
   enadata$units = f.units
   enadata$meta.data = data.table::as.data.table(output.meta.data)
-  enadata$metadata = f.units
-  enadata$adjacency.vectors = undirected.adjacency.vectors %>% data.table::as.data.table()
-  enadata$accumulated.adjacency.vectors = undirected.adjacency.vectors %>% data.table::as.data.table()
+  enadata$adjacency.vectors = data.table::as.data.table(undirected.adjacency.vectors)
+  enadata$accumulated.adjacency.vectors = data.table::as.data.table(undirected.adjacency.vectors)
 
   output$for.ena$enadata=enadata
 
   #if ena set is requested, construct ena set using rENA:::ena.set
   #and remove the information used to create it
   if(return.ena.set) {
-    browser();
     output$ena.set = rENA:::ena.set(enadata) #output$for.ena)
     output$for.ena = NULL
   }
@@ -430,58 +412,78 @@ chat.decay.function = decay.function
 # view.decay.function = function(x) return(-0.0039*x^3 + 0.0661*x^2 - 0.3507*x + 1)
 view.decay.function = decay.function
 
-
-
 #construct list for passing to accumulate,units
 modal.decay.function = list()
 modal.decay.function$Private = view.decay.function
 modal.decay.function$Public = chat.decay.function
 
-my.accumulation = accumulate.units(context.object = these.hoos,
+my.accumulation = accumulate.units(context.object = hoos.regular,
                                    codes = TADMUS_code_cols,
                                    time.column = "time",
+
                                    #decay.function = decay.function,
                                    decay.function = modal.decay.function,
                                    mode.column = NA,
-                                   weight.by = function(x) {x*1},
+                                   weight.by = function(x) {x*1}, #currently, weight by nothing;
                                    time.limit = 20,
+                                   # mask = my.mask,
                                    # meta.data = c('MacroRole'),
-                                   # meta.data = c("CONFIDENCE.Pre", "CONFIDENCE.Change"),
+                                   meta.data = speaker_units,
                                    return.ena.set = TRUE)
 
 #show results
-print("For ENA:")
-my.accumulation$ena.set
-my.accumulation$directed.adjacency.vectors
-my.accumulation$contexts
-my.accumulation$units
+# print("For ENA:")
+# my.accumulation$ena.set
+# my.accumulation$directed.adjacency.vectors
+# my.accumulation$contexts
+# my.accumulation$units
 # my.accumulation$for.ena
 
-print("Contexts (with adjacency matrices):")
-my.accumulation$contexts
-print("units:")
-my.accumulation$units
-print("Directed adjacency vectors")
-my.accumulation$directed.adjacency.vectors
-print("::")
+# print("Contexts (with adjacency matrices):")
+# my.accumulation$contexts
+# print("units:")
+# my.accumulation$units
+# print("Directed adjacency vectors")
+# my.accumulation$directed.adjacency.vectors
+# print("::")
 
 #show delays for the two functions
-# print("original decay function from t=0 to t=9")
-# chat.decay.function( (1:10)-1 )
-# print("Slower decay function from t=0 to t=9")
-# view.decay.function( (1:10)-1 )
 set <- ena.make.set(my.accumulation$ena.set)
 
-experimental_command_points =  set$points$COND$Experimental[set$points$COND$Experimental[, MacroRole == 'Command']];
-experimental_command_lineweights = as.matrix(set$line.weights$COND$Experimental[set$line.weights$COND$Experimental[, MacroRole == 'Command']])
+experimental_command_points = set$points[set$points$COND == 'Experimental' & set$points$MacroRole == 'Command']
+experimental_command_lineweights = as.matrix(
+  set$line.weights[set$line.weights$COND == 'Experimental' & set$line.weights$MacroRole == 'Command']
+)
 experimental_command_mean = as.vector(colMeans(experimental_command_lineweights))
-control_command_points =  set$points$COND$Control[set$points$COND$Control[, MacroRole == 'Command']];
-control_command_lineweights = as.matrix(set$line.weights$COND$Control[set$line.weights$COND$Control[, MacroRole == 'Command']])
+control_command_points =  set$points[set$points$COND == 'Control' & set$points$MacroRole == 'Command']
+control_command_lineweights = as.matrix(
+  set$line.weights[set$line.weights$COND == 'Control' & set$line.weights$MacroRole == 'Command']
+)
 control_command_mean = as.vector(colMeans(control_command_lineweights))
 subtracted_mean = control_command_mean - experimental_command_mean
 
-plot <- ena.plot(enaset = ena_set, title = "TMA Plot", dimension.labels = c("SVD1", "SVD2"))
-plot <- ena.plot.points(plot, points = ena_set$points, colors = c("red", "blue", "green"))
+experimental_command_plot = ena.plot(set, title = "Experimental Condition, Commanders", dimension.labels = c("SVD1", "SVD2"))  %>%
+  ena.plot.points(points = experimental_command_points, confidence.interval = "box", colors = c(red))  %>%
+  ena.plot.group(point = experimental_command_points, colors =c(red), confidence.interval = "box")  %>%
+  ena.plot.network(network = experimental_command_mean, colors = c(red))
+
+control_command_plot = ena.plot(set, title = "Control Condition, Commanders", dimension.labels = c("SVD1", "SVD2"))  %>%
+  ena.plot.points(points = control_command_points, confidence.interval = "box", colors = c(blue))  %>%
+  ena.plot.group(point = control_command_points, colors =c(blue), confidence.interval = "box") %>%
+  ena.plot.network(network = control_command_mean, colors = c(blue))
+
+subtraction_plot = ena.plot(set, title = "Network Subtraction, Commanders", dimension.labels = c("SVD1", "SVD2"))  %>%
+  ena.plot.group(point = control_command_points, colors =c(blue), confidence.interval = "box") %>%
+  ena.plot.group(point = experimental_command_points, colors =c(red), confidence.interval = "box")  %>%
+  ena.plot.network(network = subtracted_mean*1.5, colors = c(blue, red))
+
+
+experimental_command_plot$plot
+control_command_plot$plot
+subtraction_plot$plot
+
+# plot <- ena.plot(enaset = ena_set, title = "TMA Plot", dimension.labels = c("SVD1", "SVD2"))
+# plot <- ena.plot.points(plot, points = ena_set$points, colors = c("red", "blue", "green"))
 # plot <- ena.plot.network(plot, network = list(ena_set$line.weights[2,]), colors = c("blue"))
 
-plot$plot
+# plot$plot
