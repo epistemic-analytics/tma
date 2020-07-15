@@ -703,7 +703,9 @@ use.mask = ifelse(any(is.na(mask)), FALSE, TRUE)
 use.window = ifelse(any(is.na(f.time)), TRUE, FALSE)
 
 #initialize metadata matrix, if needed
-output.meta.data = ifelse(use.meta, f.raw[0,c(names(f.units),f.meta.data)], NA)
+if(use.meta) {
+  output.meta.data = f.raw[0,c(names(f.units),f.meta.data) %>% unique]
+}
 
 #initialize adjacency vector matrices
 undirected.adjacency.vectors = as.matrix(
@@ -748,8 +750,9 @@ for (this.hoo in 1:length(f.contexts)) {
   this.unit.data = semi_join(f.data.augmented, this.unit, by = names(this.unit))
   
   #get meta data for this unit and add to the the meta data dataframe
-  if(use.meta) {
-    output.meta.data = rbind(output.meta.data, get.unique.col.values(this.unit.data[,f.meta.data]))
+   if(use.meta) {
+      # browser();
+      output.meta.data = rbind(output.meta.data, get.unique.col.values(this.unit.data[,output.meta.data %>% colnames]))
     }
   
   #if there are non-zero rows for this unit, compute adjacencies
@@ -904,6 +907,7 @@ enadata$model = "TMA"
 enadata$raw = data.table::as.data.table(f.raw)
 enadata$units = f.units
 enadata$meta.data = data.table::as.data.table(output.meta.data)
+enadata$metadata = data.table::as.data.table(output.meta.data)
 enadata$adjacency.vectors = data.table::as.data.table(undirected.adjacency.vectors)
 enadata$accumulated.adjacency.vectors = data.table::as.data.table(undirected.adjacency.vectors)
 
