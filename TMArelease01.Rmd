@@ -699,8 +699,11 @@ f.raw = context.object$raw.data
 
 use.modes = ifelse(any(is.na(f.mode)), FALSE, TRUE)
 use.meta = ifelse(any(is.na(f.meta.data)), FALSE, TRUE)
-use.mask = ifelse(any(is.na(mask)), FALSE, TRUE)
+use.mask = ifelse(is.matrix(mask), TRUE, FALSE)
 use.window = ifelse(any(is.na(f.time)), TRUE, FALSE)
+
+#create undirected mask if there are NAs in lower triangle of given mask
+if (any(is.na(mask[lower.tri(mask)]))) {mask[lower.tri(mask)] = mask[upper.tri(mask)]}
 
 #initialize metadata matrix, if needed
 if(use.meta) {
@@ -768,7 +771,7 @@ for (this.hoo in 1:length(f.contexts)) {
         this.time = this.context[,f.time]
       }
       
-      print(this.time)
+      #print(this.time)
       
       if(use.modes) these.modes = this.context[,f.mode]
     
@@ -841,9 +844,6 @@ for (this.hoo in 1:length(f.contexts)) {
         #we do the same thing in weighted ENA
         this.code.matrix = this.code.matrix + f.weighting.function(this.connection.matrix)
         
-        #apply mask to the adjacency matrix
-        if(use.mask) this.code.matrix = this.code.matrix * mask
-        
         #go back to next row for this unit
         
       } #done looping over rows for this unit
@@ -852,7 +852,11 @@ for (this.hoo in 1:length(f.contexts)) {
     #non-zero rows to loop over for the unit
   
   #for this unit...
+ 
+  #apply mask to the adjacency matrix
   
+  if(use.mask) this.code.matrix = this.code.matrix * mask
+
   #first, deal with directed matrix
   
   #add directed adjacency matrix to the context
@@ -874,7 +878,7 @@ for (this.hoo in 1:length(f.contexts)) {
   this.code.matrix[upper.tri(this.code.matrix)] =
     this.code.matrix[upper.tri(this.code.matrix)] + this.code.matrix[lower.tri(this.code.matrix)]
   #make matrix symmetrical
-  this.code.matrix[lower.tri(this.code.matrix)] = this.code.matrix[upper.tri(this.code.matrix)]
+  this.code.matrix[lower.tri(this.code.matrix)] = NA
   
   #add undirected matrix to context 
   f.contexts[[this.hoo]]$undirected.adjacancy = this.code.matrix
@@ -1005,15 +1009,25 @@ modal.decay.function$chat = chat.decay.function
 
 #only let data communicate with itself and tech constraints
 
+# my.mask = t(matrix(
+#                 c(1,1,0,0,0,0,
+#                   0,0,0,0,0,0,
+#                   0,0,0,0,0,0,
+#                   0,0,0,0,0,0,
+#                   0,0,0,0,0,0,
+#                   0,0,0,0,0,0)
+#                 ,6,6))
+
 my.mask = t(matrix(
                 c(1,1,0,0,0,0,
                   0,0,0,0,0,0,
                   0,0,0,0,0,0,
                   0,0,0,0,0,0,
                   0,0,0,0,0,0,
-                  0,0,0,0,0,0)
+                  NA,0,0,0,0,0)
                 ,6,6))
 
+is.matrix(my.mask)
 
 #debug(accumulate.units)
 
