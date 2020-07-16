@@ -10,6 +10,16 @@ step_function = function(window_size) {
   })
 }
 
+continuous_decay_function_window_3_approx = function(x) {
+  # I don't need anything else here -- I could make it more of a decay curve, but this is easier to grok on the
+  # toy data for window of 3
+  if(x>=0 & x<3){
+    return(-(1/2)*x^2 + x + (1/2))
+  } else {
+    return(0)
+  }
+}
+
 continuous.decay.function.convex = function(x){
   if(x>=0 && x<1){
     return(-(1/18)*x^2 + (1/3)*x + (1/2))
