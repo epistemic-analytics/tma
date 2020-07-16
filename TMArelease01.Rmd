@@ -733,22 +733,23 @@ for (this.hoo in 1:length(f.contexts)) {
   this.context = f.contexts[[this.hoo]]$context
   
 
-  #if using a time model
+  #set row numbers
+  Order = 1:nrow(this.context)
+  this.context = cbind(Order, this.context)
+
   #remove rows with no codes from the data
   #we don't need them as "spacers" for the rest of the data
   #because we are using time to define our connections
-  if (!use.window) {
-    this.context = this.context[rowSums(as.matrix(this.context[,f.codes])) > 0,]
-  }
-  #set row numbers
+  this.context = this.context[rowSums(as.matrix(this.context[,f.codes])) > 0,]
+  
   Rows = 1:nrow(this.context)
-  f.data.augmented = cbind(Rows, this.context)
-
+  this.context = cbind(Rows, this.context)
+  
   #get unit name
   this.unit = f.contexts[[this.hoo]]$unit
   
   #find rows belonging to unit
-  this.unit.data = semi_join(f.data.augmented, this.unit, by = names(this.unit))
+  this.unit.data = semi_join(this.context, this.unit, by = names(this.unit))
   
   #get meta data for this unit and add to the the meta data dataframe
   if(use.meta) {
@@ -763,7 +764,7 @@ for (this.hoo in 1:length(f.contexts)) {
     
       #get times, or if window model (ie, not times given), use rows
       if(use.window) {
-        this.time = Rows
+        this.time = this.context$Order
       } else {
         this.time = this.context[,f.time]
       }
@@ -1005,27 +1006,29 @@ modal.decay.function$chat = chat.decay.function
 
 #only let data communicate with itself and tech constraints
 
-# my.mask = t(matrix(
-#                 c(1,1,0,0,0,0,
-#                   0,0,0,0,0,0,
-#                   0,0,0,0,0,0,
-#                   0,0,0,0,0,0,
-#                   0,0,0,0,0,0,
-#                   0,0,0,0,0,0)
-#                 ,6,6))
-
 my.mask = t(matrix(
                 c(1,1,0,0,0,0,
                   0,0,0,0,0,0,
                   0,0,0,0,0,0,
                   0,0,0,0,0,0,
                   0,0,0,0,0,0,
-                  NA,0,0,0,0,0)
+                  0,0,0,0,0,0)
                 ,6,6))
 
-is.matrix(my.mask)
+my.mask = NA
+
+# my.mask = t(matrix(
+#                 c(1,1,0,0,0,0,
+#                   0,0,0,0,0,0,
+#                   0,0,0,0,0,0,
+#                   0,0,0,0,0,0,
+#                   0,0,0,0,0,0,
+#                   NA,0,0,0,0,0)
+#                 ,6,6))
+my.mask
 
 #debug(accumulate.units)
+these.hoos = hoos.TMA
 
 my.accumulation = accumulate.units(context.object = these.hoos, 
                                    codes = c('Data',
