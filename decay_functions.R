@@ -17,7 +17,7 @@ continuous.decay.function.convex = function(x){
   else if(x>=1 && x<10){
     return((1/49)*(x-10)^2)
   }
-  else(x>=10){
+  else if (x>=10){
     return(0)
   }
 }
