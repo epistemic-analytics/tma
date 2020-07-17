@@ -20,6 +20,14 @@ continuous_decay_function_window_3_approx = function(x) {
   }
 }
 
+continuous.decay.function.over.ten.minutes = function(x){
+  if(x>=0 & x<10){
+    return(-(1/18)*x^2 + (1/3)*x + (1/2))
+  } else{
+    return(0)
+  }
+}
+
 continuous.decay.function.convex = function(x){
   if(x>=0 && x<1){
     return(-(1/18)*x^2 + (1/3)*x + (1/2))
