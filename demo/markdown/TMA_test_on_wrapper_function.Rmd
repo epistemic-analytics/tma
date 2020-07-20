@@ -3,21 +3,19 @@ title: "TMA_with_toy_dataset"
 author: "Ariel Fogel"
 date: "7/16/2020"
 output: html_document
-editor_options: 
-  chunk_output_type: console
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-library(rstudioapi)
+# library(rstudioapi)
 # setwd('/Users/arielfogel/Epistemic Analytics/tma')
 # Select the directory containing the tma script, like the directory above^
-setwd(selectDirectory())
-source('./tma_accumulation.R');
-d = read.csv('test_data/test_data.csv');
+# setwd(selectDirectory())
+devtools::load_all(".")
+d = read.csv(system.file(package = "tma", 'extdata/test_data.csv'), stringsAsFactors = FALSE);
 ```
 
-```{r toy_data_step_2, echo=FALSE}
+```{r toy_data_step_2, echo=FALSE, include=FALSE}
 my.hoo.TMA = list()
 my.hoo.TMA[[1]] = list(Condition = "<UNIT>", GroupName = "<UNIT>", Context = "Public")  
 my.hoo.TMA[[2]] = list(Condition = "<UNIT>", UserName = "<UNIT>")
@@ -26,7 +24,7 @@ codes = c('A','B','C')
 modal.decay.function = list()
 modal.decay.function$Private = step_function(window_size = 2);
 modal.decay.function$Public = step_function(window_size = 2);
-accumulation_window_2 = tma_accumulation(
+accumulation_window_2 = tma(
   data = d,
   units = my.units,
   codes = codes,
@@ -105,7 +103,7 @@ assertthat::are_equal(
 ```
 
 
-```{r toy_data_step_3, echo=FALSE}
+```{r toy_data_step_3, echo=FALSE, include=FALSE}
 my.hoo.TMA = list()
 my.hoo.TMA[[1]] = list(Condition = "<UNIT>", GroupName = "<UNIT>", Context = "Public")  
 my.hoo.TMA[[2]] = list(Condition = "<UNIT>", UserName = "<UNIT>")
@@ -114,7 +112,7 @@ codes = c('A','B','C')
 modal.decay.function = list()
 modal.decay.function$Private = step_function(window_size = 3);
 modal.decay.function$Public = step_function(window_size = 3);
-accumulation_window_3 = tma_accumulation(
+accumulation_window_3 = tma(
   data = d,
   units = my.units,
   codes = codes,
@@ -202,7 +200,7 @@ codes = c('A','B','C')
 modal.decay.function = list()
 modal.decay.function$Private = continuous_decay_function_window_3_approx;
 modal.decay.function$Public = continuous_decay_function_window_3_approx;
-accumulation_window_3 = tma_accumulation(
+accumulation_window_3 = tma(
   data = d,
   units = my.units,
   codes = codes,
@@ -261,17 +259,16 @@ assertthat::are_equal(
 
 User2_undirected = t(matrix(c(
   0,.5,0,
-  NA,0,1.5,
+  NA,0,2,
   NA,NA,0
 ),3,3))
 colnames(User2_undirected) = rownames(User2_undirected) = c('A','B','C')
 assertthat::are_equal(
   User2_undirected, accumulation_window_3$contexts$`FirstGame::User2`$undirected.adjacancy
 )
-# This is coming up false -- I'm wondering; how should we be handling cotemporal connections using a continuous decay? if they occur in the same line, shouldn't they be .5? or should they be 1?
 
 User3_undirected = t(matrix(c(
-  0,2,2,
+  0,2,2.5,
   NA,0,1,
   NA,NA,.5
 ),3,3))
@@ -279,11 +276,10 @@ colnames(User3_undirected) = rownames(User3_undirected) = c('A','B','C')
 assertthat::are_equal(
   User3_undirected, accumulation_window_3$contexts$`FirstGame::User3`$undirected.adjacancy
 )
-# This is coming up false -- I'm wondering; how should we be handling cotemporal connections using a continuous decay? if they occur in the same line, shouldn't they be .5? or should they be 1?
 ```
 
+
 ```{r toy_data_continuous_decay_use_time_column, echo=FALSE}
-# source('./tma_accumulation.R');
 # d = read.csv('test_data/test_data.csv');
 d$time = convert.time( as.character(d$Timestamp), units = "minutes");
 my.hoo.TMA = list()
@@ -294,7 +290,7 @@ codes = c('A','B','C')
 modal.decay.function = list()
 modal.decay.function$Private = continuous.decay.function.over.ten.minutes;
 modal.decay.function$Public = continuous.decay.function.over.ten.minutes;
-accumulation_with_time_column = tma_accumulation(
+accumulation_with_time_column = tma(
   data = d,
   units = my.units,
   codes = codes,
@@ -309,7 +305,6 @@ accumulation_with_time_column = tma_accumulation(
   meta.data = c('Condition')
 )
 ```
-
 ```{r directed_continuous_decay_use_time_column_test, echo=TRUE}
 User1_directed = t(matrix(c(
   0,0,1,
@@ -341,7 +336,6 @@ assertthat::are_equal(
   User3_directed, accumulation_with_time_column$contexts$`FirstGame::User3`$directed.adjacency
 )
 ```
-
 ```{r undirected_continuous_decay_use_time_column_test, echo=TRUE}
 User1_undirected = t(matrix(c(
   0,0,1,
@@ -355,17 +349,16 @@ assertthat::are_equal(
 
 User2_undirected = t(matrix(c(
   0,.5,0,
-  NA,0,1.5,
+  NA,0,2,
   NA,NA,0
 ),3,3))
 colnames(User2_undirected) = rownames(User2_undirected) = c('A','B','C')
 assertthat::are_equal(
   User2_undirected, accumulation_with_time_column$contexts$`FirstGame::User2`$undirected.adjacancy
 )
-# This is coming up false -- I'm wondering; how should we be handling cotemporal connections using a continuous decay? if they occur in the same line, shouldn't they be .5? or should they be 1?
 
 User3_undirected = t(matrix(c(
-  0,2,2,
+  0,2,2.5,
   NA,0,1,
   NA,NA,.5
 ),3,3))
@@ -376,8 +369,7 @@ assertthat::are_equal(
 ```
 
 ```{r toy_data_continuous_decay_with_empty_rows, echo=FALSE}
-# source('./tma_accumulation.R');
-d = read.csv('test_data/toy_dataset_with_empty_rows.csv');
+d = read.csv(system.file(package = "tma", 'extdata/toy_dataset_with_empty_rows.csv'), stringsAsFactors = FALSE);
 d$time = convert.time( as.character(d$Timestamp), units = "minutes");
 my.hoo.TMA = list()
 my.hoo.TMA[[1]] = list(Condition = "<UNIT>", GroupName = "<UNIT>", Context = "Public")  
@@ -387,7 +379,7 @@ codes = c('A','B','C')
 modal.decay.function = list()
 modal.decay.function$Private = continuous.decay.function.over.ten.minutes;
 modal.decay.function$Public = continuous.decay.function.over.ten.minutes;
-accumulation_with_time_column = tma_accumulation(
+accumulation_with_time_column = tma(
   data = d,
   units = my.units,
   codes = codes,
@@ -402,7 +394,6 @@ accumulation_with_time_column = tma_accumulation(
   meta.data = c('Condition')
 )
 ```
-
 ```{r directed_continuous_decay_remove_empty_rows_test, echo=TRUE}
 User1_directed = t(matrix(c(
   0,0,1,
@@ -434,7 +425,6 @@ assertthat::are_equal(
   User3_directed, accumulation_with_time_column$contexts$`FirstGame::User3`$directed.adjacency
 )
 ```
-
 ```{r undirected_continuous_decay_remove_empty_rows_test, echo=TRUE}
 User1_undirected = t(matrix(c(
   0,0,1,
@@ -448,7 +438,7 @@ assertthat::are_equal(
 
 User2_undirected = t(matrix(c(
   0,.5,0,
-  NA,0,1.5,
+  NA,0,2,
   NA,NA,0
 ),3,3))
 colnames(User2_undirected) = rownames(User2_undirected) = c('A','B','C')
@@ -458,7 +448,7 @@ assertthat::are_equal(
 # This is coming up false -- I'm wondering; how should we be handling cotemporal connections using a continuous decay? if they occur in the same line, shouldn't they be .5? or should they be 1?
 
 User3_undirected = t(matrix(c(
-  0,2,2,
+  0,2,2.5,
   NA,0,1,
   NA,NA,.5
 ),3,3))

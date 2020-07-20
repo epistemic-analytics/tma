@@ -334,7 +334,7 @@ get.decay.modes = function(
   
   #if modes not specifieed, assume a single decay function and call get.decay
   if (any(is.na(modes))) {
-    return(get.decay(now, event.time, decay.function))
+    return(get.decay(now = now, decay.function = decay.function, event.time = event.time))
   }
    
   #again, trap POSIX if that is how times are given

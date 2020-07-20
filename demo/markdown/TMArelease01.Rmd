@@ -1,0 +1,545 @@
+---
+title: "Draft 1"
+author: "DWS"
+date: "5/28/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#options and required packages
+
+options(stringsAsFactors = FALSE)
+require(rENA)
+library(rENA)
+require(dplyr)
+library(dplyr)
+
+#for 
+require(openxlsx)
+library(openxlsx)
+
+# install.packages("optimbase")
+require(optimbase)
+library(optimbase)
+
+library(tma)
+```
+
+# Data setup
+
+First, we get the RS data set and clean it up.
+
+Note, that this default RS data set in the rENA package is a MESS. There are duplicated lines, and there are no mentors included in the data. We should probably do something about that, see [issue here](https://gitlab.com/epistemic-analytics/qe-packages/rENA/-/issues/39)
+
+```{r get_data}
+
+d = rENA::RS.data
+
+#clean up factors in data
+d = mutate_if(d, is.factor, factor.to.value)
+
+```
+
+# Helper Functions
+
+Next, we define some helper functions that make some tasks easier.
+
+```{r}
+
+# See `R/utils.R`
+
+```
+
+# Data Conversion
+
+Now, we need to convert the timestamps in the RSdata set into useable numbers.
+
+Note that we also need to get an estimate of the time gap between utterances in order to convert from data about referents to times.
+
+We have data on referents from Michael Tscholl
+
+His data showed:
+
+Furthest referent	| Percent
+------------------|-------------
+0                 | 1
+1                 | 0.975961538
+2                 | 0.65625
+3                 | 0.355769231
+4                 | 0.180288462
+5                 | 0.048076923
+6                 | 0.019230769
+7                 | 0.014423077
+8                 | 0.004807692
+9                 | 0
+
+
+These is a survivorship analysis. So 18% of lines had their furthest referent 4 lines OR FEWER back in the data.
+
+We thus use a WEIGHTING of .18 for an utterance that is 4 turns back. Why? Because ON AVERAGE, that is the expected 
+value of the contribution from an utternace that far back.
+
+But here we need times, so we find the average time between utterances -- leaving out the gaps between days.
+
+The analysis below (see histogram) showed that there were a lot of outliers in the time lags: the mean was 2.8 minutes, 
+which by inspeection of the data seemed like a long time. 
+
+The mean lag for chats less than 10 minutes apart was .78, which seemed like a more reasonable estimate, given the data.
+
+Tschol; suggested a window size of 4 or 5, with the idea that there were few additional chats that were going to be
+included after that, and we would likely be including things in the recent temporal context that were not actually
+referents.
+
+This would make the average RCT something on the order of 3-4 minutes, which, again, seems reasonable.
+
+```{r convertTimestamps}
+
+#convert timestamps
+d$time = convert.time( as.character(d$Timestamp), units = "minutes")
+
+#I used this to get time lags not counting changes in days
+#this gave me an "average" time between turns of talk
+
+#put in NAs to cover changes in day
+d$timeLag = rep(NA, nrow(d))
+for(x in 1:(nrow(d)-1)) {
+  if(d$GameDay[x] == d$GameDay[x+1]){
+    #this assigns, for each row, the time it is BEHIND or BEFORE the next row
+    d$timeLag[x] = d$time[x+1] - d$time[x]
+  }
+}
+rm(x)
+
+hist(d$timeLag)
+mean(na.omit( d$timeLag[d$timeLag] ))
+hist(d$timeLag[d$timeLag<10])
+mean(na.omit( d$timeLag[d$timeLag<10] ))
+```
+
+This meant that we needed a decay function that modeled this curve:
+
+Minutes |	Decay
+--------|--------
+0.00    |  1
+0.78    |  0.975961538
+1.56    |  0.65625
+2.34    |  0.355769231
+3.12    |  0.180288462
+3.90    |  0.048076923
+4.68    |  0.019230769
+5.46    |  0.014423077
+6.24    |  0.004807692
+
+I cheated a bit for now and put the data in Excel, and used a polynomial trendline, coming up with 
+
+$$
+y = -0.0059x^4 + 0.0806x^3 - 0.3186x^2 + 0.1178x + 1
+$$
+
+$$
+R^2 = 0.9948
+$$
+
+We'll have to develop some r function to do this kind of estimation at some point. The current version is wildly overfit, but in this case that isn't really so bad, as we are really just INTERPOLATING rather than EXTRAPOLATING from this function.
+
+Note that I am not using an exponential decay function because it doesn't fit the data as well. The data looks something like this:
+
+```
+|
+|
+•  •  
+|     •
+|         •
+|               •
+|______________________•__________•
+```
+
+The little plateau makes it hard to fit with an exponential. Not saying we shouldn't do that anyway, but for this experiment it didn't seem like the right choice.
+
+
+```{r determineDecayFunction}
+
+#from tscholl
+#modeled in Excel for now... will need to write a function to generate this equation from raw data
+
+#y = -0.0059x4 + 0.0806x3 - 0.3186x2 + 0.1178x + 1
+#R² = 0.9948
+
+#specific function for these decay values
+decay.function = function(x) return(-0.0059*x^4 + 0.0806*x^3 - 0.3186*x^2 + 0.1178*x + 1)
+
+```
+
+# Test and Verify Decay 
+
+Next, I developed functions to compute the decay for given a time for a current event (now) and a time or times for events in the past (event.time).
+
+The function get.decay works with just a single decay function. 
+
+As the example shows, get.decay.modes works if you specify a named LIST of funcitons that correspond to some data column with information about the modalities in the data (eg, page view v chat).
+
+Thanks to Cody for the call_eq function that this uses. That was a pain to figure out for me.
+
+```{r}
+
+#TEST code 
+my.modes = c("m2", "m3", "m2", "m2")
+my.test.decay = list()
+my.test.decay$m2 = function(x) return(2*x)
+my.test.decay$m3 = function(x) return(3*x)
+
+get.decay.modes(now = 5, event.time = 1:4, modes = my.modes, decay.function = my.test.decay)
+get.decay.modes(now = 3, event.time = 1:2, decay.function = decay.function)
+
+rm(my.modes)
+rm(my.test.decay)
+ 
+```
+
+# Find Unit Context
+
+OK, so now we need to find the CONTEXTS for each unit of analysis in the data. The context is basically the horizon of observation (HOO) for each unit -- the things (chats, documents, galvanic skin response) that they are aware of and thus can "respond" to. (We are using "aware of" in a general sense here. We are not *directly* aware of our galvanic skin response, but we do respond to the stress it reflects.)
+
+
+```{r functionToGetHOOcontexts}
+
+# see R/get_contexts.R
+
+```
+
+# Test Attenuation
+
+Here we test the function on an attenuated data set (easier to check outputs). You can remove the limit on the size of the data set in the first line below.
+
+For the test, we assign a set of fake "modes" to the data (in this casee, chat and page view). 
+
+The get context function also requires that you supply the data columns for users. This is so that it is possible to get contexts for only some of the users.
+
+We assign HOO rules to a list of lists.
+
+The first level has an (unnamed) list for each rule.
+
+The next level has a NAMED list where each name is the column the condition should apply to, and the content of the list
+is a string where options are...
+   ...<UNIT>, which is replaced by the value of the individual unit 
+               for which context is being constructed
+   ...any regex
+   
+The funciton will include rows of data that match ALL of the conditions of ANY rule.
+
+The test here shows two cases:
+
+1. Subset by condition and group, as in regular ENA
+2. Subset by condition and group, but with ALL data modes for the unit and only chats for confederates
+
+
+```{r getHOOcontexts}
+
+#add fake "communication types" to data for hoo
+
+#Do this only once so that it stays stable
+if(!is.object("CommunicationType")){
+    CommunicationType = sample(x = c("chat","view"), size = nrow(d), replace = T, prob = c(.8, .2))
+    d.plus = cbind(CommunicationType, d)
+}
+
+#create reduced data set
+d.run = d.plus[1:100, ]
+
+#specify hoo rules as list of lists
+#note that options here are...
+#   ...<UNIT>, which is replaced by the value of the individual unit 
+#               for which context is being constructed
+#   ...any regex
+my.hoo.usualENA = list()
+my.hoo.usualENA[[1]] = list(Condition = "<UNIT>", GroupName = "<UNIT>")
+
+my.hoo.TMA = list()
+my.hoo.TMA[[1]] = list(Condition = "<UNIT>", GroupName = "<UNIT>", CommunicationType = "chat")
+my.hoo.TMA[[2]] = list(Condition = "<UNIT>", UserName = "<UNIT>")
+
+#set units
+#get all possible units in the set
+my.units = unique(d.run[,c("Condition", "UserName")])
+#use only a few for this analysis
+my.units = my.units[1:3,]
+
+#generate contexts for this data: REGULAR ENA
+hoos.regular = get.contexts(units = my.units, data = d.run, hoo.rules = my.hoo.usualENA)
+#generate contexrs for this data: TMA
+hoos.TMA = get.contexts(units = my.units, data = d.run, hoo.rules = my.hoo.TMA)
+
+#show results
+
+#show full output for one 
+## clm - commented out for now, makes output unreadable/too long
+#hoos.regular
+##hoos.TMA
+
+#compare these two (first panels in the output)
+#Notice there is no rows for VIEW for brandon or akash in the TMA version
+#because they are is not the unit. But there are two for Steven because he is the unit
+# clm - using head() to reduce ouput
+head(hoos.regular$contexts$`FirstGame::steven z`$context)
+head(hoos.TMA$contexts$`FirstGame::steven z`$context)
+
+
+#use REGULAR ENA going forward so it is easier to check values
+these.hoos = hoos.regular
+
+```
+
+
+```{r maskHelperFunction}
+
+# see R/mask.R
+
+```
+# Make a Decay Model
+
+So, now we're ready to make a decay model.
+
+The basic approach of the model is to loop over the contexts from the get.contexts function. Each context is associated 
+with one unit of analysis, and carries all of the rows of data that the unit can "see".
+
+So, we do some initializing of variables, and then loop over the contexts. 
+
+We start by pulkling out all of the rows that have no codes in them -- they don't contribute anything to the analysis, 
+and we don't need them as "spacer" rows to track windows. 
+
+In each context, we pull out the "receiving" rows -- that is, the rows that belong to the unit -- and loop over those. 
+If there aren't any (after pulling out the zero rows) then we skip the unit.
+
+For each response row, we find the rows in the context that happen before the response. These are the ground. (We can 
+also specify a maximum time back in time if the data file is very large and we want to save a little processing time.)
+
+We then apply the decay function to the ground codes -- or if it is a multi-model model, then we apply thee decay 
+functions based on the modes specified. The do that, pass the current time, the time of each row in the ground, and the 
+mode of each row in the ground to a function that computes the decays. We use matrix multiplication to apply the vector 
+of decays to the ground codes.
+
+Once the decays are added, we process the data much like ENA: there is a window (the ground) and a response, we do 
+matrix multiplication and then subtract the response-to-response diagonal so we are not counting self-references within 
+the response line.
+
+A weighting function is then applied (default is sqrt), to account for the same weighting issues that come up in a 
+weighted ENA model of over-weighting rows with high code-counts.
+
+TMA does this as a directed matrix, and then at the very end, the undirected matrix is computed from the directed. Both 
+are returned.
+
+Finally, the function converts the adjacency matrices (directed and undirected) into a table of adjacency vectors.
+
+Information needed to make an ENA set with the undirected adjacency vectors is passed to ena.set to construct a 
+properly-formatted ENA set. ~~*Note: this does not work at the moment, but Cody is going to look into it.*~~
+
+All of the above functionality should work. That is, models can be run as uni- or multi-modal, with or without time limits on the lookback, with or without meta data. 
+
+In terms of things to do:
+
+  1. Hopefully Cody can fix the conversion to Ena set.
+  
+  2. This returns plausible numbers, but I have not been able to do the math very carefully 
+      to confirm that the numbers add up precisely. Someone needs to do that.
+      
+  3. Once the numbers work and we can put this in an ENA set, we should compare the TMA
+      model to a weighted ENA model for this data.
+      
+  4. We need to run this on some multi-modal data. Andrew's data is a good choice.
+      That will involve some work to get the right decay functions for the two modes --
+      in particular, making sure they are different enough that we could plausibly
+      see a differece between a uni- and multi-modal TMA model.
+      
+      The correct sequence for this will be to develop one decay model for the whole data set
+      that we can use to confim that a uni-modal TMA model converges with the existing
+      ENA result. THEN we need to implement a multi-modal model where the decay functions 
+      have some significant differences.
+  
+  5. We need to figure out how to get TMA to function as input to a dENA modeel.
+  
+  6. We should compare a TMA analysis to a dENA analysis we have already done.
+  
+In terms of priorities, #1 and #2 are essential. TMA is dead in the water if we can't link to ENA and we are not convinced the math works correctly.
+
+Then, we need #4 in order to write the grant. I regard #3 as an easy test case, but it is not as essential as #4. 
+
+Taks #5 and #6 can wait until we have #4 complete.
+
+
+```{r makeDecayModel}
+
+# see R/decay_default.R
+# see R/accumulate_units.R
+
+```
+
+# Test Accumulation #1
+
+To test the model, I created two delay functions. One is the original decay function. One has a longer decay time.
+
+
+```{r TMAaccumulation}
+
+#this tests the main accumulation function for TMA
+
+#original decay function
+chat.decay.function = decay.function
+
+#decay function with a longer decay time
+view.decay.function = function(x) return(-0.0039*x^3 + 0.0661*x^2 - 0.3507*x + 1)
+
+
+#construct list for passing to accumulate,units
+modal.decay.function = list()
+modal.decay.function$view = view.decay.function
+modal.decay.function$chat = chat.decay.function
+
+my.accumulation = accumulate.units(context.object = these.hoos, 
+                                   codes = c('Data',
+                                              'Technical.Constraints',
+                                              'Performance.Parameters',
+                                              'Client.and.Consultant.Requests',
+                                              'Design.Reasoning',
+                                              'Collaboration'
+                                              ), 
+                                   time.column = "time", 
+                                   #decay.function = decay.function, 
+                                   decay.function = modal.decay.function, 
+                                   mode.column = "CommunicationType",
+                                   weight.by = sqrt,
+                                   time.limit = 7,
+                                   meta.data = c("CONFIDENCE.Pre", "CONFIDENCE.Change"),
+                                   return.ena.set = TRUE)
+
+#show results
+# print("For ENA:")
+# my.accumulation$for.ena
+
+# print("Contexts (with adjacency matrices):")
+# my.accumulation$contexts
+
+# print("units:")
+# my.accumulation$units
+
+# print("Directed adjacency vectors")
+# my.accumulation$directed.adjacency.vectors
+
+# print("::")
+
+```
+
+# Define Decay Functions
+
+Some example chat and view decay functions.
+
+```{r testMaskAndTraditionalWindowModel}
+#window decay function, window size = 4
+chat.decay.function = function(x) {ifelse(x<4, 1, 0)}
+
+#decay function with a bigger window size
+view.decay.function = function(x) {ifelse(x<20, 1, 0)}
+```
+
+_Note: Seems like this could be a single function a la:_
+
+```
+decay.function <- function(x, n = 4) {
+  ifelse(x < n, 1, 0)
+}
+
+# If needed, the same `chat.decay` and `view.decay` can be used, while still using the parameterized function:
+
+chat.decay.function <- function(x) decay.function(x, 4)
+view.decay.function <- function(x) decay.function(x, 20)
+```
+
+# Setup Model
+
+Some model setup.  
+
+```{r modelSetup}
+#construct list for passing to accumulate,units
+modal.decay.function = list()
+modal.decay.function$view = view.decay.function
+modal.decay.function$chat = chat.decay.function
+
+#only let data communicate with itself and tech constraints
+
+my.mask = t(matrix(
+                c(1,1,0,0,0,0,
+                  0,0,0,0,0,0,
+                  0,0,0,0,0,0,
+                  0,0,0,0,0,0,
+                  0,0,0,0,0,0,
+                  0,0,0,0,0,0)
+                ,6,6))
+
+my.mask = NA
+
+# my.mask = t(matrix(
+#                 c(1,1,0,0,0,0,
+#                   0,0,0,0,0,0,
+#                   0,0,0,0,0,0,
+#                   0,0,0,0,0,0,
+#                   0,0,0,0,0,0,
+#                   NA,0,0,0,0,0)
+#                 ,6,6))
+my.mask
+
+#debug(accumulate.units)
+these.hoos = hoos.TMA
+```
+
+# Test Accumulation #2
+
+
+```{r}
+my.accumulation = accumulate.units(context.object = these.hoos, 
+                                   codes = c('Data',
+                                              'Technical.Constraints',
+                                              'Performance.Parameters',
+                                              'Client.and.Consultant.Requests',
+                                              'Design.Reasoning',
+                                              'Collaboration'
+                                              ), 
+                                   #time.column = "time", 
+                                   #decay.function = decay.function, 
+                                   decay.function = modal.decay.function, 
+                                   mode.column = "CommunicationType",
+                                   weight.by = sqrt,
+                                   mask = my.mask,
+                                   #time.limit = 7,
+                                   meta.data = c("CONFIDENCE.Pre", "CONFIDENCE.Change"),
+                                   return.ena.set = TRUE)
+
+#show results
+# print("For ENA:")
+# my.accumulation$for.ena
+# print("Contexts (with adjacency matrices):")
+# my.accumulation$contexts
+# print("units:")
+# my.accumulation$units
+# print("Directed adjacency vectors")
+# my.accumulation$directed.adjacency.vectors
+# print("::")
+
+```
+
+# Try Plotting
+
+
+```{r}
+
+ena_set <- ena.make.set(my.accumulation$ena.set)
+
+plot <- ena.plot(enaset = ena_set, title = "TMA Plot", dimension.labels = c("SVD1", "SVD2"))
+plot <- ena.plot.points(plot, points = ena_set$points, colors = c("red", "blue", "green"))
+
+plot$plot
+```
+
+
+
+
