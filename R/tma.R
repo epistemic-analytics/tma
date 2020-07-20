@@ -1,34 +1,21 @@
-require(dplyr)
-library(dplyr)
-require(optimbase)
-library(optimbase)
-
-# helpers.R includes the following functions:
-  # convert.time
-  # call_eq
-  # merge.on
-  # get.unique.col.values
-  # test.df
-  # get.quoted.columns
-source('./helpers.R');
-# decay_functions.R includes the following functions:
-  # step_function
-  # get.decay
-  # get.decay.modes
-source('./decay_functions.R');
-# contexts.R includes the following functions:
-  # get.contexts
-source('./contexts.R');
-# masks.R includes the following functions:
-  # mask
-source('./masks.R');
-# accumulation.R includes the following functions:
-  # accumulate.units
-  # default.decay.function
-source('./accumulation.R');
-
-
-tma_accumulation = function(
+#' TMA wrapper function
+#'
+#' @param data TBD
+#' @param units TBD
+#' @param codes TBD
+#' @param hoo.rules TBD 
+#' @param weight.by TBD
+#' @param return.ena.set TBD
+#' @param time.column TBD
+#' @param decay.function TBD
+#' @param mode.column TBD
+#' @param time.limit TBD
+#' @param mask TBD
+#' @param meta.data TBD
+#'
+#' @return
+#' @export
+tma <- function(
   data,
   units,
   codes,
@@ -49,6 +36,7 @@ tma_accumulation = function(
   #   ...any regex
   #generate contexts for this data: TMA
   hoos.TMA = get.contexts(units = units, data = data, hoo.rules = hoo.rules);
+  # browser()
   accumulation = accumulate.units(
     context.object = hoos.TMA,
     codes = codes,
