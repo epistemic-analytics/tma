@@ -17,7 +17,7 @@ get.contexts = function(units, data, hoo.rules) {
     f.hoo = hoo.rules
 
     #add row numbeers to the data (needed to keep data sorted)
-    Rows = 1:nrow(f.data)
+    Rows = 1:nrow(f.data) %>% tibble %>% set_names('Rows')
     f.data.augmented = cbind(Rows, f.data)
     
     #initialize output list for contexts
