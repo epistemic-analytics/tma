@@ -85,12 +85,12 @@ call_eq <- function(x = 1, eq = "x^3 + 2*x^2 + x - 7") {
   }
   
   else {
-    if(is.name(eq_sub)) {
-      # I'm not clear what this is doing, as it doesn't return and the next line isn't a part of an 
-      # else {}, so the next line will always execute and be what is returned, likely producing
-      # unexpected results. (clm)
-      # eval(substitute(eval(eq_sub)))
-    }
+    # I'm not clear what this was doing, as it didn't return and the next line isn't a part of an 
+    # else {}, so the next line will always execute and be what is returned, likely producing
+    # unexpected results. (clm)
+    # if(is.name(eq_sub)) {
+    #   eval(substitute(eval(eq_sub)))
+    # }
     
     env <- new.env();
     res <- eval(parse(text = eq), envir = env);
@@ -115,24 +115,24 @@ call_eq <- function(x = 1, eq = "x^3 + 2*x^2 + x - 7") {
 #' @return merged data.frame
 #' @export
 merge_on = function(x, y, order.column = NA) {
-  if(any(names(x) != names(y))) stop("Objects x and y must have the same column names")
+  if(any(names(x) != names(y))) {
+    stop("Objects x and y must have the same column names")
+  }
   
-  #if row number column is not specified, try to use the first column
-  if (is.na(order.column)) order.column = names(x)[1]
-  if (length(order.column) > 1) stop(
-    "Can only sort on one column (order.column must be a single column name or number)"
-  )
+  # if row number column is not specified, try to use the first column
+  # NOTE: This seems dangerous to me, at the very least we could search for an ID column (column)
+  #       with a unique value in each row (clm)
+  if (is.na(order.column)) {
+    order.column = names(x)[1]
+  }
+  if (length(order.column) > 1) {
+    stop("Can only sort on one column (order.column must be a single column name or number)")
+  }
   
-  output <- rbind(x, y);
-  output <- output[!duplicated(output),]
-  output <- output[order(output[[order.column]]), ]
-  # x_dt <- data.table(x);
-  # y_dt <- data.table(y);
-  # output_dt <- data.table::funion(x_dt, y_dt);
-  # data.table::setorderv(output_dt, cols = order.column)
+  output <- rbind(x, y);;
+  output <- output[!duplicated(output),];
+  output <- output[order(output[[order.column]]), ];
   
-  # return(output_dt);
-  # return(output_dt[order(output_dt[, c(order.column), with = FALSE]), ]);
   return(output);
 }
 
