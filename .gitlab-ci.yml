@@ -1,5 +1,6 @@
 stages:
  - docker
+ - test
  - check
  - deploy
  - release
@@ -35,14 +36,38 @@ variables:
     #- Rscript -e 'devtools::build_vignettes()'
     - cd ..; R CMD build --resave-data --no-manual --log $PKG
 
+test:
+  stage: test
+  image: $REG_URL/release-test:latest
+  script:
+    - rm -rf src/RcppExports*
+    - rm -rf R/RcppExports*
+    - "sed -i -e \"s/Version: \\(.*\\)/Version: ${VERSION}/\" DESCRIPTION"
+    - Rscript -e 'update(devtools::dev_package_deps("."))'
+    - |
+        Rscript -e "test_results <- devtools::test();
+                    all_passed <- all(sapply(lapply(test_results, `[[`, 'results'), function(l) {
+                      all(sapply(l, inherits, 'expectation_success'));
+                    }));
+                    print(paste0("Tests passed: ", all_passed));
+                    if (all_passed == TRUE) {
+                      quit(status = 0);
+                    }
+                    else {
+                      quit(status = 1);
+                    }"
+  except:
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /.*\[skip tests\].*/
+
+
 # Rhub Checks
 .rhub_condition: &rhub_condition
   except:
     refs:
       - tags
-  only:
     variables:
-      - $CI_COMMIT_MESSAGE =~ /.*\[check rhub\].*/
+      - $CI_COMMIT_MESSAGE =~ /.*\[skip checks\].*/
 .rhub_definition: &rhub_definition
   stage: check
   image: $CI_REGISTRY_IMAGE/release:latest
@@ -78,6 +103,7 @@ variables:
   only:
     refs:
       - master
+      - branches
     variables:
       - $RHUB_EMAIL_ADDRESS
       - $RHUB_EMAIL_TOKEN
