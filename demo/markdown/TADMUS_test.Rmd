@@ -81,12 +81,13 @@ tma_accumulation = tma(
   weight.by = function(x) {x},
   return.ena.set = TRUE,
   time.column = NA,
-  decay.function = modal.decay.function,
-  mode.column = 'Scenario',
+  decay.function = step_function(5),
+  mode.column = NA,
   time.limit = NA,
   meta.data = NA
 )
 
 tma_cc = tma_accumulation$ena.set$connection.counts[tma_accumulation$ena.set$connection.counts$MacroRole != 'Other']
+
 ```
 
