@@ -7,11 +7,14 @@
 get.contexts(units, data, hoo.rules)
 }
 \arguments{
-\item{units}{}
+\item{units}{TBD}
 
-\item{data}{}
+\item{data}{TBD}
 
-\item{hoo.rules}{}
+\item{hoo.rules}{TBD}
+}
+\value{
+list of dataframes (one for each context) in $contexts
 }
 \description{
 get contexts for each unit, by hoo.rules plus metadata that ena will need

@@ -105,8 +105,7 @@ call_eq <- function(x = 1, eq = "x^3 + 2*x^2 + x - 7") {
   }
 }
 
-
-#' Merge dataframes
+#' Merge using data.tables
 #' 
 #' @description function to merge and reordeer based on column of row numbers that needs to be specified
 #' @param x TBD
@@ -115,19 +114,26 @@ call_eq <- function(x = 1, eq = "x^3 + 2*x^2 + x - 7") {
 #'
 #' @return merged data.frame
 #' @export
-merge.on = function(x, y, order.column = NA) {
+merge_on = function(x, y, order.column = NA) {
   if(any(names(x) != names(y))) stop("Objects x and y must have the same column names")
-  #get rows that are only in x
-  unique.x = anti_join(x,y, by = names(x))
-  #add rows only inb x to all of y (since y+x will now have all of x and all of y without repeats)
-  output = rbind(unique.x,y)
+  
   #if row number column is not specified, try to use the first column
   if (is.na(order.column)) order.column = names(x)[1]
   if (length(order.column) > 1) stop(
-    "Can only sort on one column (order.column must be a single column name or number)")
-  #order and return
-  output = output[order(output[,order.column]), ]
-  return(output)
+    "Can only sort on one column (order.column must be a single column name or number)"
+  )
+  
+  output <- rbind(x, y);
+  output <- output[!duplicated(output),]
+  output <- output[order(output[[order.column]]), ]
+  # x_dt <- data.table(x);
+  # y_dt <- data.table(y);
+  # output_dt <- data.table::funion(x_dt, y_dt);
+  # data.table::setorderv(output_dt, cols = order.column)
+  
+  # return(output_dt);
+  # return(output_dt[order(output_dt[, c(order.column), with = FALSE]), ]);
+  return(output);
 }
 
 

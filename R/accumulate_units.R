@@ -46,7 +46,7 @@ accumulate.units = function(context.object,
   #initialize metadata matrix, if needed
   if(use.meta) {
     # browser()
-    output.meta.data = f.raw[0,c(names(f.units),f.meta.data) %>% unique]
+    output.meta.data = f.raw[0, unique(c(names(f.units),f.meta.data))]
     # output.meta.data = f.raw[0, unique(c(names(f.units),f.meta.data))]
   }
   
@@ -101,7 +101,7 @@ accumulate.units = function(context.object,
     
     #get meta data for this unit and add to the the meta data dataframe
     if(use.meta) {
-      output.meta.data = rbind(output.meta.data, get.unique.col.values(this.unit.data[,output.meta.data %>% colnames]))
+      output.meta.data = rbind(output.meta.data, get.unique.col.values(this.unit.data[,colnames(output.meta.data)]))
     }
     
     #if there are non-zero rows for this unit, compute adjacencies

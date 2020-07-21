@@ -11,6 +11,8 @@ lm_to_eq(x, with_assignment = FALSE, digits = NULL)
 
 \item{with_assignment}{logical, default is FALSE, if TRUE (or character string) will return a `y = ` to the left-hand
 side of the equation}
+
+\item{digits}{NULL (default) performs no reduction in precision, if an integer, rounds to that decimal place}
 }
 \value{
 character string representing equation

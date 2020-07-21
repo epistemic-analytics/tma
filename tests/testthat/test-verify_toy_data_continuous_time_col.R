@@ -1,4 +1,5 @@
-d = read.csv(system.file(package = "tma", 'extdata/test_data.csv'), stringsAsFactors = FALSE);
+data("test_data", package = "tma")
+d = tma::test_data
 
 d$time = convert.time( as.character(d$Timestamp), units = "minutes");
 my.hoo.TMA = list()

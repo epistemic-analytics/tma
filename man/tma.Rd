@@ -45,7 +45,7 @@ tma(
 \item{meta.data}{TBD}
 }
 \value{
-
+TBD
 }
 \description{
 Transmodal Analysis for ENA. rENA is used to create and visualize network models of discourse and other phenomena from coded data using Epistemic Network Analysis (ENA).

@@ -111,7 +111,7 @@ call_eq <- function(x = 1, eq = "x^3 + 2*x^2 + x - 7") {
 #function to merge and reordeer based on column of row numbers that needs to be specified
 #uses a bit of tidyverse trickery
 #adds 
-merge.on = function(x, y, order.column = NA) {
+merge_on = function(x, y, order.column = NA) {
   if(any(names(x) != names(y))) stop("Objects x and y must have the same column names")
   #get rows that are only in x
   unique.x = anti_join(x,y, by = names(x))
@@ -467,7 +467,7 @@ get.contexts = function(units, data, hoo.rules){
         #otherwise, merge new temporary output into existing
         #This merge function removes duplicate rows and keeps output in the order
         #of column "Rows"
-        else hoos[[i]][["context"]] = merge.on(hoos[[i]][["context"]], this.output, "Rows")
+        else hoos[[i]][["context"]] = merge_on(hoos[[i]][["context"]], this.output, "Rows")
     
               
       }#finished with rules

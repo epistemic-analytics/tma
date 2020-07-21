@@ -1,11 +1,11 @@
 #' get contexts
 #'
 #' @description get contexts for each unit, by hoo.rules plus metadata that ena will need
-#' @param units 
-#' @param data 
-#' @param hoo.rules 
+#' @param units TBD
+#' @param data TBD
+#' @param hoo.rules TBD
 #'
-#' @returna list of dataframes (one for each context) in $contexts
+#' @return list of dataframes (one for each context) in $contexts
 #' @export
 get.contexts = function(units, data, hoo.rules) {
     #This is a hack I use to create functions. When I start, I assign these
@@ -90,7 +90,10 @@ get.contexts = function(units, data, hoo.rules) {
         #otherwise, merge new temporary output into existing
         #This merge function removes duplicate rows and keeps output in the order
         #of column "Rows"
-        else hoos[[i]][["context"]] = merge.on(hoos[[i]][["context"]], this.output, "Rows")
+        else {
+          # browser()
+          hoos[[i]][["context"]] = merge_on(hoos[[i]][["context"]], this.output, "Rows")
+        }
     
               
       }
@@ -98,7 +101,6 @@ get.contexts = function(units, data, hoo.rules) {
     
       #remove row numbers
       hoos[[i]][["context"]] = hoos[[i]][["context"]][, -1]
-    
     }
     #finished with unit  
   

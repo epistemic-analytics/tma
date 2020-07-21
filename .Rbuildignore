@@ -31,3 +31,4 @@ src/*.so
 .bash_history
 
 ^.*.png
+^data-raw$

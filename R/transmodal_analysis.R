@@ -5,6 +5,5 @@
 #' @import stats
 #' @import utils
 #' @import data.table
-#' @import dplyr
 #' @import rENA
 NULL

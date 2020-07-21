@@ -1,4 +1,5 @@
-d = read.csv(system.file(package = "tma", 'extdata/test_data.csv'), stringsAsFactors = FALSE);
+data("test_data", package = "tma")
+d = tma::test_data
 
 my.hoo.TMA = list()
 my.hoo.TMA[[1]] = list(Condition = "<UNIT>", GroupName = "<UNIT>", Context = "Public")  

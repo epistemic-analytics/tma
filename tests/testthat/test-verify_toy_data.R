@@ -1,4 +1,5 @@
-d = read.csv(system.file(package = "tma", 'extdata/test_data.csv'), stringsAsFactors = FALSE);
+data("test_data", package = "tma")
+d = tma::test_data
 
 my.hoo.TMA = list()
 my.hoo.TMA[[1]] = list(Condition = "<UNIT>", GroupName = "<UNIT>", Context = "Public")  
@@ -8,7 +9,7 @@ codes = c('A','B','C')
 modal.decay.function = list()
 modal.decay.function$Private = step_function(window_size = 2);
 modal.decay.function$Public = step_function(window_size = 2);
-accumulation_window_2 = tma(
+accumulation_window_2 = tma::tma(
   data = d,
   units = my.units,
   codes = codes,

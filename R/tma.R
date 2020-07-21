@@ -13,7 +13,7 @@
 #' @param mask TBD
 #' @param meta.data TBD
 #'
-#' @return
+#' @return TBD
 #' @export
 tma <- function(
   data,

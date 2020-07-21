@@ -1,5 +1,7 @@
-d = read.csv(system.file(package = "tma", 'extdata/toy_dataset_with_empty_rows.csv'), stringsAsFactors = FALSE);
+data("test_data_empties", package = "tma")
+d = tma::test_data_empties
 d$time = convert.time( as.character(d$Timestamp), units = "minutes");
+
 my.hoo.TMA = list()
 my.hoo.TMA[[1]] = list(Condition = "<UNIT>", GroupName = "<UNIT>", Context = "Public")  
 my.hoo.TMA[[2]] = list(Condition = "<UNIT>", UserName = "<UNIT>")
