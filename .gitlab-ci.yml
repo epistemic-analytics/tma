@@ -1,0 +1,229 @@
+stages:
+ - docker
+ - check
+ - deploy
+ - release
+
+variables:
+  VERSION: "0.0.1.0"
+  PKG: "tma"
+  PKGL: "tma"
+  REG_URL: "${CI_REGISTRY}/epistemic-analytics/qe-packages/tma"
+
+# Templates
+.build_definition: &build_template
+  before_script:
+    - export _R_CHECK_CRAN_INCOMING_="true"
+    - export _R_CHECK_CRAN_INCOMING_REMOTE_="true"
+    - export _R_CHECK_FORCE_SUGGESTS_="true"
+    - export _R_CLASS_MATRIX_ARRAY_="true"
+    - export R_REMOTES_STANDALONE="true"
+    - export R_REMOTES_NO_ERRORS_FROM_WARNINGS="true"
+    - export TZ=Europe/London
+    - export _R_CHECK_LENGTH_1_CONDITION_="package:_R_CHECK_PACKAGE_NAME_,verbose"
+    - mkdir -p archive/
+    #- rm -f ./R/RcppExports.R
+    #- mkdir -p ~/.R/
+    #- rm -f ~/.R/Makevars
+    #- cp demo/backup/Makevars ~/.R/
+    - cat DESCRIPTION
+    #- Rscript -e 'Rcpp::compileAttributes()'
+    - Rscript -e 'update(devtools::dev_package_deps("."))'
+    #- Rscript -e 'install.packages("knitr")'
+    #- Rscript -e 'install.packages("rmarkdown")'
+    #- Rscript -e 'install.packages("testthat")'
+    #- Rscript -e 'devtools::build_vignettes()'
+    - cd ..; R CMD build --resave-data --no-manual --log $PKG
+
+# Rhub Checks
+.rhub_condition: &rhub_condition
+  except:
+    refs:
+      - tags
+  only:
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /.*\[check rhub\].*/
+.rhub_definition: &rhub_definition
+  stage: check
+  image: $CI_REGISTRY_IMAGE/release:latest
+  before_script:
+    - Rscript -e 'install.packages("rhub")'
+  script:
+    - |
+        Rscript -e "rhub::validate_email(email = \"${RHUB_EMAIL_ADDRESS}\", token = \"${RHUB_EMAIL_TOKEN}\");
+                    checked <- rhub::check(
+                      platform = \"${RHUB_PLATFORM}\", show_status = TRUE,
+                      env_vars = c(
+                        \"_R_CHECK_CRAN_INCOMING_\" = \"true\",
+                        \"_R_CHECK_CRAN_INCOMING_REMOTE_\" = \"true\",
+                        \"_R_CHECK_FORCE_SUGGESTS_\" = \"true\",
+                        \"_R_CLASS_MATRIX_ARRAY_\"=\"true\",
+                        \"R_REMOTES_STANDALONE\"=\"true\",
+                        \"R_REMOTES_NO_ERRORS_FROM_WARNINGS\"=\"true\"
+                      )
+                    );
+                    checked\$cran_summary();
+                    rhub_content <- function(text_url) {
+                      text_get <- httr::GET(url = text_url)
+                      test_content <- strsplit(httr::content(text_get), split = \"\\\\n\")[[1]];
+                      err_found <- grep(x = test_content, pattern = \"runtime error\");
+                      print(test_content[err_found]);
+                      return(err_found);
+                    }
+                    if(!checked\$.__enclos_env__\$private\$status_[[1]]\$status %in% c('error', 'warning')) {
+                      rhub_errors <- rhub_content(checked\$urls()\$text);
+                      if(length(rhub_errors) > 0) { quit(status = 1); }
+                      else { quit(status = 0); }
+                    } else { quit(status = 1); }"
+  only:
+    refs:
+      - master
+    variables:
+      - $RHUB_EMAIL_ADDRESS
+      - $RHUB_EMAIL_TOKEN
+  <<: *rhub_condition
+check:r-hub-windows-old-release:
+  variables:
+    RHUB_PLATFORM: "windows-x86_64-oldrel"
+  <<: *rhub_definition
+check:r-hub-windows-release:
+  variables:
+    RHUB_PLATFORM: "windows-x86_64-release"
+  <<: *rhub_definition
+check:r-hub-ubuntu-gcc-release:
+  variables:
+    RHUB_PLATFORM: "ubuntu-gcc-release"
+  <<: *rhub_definition
+#check:r-hub-ubuntu-gcc-devel:
+#  variables:
+#    RHUB_PLATFORM: "ubuntu-gcc-devel"
+#  <<: *rhub_definition
+check:r-hub-macos-highsierra-release-cran:
+  variables:
+    RHUB_PLATFORM: "macos-highsierra-release-cran"
+  <<: *rhub_definition
+#check:r-hub-windows-devel:
+#  variables:
+#    RHUB_PLATFORM: "windows-x86_64-devel"
+#  <<: *rhub_definition
+#check:r-hub-debian-gcc-devel:
+#  variables:
+#    RHUB_PLATFORM: "debian-gcc-devel"
+#  <<: *rhub_definition
+#check:r-hub-debian-gcc-release:
+#  variables:
+#    RHUB_PLATFORM: "debian-gcc-devel"
+#  <<: *rhub_definition
+#check:r-hub-linux-x86_64-rocker-gcc-san:
+#  variables:
+#    RHUB_PLATFORM: "linux-x86_64-rocker-gcc-san"
+#  <<: *rhub_definition
+#check:r-hub-debian-gcc-devel:
+#  variables:
+#    RHUB_PLATFORM: "debian-gcc-devel"
+#  <<: *rhub_definition
+#check:r-hub-debian-clang-devel:
+#  variables:
+#    RHUB_PLATFORM: "debian-clang-devel"
+#  <<: *rhub_definition
+
+.release_definition: &release_definition
+  stage: release
+  image: $REG_URL/release:latest
+  #dependencies:
+  #  - check:r-release
+  only:
+    refs:
+      - tags
+    variables:
+      - $CI_COMMIT_TAG
+  except:
+    - branches
+    - master
+  <<: *build_template
+  script:
+    - cat ./${PKG}/cran-comments.md || true
+    - ls -al || true
+    - Rscript -e "devtools:::upload_cran(devtools::as.package(\"${PKG}\"), \"./${PKG}_${VERSION}.tar.gz\")"
+    - "curl --request POST --header \"PRIVATE-TOKEN: ${GITLAB_API_TOKEN}\" --data-urlencode \"tag_name=${VERSION}\" --data-urlencode \"name=v${VERSION}\" --data-urlencode \"description=Automatically created from CI for ${VERSION}\" \"${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/releases?ref=${CI_COMMIT_REF_NAME}\""
+  allow_failure: false
+release:cran-manual:
+  <<: *release_definition
+  when: manual
+
+
+pages:
+  stage: deploy
+  image: $REG_URL/release-test:latest
+  script:
+    - rm -rf src/RcppExports*
+    - rm -rf R/RcppExports*
+    - "sed -i -e \"s/Version: \\(.*\\)/Version: ${VERSION}/\" DESCRIPTION"
+    - Rscript -e 'update(devtools::dev_package_deps("."))'
+    - Rscript -e 'install.packages("microbenchmark")'
+    - Rscript -e 'Rcpp::compileAttributes()'
+    - Rscript -e "devtools::install(\".\", quick = T, build = T, dependencies = F, upgrade = F)"
+    - Rscript -e "pkgdown::build_site(preview = F, devel = T, lazy = T, new_process = T)"
+    - |
+        Rscript -e "cov <- covr::package_coverage(quiet = F);
+                    rep <- covr::report( x = cov, file = \"public/coverage/index.html\", browse = FALSE );"
+  artifacts:
+    paths:
+      - public
+    expire_in: 30 days
+  only:
+    - master
+  except:
+    refs:
+      - tags
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /.*\[skip pages\].*/
+
+# Docker Image steps
+.docker_variables: &docker_variables
+  DOCKER_HOST: tcp://localhost:2375/
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: ""
+.docker_definition: &docker_template
+  stage: docker
+  image: docker:19.03.1
+  services:
+    - docker:19.03.1-dind
+  before_script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+  script:
+    - docker build -t $CI_REGISTRY_IMAGE/$TAG:current -f inst/docker/${PKG}-${FILE} inst/docker/
+    - docker push $CI_REGISTRY_IMAGE/$TAG:current
+  only:
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /.*\[build docker\].*/ || $DOCKER_FORCE_REBUILD
+docker:release:
+  variables:
+    <<: *docker_variables
+    TAG: "release"
+    FILE: "release"
+  <<: *docker_template
+docker:release-test:
+  variables:
+    <<: *docker_variables
+    TAG: "release-test"
+    FILE: "release-test"
+  <<: *docker_template
+docker:old-release:
+  variables:
+    <<: *docker_variables
+    TAG: "old-release"
+    FILE: "oldrelease"
+  <<: *docker_template
+docker:devel:
+  variables:
+    <<: *docker_variables
+    TAG: "devel"
+    FILE: "devel"
+  <<: *docker_template
+docker:devel-san:
+  variables:
+    <<: *docker_variables
+    TAG: "devel-san"
+    FILE: "devel-san"
+  <<: *docker_template
