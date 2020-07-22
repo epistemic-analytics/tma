@@ -3,6 +3,8 @@ title: "Draft 1"
 author: "DWS"
 date: "5/28/2020"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 
@@ -35,7 +37,8 @@ Note, that this default RS data set in the rENA package is a MESS. There are dup
 
 ```{r get_data}
 
-d = RS.data
+setwd('/Users/arielfogel/Epistemic Analytics/tma')
+d = read.csv('test_data/test_data.csv')
 
 #function to get rid of factors
 factor.to.value = function(x) {
@@ -201,19 +204,20 @@ d$time = convert.time( as.character(d$Timestamp), units = "minutes")
 #this gave me an "average" time between turns of talk
 
 #put in NAs to cover changes in day
-d$timeLag = rep(NA, nrow(d))
-for(x in 1:(nrow(d)-1)) {
-  if(d$GameDay[x] == d$GameDay[x+1]){
-    #this assigns, for each row, the time it is BEHIND or BEFORE the next row
-    d$timeLag[x] = d$time[x+1] - d$time[x]
-  }
-}
-rm(x)
-
-hist(d$timeLag)
-mean(na.omit( d$timeLag[d$timeLag] ))
-hist(d$timeLag[d$timeLag<10])
-mean(na.omit( d$timeLag[d$timeLag<10] ))
+# d$timeLag = rep(NA, nrow(d))
+# for(x in 1:(nrow(d)-1)) {
+#   if(d$GameDay[x] == d$GameDay[x+1]){
+#     #this assigns, for each row, the time it is BEHIND or BEFORE the next row
+#     d$timeLag[x] = d$time[x+1] - d$time[x]
+#   }
+# }
+# rm(x)
+# 
+# hist(d$timeLag)
+# mean(na.omit( d$timeLag[d$timeLag] ))
+# hist(d$timeLag[d$timeLag<10])
+# mean(na.omit( d$timeLag[d$timeLag<10] ))
+# d = read.csv(file.choose())
 
 ```
 
@@ -263,6 +267,24 @@ The little plateau makes it hard to fit with an exponential. Not saying we shoul
 
 #specific function for these decay values
 decay.function = function(x) return(-0.0059*x^4 + 0.0806*x^3 - 0.3186*x^2 + 0.1178*x + 1)
+step.function = function(x) {
+  if(x==0) {
+    return(.5)
+  } else if (x==1) {
+    return(1)
+  } else {
+    return(0)
+  }
+};
+decay.function = function(x) {
+  if (x==0) {
+    return(.5) 
+  } else if(x<3) {
+    return(1)
+  } else {
+    return(0)
+  }
+}
 
 ```
 
@@ -312,7 +334,7 @@ get.decay.modes = function(
   
   #if modes not specifieed, assume a single decay function and call get.decay
   if (any(is.na(modes))) {
-    return(get.decay(now, event.time, decay.function))
+    return(get.decay(now = now, decay.function = decay.function, event.time = event.time))
   }
    
   #again, trap POSIX if that is how times are given
@@ -364,13 +386,14 @@ OK, so now we need to find the CONTEXTS for each unit of analysis in the data. T
 #returns a list of dataframes (one for each context) in $contexts
 #plus metadata that ena will need
 get.contexts = function(units, data, hoo.rules){
-    
+    # browser();
     #This is a hack I use to create functions. When I start, I assign these
     #temporary names to variables. I can assign values and step through the function
     #while I am writing/deebugging. Then when the function works, I can create the function
     #call and pass the parameters to these termporary variables.
     f.data = data
-    f.units = units
+    # TODO: BUG!!!!! this method can't handle units of a single column; must be 2 columns
+    f.units = data.frame(units)
     f.hoo = hoo.rules
 
     #add row numbeers to the data (needed to keep data sorted)
@@ -381,7 +404,7 @@ get.contexts = function(units, data, hoo.rules){
     hoos = list()
     
     #loop over units
-    for(i in 1:nrow(f.units)){
+    for(i in 1:nrow(f.units)) {
       this.unit = f.units[i,]
     
       #initialize this hoo
@@ -471,9 +494,9 @@ get.contexts = function(units, data, hoo.rules){
   output$units = f.units      #units  
   output$raw.data = f.data    #raw data
 
-return(output)
+  return(output)
 
-}#end of function
+}
 
 
 ```
@@ -508,13 +531,13 @@ The test here shows two cases:
 #add fake "communication types" to data for hoo
 #
 #Do this only once so that it stays stable
-if(!is.object("CommunicationType")){
-    CommunicationType = sample(x = c("chat","view"), size = nrow(d), replace = T, prob = c(.8, .2))
-    d.plus = cbind(CommunicationType, d)
-}
+# if(!is.object("CommunicationType")){
+#     CommunicationType = sample(x = c("chat","view"), size = nrow(d), replace = T, prob = c(.8, .2))
+#     d.plus = cbind(CommunicationType, d)
+# }
 
 #create reduced data set
-d.run = d.plus[1:100,]
+# d.run = d.plus[1:100,]
 
 
 #specify hoo rules as list of lists
@@ -528,79 +551,36 @@ my.hoo.usualENA[[1]] = list(Condition = "<UNIT>", GroupName = "<UNIT>")
 
 
 my.hoo.TMA = list()
-my.hoo.TMA[[1]] = list(Condition = "<UNIT>", GroupName = "<UNIT>", CommunicationType = "chat")
+my.hoo.TMA[[1]] = list(Condition = "<UNIT>", GroupName = "<UNIT>", Context = "Public")
 my.hoo.TMA[[2]] = list(Condition = "<UNIT>", UserName = "<UNIT>")
 
 #set units
 #get all possible units in the set
-my.units = unique(d.run[,c("Condition", "UserName")])
+my.units = unique(d[,c("Condition", "UserName")])
 #use only a few for this analysis
-my.units = my.units[1:3,]
+# my.units = my.units[1:3,]
 
 #generate contexts for this data: REGULAR ENA
-hoos.regular = get.contexts(units = my.units, data = d.run, hoo.rules = my.hoo.usualENA)
+hoos.regular = get.contexts(units = my.units, data = d, hoo.rules = my.hoo.usualENA)
 #generate contexrs for this data: TMA
-hoos.TMA = get.contexts(units = my.units, data = d.run, hoo.rules = my.hoo.TMA)
+hoos.TMA = get.contexts(units = my.units, data = d, hoo.rules = my.hoo.TMA)
 
 #show results
 
 #show full output for one
 hoos.regular
-#hoos.TMA
-
+hoos.TMA
 #compare these two (first panels in the output)
-#Notice there is no rows for VIEW for brandon or akash in the TMA version
+# There is now Private
 #because they are is not the unit. But there are two for Steven because he is the unit
-hoos.regular$contexts$`FirstGame::steven z`$context
-hoos.TMA$contexts$`FirstGame::steven z`$context
+hoos.regular$contexts$`FirstGame::User2`$context
+hoos.TMA$contexts$`FirstGame::User2`$context
 
-
-#use REGULAR ENA going forward so it is easier to check values
-these.hoos = hoos.regular
-
+#use TMA ENA going forward so it is easier to check values
+these.hoos = hoos.TMA
 
 ```
 
-
-```{r maskHelperFunction}
-
-mask = function(df,                         #data frame to apply mask on
-                mask,                       #mask (vector with ncol same as df, or matrix with 
-                                            #same size as original)
-                convertMaskToVector = T,    #if true, mask is in the for of an adjacency matrix,
-                                            #which gets converted to a vector
-                undirectedModel = T,        #setting for directed or undirected model (only used
-                                            #if convertMaskToVector = TRUE)
-                dfIsMatrixOfVectors = T){   #when true, df is a set of adjacency vectors;
-                                            #when false, df is 
-  
-  if (dfIsMatrixOfVectors) {
-    
-    if (convertMaskToVector) {
-      if(undirectedModel) {
-        mask = mask[upper.tri(mask)]
-      } else {
-          mask = as.vector(mask)
-        }
-    } 
-    print(mask)
-    for (i in 1:nrow(df)){
-      df[i,] = df[i,] * mask
-    }
-    
-    output = df
-    
-  } else {
-    
-    output = df * mask
-    
-  }
-  
-  return(output)
-  
-}
-
-```
 
 So, now we're ready to make a decay model.
 
@@ -608,7 +588,7 @@ The basic approach of the model is to loop over the contexts from the get.contex
 
 So, we do some initializing of variables, and then loop over the contexts. 
 
-We start by pulkling out all of the rows that have no codes in them -- they don't contribute anything to the analysis, and we don't need them as "spacer" rows to track windows. 
+We start by pulling out all of the rows that have no codes in them -- they don't contribute anything to the analysis, and we don't need them as "spacer" rows to track windows. 
 
 In each context, we pull out the "receiving" rows -- that is, the rows that belong to the unit -- and loop over those. If there aren't any (after pulling out the zero rows) then we skip the unit.
 
@@ -661,14 +641,14 @@ Taks #5 and #6 can wait until we have #4 complete.
 
 ```{r makeDecayModel}
 
-#default decay function, falls from 1-0 over time 4
+#default decay function, falls from 1-0 over time 3
 #this is used if someone does not specify a decay function, or doesn't know 
 #how to calculate one
 
 #we could get more creative and let someone specify how long they want the
 #decay to go and then give them a function based on that
 default.decay.function = function(x) ifelse(
-  x<4,
+  x<20,
   return(max(0, (0.0508*x^3 - 0.3035*x^2 + 0.1532*x + 1))),
   return(0)
 )
@@ -686,241 +666,245 @@ accumulate.units = function(context.object,
                             meta.data = NA,
                             return.ena.set = TRUE
                             ){
-f.window.limit = time.limit
-f.contexts = context.object$contexts
-f.codes = codes
-f.time = time.column
-f.decay = decay.function
-f.mode = mode.column
-f.weighting.function = weight.by
-f.meta.data = meta.data
-f.units = context.object$units
-f.raw = context.object$raw.data
-
-use.modes = ifelse(any(is.na(f.mode)), FALSE, TRUE)
-use.meta = ifelse(any(is.na(f.meta.data)), FALSE, TRUE)
-use.mask = ifelse(any(is.na(mask)), FALSE, TRUE)
-use.window = ifelse(any(is.na(f.time)), TRUE, FALSE)
-
-#initialize metadata matrix, if needed
-output.meta.data = ifelse(use.meta, f.raw[0,c(names(f.units),f.meta.data)], NA)
-
-#initialize adjacency vector matrices
-undirected.adjacency.vectors = as.matrix(
-  data.frame(matrix(NA, nrow = 1, ncol = ncol(rENA:::namesToAdjacencyKey(f.codes))))[0,]
-)
-directed.adjacency.vectors = as.matrix(
-  data.frame(matrix(NA, nrow = 1, ncol = length(f.codes)^2)[0,])
-)
-
-
-#create blank code matrix template
-n = length(f.codes)
-blank.code.matrix = matrix(0, n, n)
-colnames(blank.code.matrix) = f.codes
-rownames(blank.code.matrix) = f.codes
-#blank.code.matrix
-
-#loop over contexts
-for (this.hoo in 1:length(f.contexts)) {
-  #initialize connection  matrix for this unit
-  this.code.matrix = blank.code.matrix
+  f.window.limit = time.limit
+  f.contexts = context.object$contexts
+  f.codes = codes
+  f.time = time.column
+  f.decay = decay.function
+  f.mode = mode.column
+  f.weighting.function = weight.by
+  f.meta.data = meta.data
+  f.units = context.object$units
+  f.raw = context.object$raw.data
   
-  #get data from this context
-  this.context = f.contexts[[this.hoo]]$context
+  use.modes = ifelse(any(is.na(f.mode)), FALSE, TRUE)
+  use.meta = ifelse(any(is.na(f.meta.data)), FALSE, TRUE)
+  use.mask = ifelse(any(is.na(mask)), FALSE, TRUE)
+  use.window = ifelse(any(is.na(f.time)), TRUE, FALSE)
   
-
-  #if using a time model
-  #remove rows with no codes from the data
-  #we don't need them as "spacers" for the rest of the data
-  #because we are using time to define our connections
-  if (!use.window) {
-    this.context = this.context[rowSums(as.matrix(this.context[,f.codes])) > 0,]
-  }
-  #set row numbers
-  Rows = 1:nrow(this.context)
-  f.data.augmented = cbind(Rows, this.context)
-
-  #get unit name
-  this.unit = f.contexts[[this.hoo]]$unit
-  
-  #find rows belonging to unit
-  this.unit.data = semi_join(f.data.augmented, this.unit, by = names(this.unit))
-  
-  #get meta data for this unit and add to the the meta data dataframe
+  #initialize metadata matrix, if needed
   if(use.meta) {
-    output.meta.data = rbind(output.meta.data, get.unique.col.values(this.unit.data[,f.meta.data]))
+    output.meta.data = f.raw[0,c(names(f.units),f.meta.data) %>% unique]
+  }
+  
+  #initialize adjacency vector matrices
+  undirected.adjacency.vectors = as.matrix(
+    data.frame(matrix(NA, nrow = 1, ncol = ncol(rENA:::namesToAdjacencyKey(f.codes))))[0,]
+  )
+  directed.adjacency.vectors = as.matrix(
+    data.frame(matrix(NA, nrow = 1, ncol = length(f.codes)^2)[0,])
+  )
+  
+  
+  #create blank code matrix template
+  n = length(f.codes)
+  blank.code.matrix = matrix(0, n, n)
+  colnames(blank.code.matrix) = f.codes
+  rownames(blank.code.matrix) = f.codes
+  #blank.code.matrix
+  
+  #loop over contexts
+  for (this.hoo in 1:length(f.contexts)) {
+    #initialize connection  matrix for this unit
+    this.code.matrix = blank.code.matrix
+    
+    #get data from this context
+    this.context = f.contexts[[this.hoo]]$context
+    
+  
+    #if using a time model
+    #remove rows with no codes from the data
+    #we don't need them as "spacers" for the rest of the data
+    #because we are using time to define our connections
+    if (!use.window) {
+      this.context = this.context[rowSums(as.matrix(this.context[,f.codes])) > 0,]
     }
+    #set row numbers
+    Rows = 1:nrow(this.context)
+    f.data.augmented = cbind(Rows, this.context)
   
-  #if there are non-zero rows for this unit, compute adjacencies
-  if(nrow(this.unit.data) > 0) {
-
-      #get rows associated with this unit
-      unit.rows = this.unit.data$Rows
+    #get unit name
+    this.unit = f.contexts[[this.hoo]]$unit
     
-      #get times, or if window model (ie, not times given), use rows
-      if(use.window) {
-        this.time = Rows
-      } else {
-        this.time = this.context[,f.time]
-      }
+    #find rows belonging to unit
+    this.unit.data = semi_join(f.data.augmented, this.unit, by = names(this.unit))
+    
+    #get meta data for this unit and add to the the meta data dataframe
+    if(use.meta) {
+      # browser();
+      output.meta.data = rbind(output.meta.data, get.unique.col.values(this.unit.data[,output.meta.data %>% colnames]))
+    }
+    
+    #if there are non-zero rows for this unit, compute adjacencies
+    if(nrow(this.unit.data) > 0) {
+  
+        #get rows associated with this unit
+        unit.rows = this.unit.data$Rows
       
-      print(this.time)
-      
-      if(use.modes) these.modes = this.context[,f.mode]
-    
-      #loop on  unit (ie, response) rows
-      for (response in unit.rows){
-        #for each response, find earlier chats
-        
-        response.time = this.time[response]
-        ground = which(this.time <= response.time)
-    
-        #if there is a limit on how far back in time to look, take only rows
-        #that are after that limit
-        if(!any(is.na(f.window.limit))) {
-          ground = which(this.time[ground] >= (response.time - f.window.limit))
-        }
-        
-        #find row numbers of the current response row WITHIN GROUND
-        response.in.ground = which(ground == response)
-
-        #get codes for ground and response
-        response.codes = as.matrix(this.context[response, f.codes])
-        ground.codes = as.matrix(this.context[ground, f.codes])
-        
-
-        #compute decays
-        #
-        #Get modes, if needed
-        ground.modes = NA
-        if(use.modes) ground.modes = these.modes[ground]
-
-        #get decays -- get.decay.modes handles whether to use modes or not
-        my.decays = get.decay.modes(
-            now = response.time,
-            event.time = this.time[ground],
-            modes = ground.modes,
-            decay.function = f.decay
-        )
-
-        #apply decays to ground
-        
-        #if there is only a single line of data, multiple by scalar
-        if(length(my.decays) == 1) {
-          ground.codes = ground.codes * my.decays 
+        #get times, or if window model (ie, not times given), use rows
+        if(use.window) {
+          this.time = Rows
         } else {
-          
-        #otherwise this is a bit of fancy math that multiplies each row of the matrix 
-        #by a different scalar from a vector of scalars 
-          ground.codes = t(t(ground.codes) %*% diag(my.decays))
+          this.time = this.context[,f.time]
         }
         
-        #find the ground code corresponsing the the response line
-        #since the response line is in its own "window" for connections
-        #and we can't assume that for its mode the decay at time_0 = 1
-        this.response.in.ground = t(ground.codes[response.in.ground,])
-
-        #collapse the ground codes into a vector colsums
-        this.ground = t(as.matrix(.colSums(ground.codes, m = length(ground), n = length(f.codes))))
-
-        #compute connections
-        this.connection.matrix = crossprod(this.ground, response.codes)
+        print(this.time)
         
-        #compute the connections from the response to itself
-        this.self.connection = crossprod(this.response.in.ground, response.codes)
-
-        #remove self-references in response code from from the adjacency counts
-        diag(this.connection.matrix) = diag(this.connection.matrix) - diag(this.self.connection)
-        
-        #weighting function lets us account for inflation of connections
-        #due to multiplication of weighted code values
-        #we do the same thing in weighted ENA
-        this.code.matrix = this.code.matrix + f.weighting.function(this.connection.matrix)
-        
-        #apply mask to the adjacency matrix
-        if(use.mask) this.code.matrix = this.code.matrix * mask
-        
-        #go back to next row for this unit
-        
-      } #done looping over rows for this unit
+        if(use.modes) these.modes = this.context[,f.mode]
       
-  } #end of if statement -- the above is all skipped if there are no
-    #non-zero rows to loop over for the unit
+        #loop on  unit (ie, response) rows
+        for (response in unit.rows){
+          #for each response, find earlier chats
+          
+          response.time = this.time[response]
+          ground = which(this.time <= response.time)
+      
+          #if there is a limit on how far back in time to look, take only rows
+          #that are after that limit
+          if(!any(is.na(f.window.limit))) {
+            ground = which(this.time[ground] >= (response.time - f.window.limit))
+          }
+          
+          #find row numbers of the current response row WITHIN GROUND
+          response.in.ground = which(ground == response)
   
-  #for this unit...
+          #get codes for ground and response
+          response.codes = as.matrix(this.context[response, f.codes])
+          ground.codes = as.matrix(this.context[ground, f.codes])
+          
   
-  #first, deal with directed matrix
+          #compute decays
+          #
+          #Get modes, if needed
+          ground.modes = NA
+          if(use.modes) ground.modes = these.modes[ground]
   
-  #add directed adjacency matrix to the context
-  f.contexts[[this.hoo]]$directed.adjacency = this.code.matrix
+          #get decays -- get.decay.modes handles whether to use modes or not
+          my.decays = get.decay.modes(
+              now = response.time,
+              event.time = this.time[ground],
+              modes = ground.modes,
+              decay.function = f.decay
+          )
   
-  #construct directed adjacency vector
-  directed.adjacency.vectors = rbind(directed.adjacency.vectors, as.vector(this.code.matrix))
+          #apply decays to ground
+          
+          #if there is only a single line of data, multiple by scalar
+          if(length(my.decays) == 1) {
+            ground.codes = ground.codes * my.decays 
+          } else {
+            
+          #otherwise this is a bit of fancy math that multiplies each row of the matrix 
+          #by a different scalar from a vector of scalars 
+            ground.codes = t(t(ground.codes) %*% diag(my.decays))
+          }
+          
+          #find the ground code corresponsing the the response line
+          #since the response line is in its own "window" for connections
+          #and we can't assume that for its mode the decay at time_0 = 1
+          this.response.in.ground = t(ground.codes[response.in.ground,])
+  
+          #collapse the ground codes into a vector colsums
+          this.ground = t(as.matrix(.colSums(ground.codes, m = length(ground), n = length(f.codes))))
+  
+          #compute connections
+          this.connection.matrix = crossprod(this.ground, response.codes)
+          
+          #compute the connections from the response to itself
+          this.self.connection = crossprod(this.response.in.ground, response.codes)
+  
+          #remove self-references in response code from from the adjacency counts
+          diag(this.connection.matrix) = diag(this.connection.matrix) - diag(this.self.connection)
+          
+          #weighting function lets us account for inflation of connections
+          #due to multiplication of weighted code values
+          #we do the same thing in weighted ENA
+          this.code.matrix = this.code.matrix + f.weighting.function(this.connection.matrix)
+          
+          #apply mask to the adjacency matrix
+          if(use.mask) this.code.matrix = this.code.matrix * mask
+          
+          #go back to next row for this unit
+          
+        } #done looping over rows for this unit
+        
+    } #end of if statement -- the above is all skipped if there are no
+      #non-zero rows to loop over for the unit
+    
+    #for this unit...
+    
+    #first, deal with directed matrix
+    
+    #add directed adjacency matrix to the context
+    f.contexts[[this.hoo]]$directed.adjacency = this.code.matrix
+    
+    #construct directed adjacency vector
+    directed.adjacency.vectors = rbind(directed.adjacency.vectors, as.vector(this.code.matrix))
+  
+    
+    #next, undirected
+    
+    #commenting this out keeps self-connections in undirecteed matrix
+    #but it will be removed for ena adjacency vectors
+    #diag(this.code.matrix) = 0
+    
+    #turn directed into undirected
+    
+    #upper triangle is some of directed connections
+    this.code.matrix[upper.tri(this.code.matrix)] =
+      this.code.matrix[upper.tri(this.code.matrix)] + this.code.matrix[lower.tri(this.code.matrix)]
+    #make matrix symmetrical
+    this.code.matrix[lower.tri(this.code.matrix)] = this.code.matrix[upper.tri(this.code.matrix)]
+    
+    #add undirected matrix to context 
+    f.contexts[[this.hoo]]$undirected.adjacancy = this.code.matrix
+    
+    #create undirected vector
+    undirected.adjacency.vectors = rbind(
+      undirected.adjacency.vectors,
+      this.code.matrix[upper.tri(this.code.matrix)]
+      )
+   
+    #go back to next context
+  
+  }#done looping over contexts
+  
+  #construct output
+  output = list()
+  
+  #add contexts (with additions of adjacency matrices) to output
+  output$contexts = f.contexts
+  #add additional information for modeling
+  output$directed.adjacency.vectors = directed.adjacency.vectors
+  output$units = f.units
+  
+  #construct information for ENA set
+  # browser()
+  enadata = structure(list(), class = c("ENAdata", "list"))
+  enadata$adjacency.matrix = rENA:::namesToAdjacencyKey(f.codes)
+  enadata$codes = f.codes
+  enadata$model = "TMA"
+  enadata$raw = data.table::as.data.table(f.raw)
+  enadata$units = f.units
+  enadata$meta.data = data.table::as.data.table(output.meta.data)
+  enadata$metadata = data.table::as.data.table(output.meta.data)
+  enadata$adjacency.vectors = data.table::as.data.table(undirected.adjacency.vectors)
+  enadata$accumulated.adjacency.vectors = data.table::as.data.table(undirected.adjacency.vectors)
+  
+  output$for.ena$enadata=enadata
+  
+  #if ena set is requested, construct ena set using rENA:::ena.set
+  #and remove the information used to create it
+  if(return.ena.set) {
+    output$ena.set = rENA:::ena.set(enadata) #output$for.ena)
+    output$for.ena = NULL
+  }
 
-  
-  #next, undirected
-  
-  #commenting this out keeps self-connections in undirecteed matrix
-  #but it will be removed for ena adjacency vectors
-  #diag(this.code.matrix) = 0
-  
-  #turn directed into undirected
-  
-  #upper triangle is some of directed connections
-  this.code.matrix[upper.tri(this.code.matrix)] =
-    this.code.matrix[upper.tri(this.code.matrix)] + this.code.matrix[lower.tri(this.code.matrix)]
-  #make matrix symmetrical
-  this.code.matrix[lower.tri(this.code.matrix)] = this.code.matrix[upper.tri(this.code.matrix)]
-  
-  #add undirected matrix to context 
-  f.contexts[[this.hoo]]$undirected.adjacancy = this.code.matrix
-  
-  #create undirected vector
-  undirected.adjacency.vectors = rbind(
-    undirected.adjacency.vectors,
-    this.code.matrix[upper.tri(this.code.matrix)]
-    )
- 
-  #go back to next context
+  return(output)
 
-}#done looping over contexts
-
-#construct output
-output = list()
-
-#add contexts (with additions of adjacency matrices) to output
-output$contexts = f.contexts
-#add additional information for modeling
-output$directed.adjacency.vectors = directed.adjacency.vectors
-output$units = f.units
-
-#construct information for ENA set
-# browser()
-enadata = structure(list(), class = c("ENAdata", "list"))
-enadata$adjacency.matrix = rENA:::namesToAdjacencyKey(f.codes)
-enadata$codes = f.codes
-enadata$model = "TMA"
-enadata$raw = data.table::as.data.table(f.raw)
-enadata$units = f.units
-enadata$meta.data = data.table::as.data.table(output.meta.data)
-enadata$adjacency.vectors = data.table::as.data.table(undirected.adjacency.vectors)
-enadata$accumulated.adjacency.vectors = data.table::as.data.table(undirected.adjacency.vectors)
-
-output$for.ena$enadata=enadata
-
-#if ena set is requested, construct ena set using rENA:::ena.set
-#and remove the information used to create it
-if(return.ena.set) {
-  output$ena.set = rENA:::ena.set(enadata) #output$for.ena)
-  output$for.ena = NULL
 }
-
-return(output)
-
-}
-
-
+  
+  
 ```
 
 
@@ -935,34 +919,34 @@ To test the model, I created two delay functions. One is the original decay func
 chat.decay.function = decay.function
 
 #decay function with a longer decay time
-view.decay.function = function(x) return(-0.0039*x^3 + 0.0661*x^2 - 0.3507*x + 1)
+# view.decay.function = function(x) return(-0.0039*x^3 + 0.0661*x^2 - 0.3507*x + 1)
+view.decay.function = decay.function
 
 
 #construct list for passing to accumulate,units
 modal.decay.function = list()
-modal.decay.function$view = view.decay.function
-modal.decay.function$chat = chat.decay.function
+modal.decay.function$Private = view.decay.function
+modal.decay.function$Public = chat.decay.function
 
 my.accumulation = accumulate.units(context.object = these.hoos, 
-                                   codes = c('Data',
-                                              'Technical.Constraints',
-                                              'Performance.Parameters',
-                                              'Client.and.Consultant.Requests',
-                                              'Design.Reasoning',
-                                              'Collaboration'
-                                              ), 
-                                   time.column = "time", 
-                                   #decay.function = decay.function, 
-                                   decay.function = modal.decay.function, 
-                                   mode.column = "CommunicationType",
-                                   weight.by = sqrt,
-                                   time.limit = 7,
-                                   meta.data = c("CONFIDENCE.Pre", "CONFIDENCE.Change"),
+                                   codes = c('A','B','C'), 
+                                   time.column = NA, 
+                                   # decay.function = decay.function,
+                                   decay.function = modal.decay.function,
+                                   mode.column = "Context",
+                                   weight.by = function(x) {x*1},
+                                   time.limit = 20,
+                                   meta.data = c("Condition"),
                                    return.ena.set = TRUE)
 
 #show results
 print("For ENA:")
-my.accumulation$for.ena
+my.accumulation$ena.set
+my.accumulation$directed.adjacency.vectors
+my.accumulation$contexts
+my.accumulation$units
+# my.accumulation$for.ena
+
 print("Contexts (with adjacency matrices):")
 my.accumulation$contexts
 print("units:")
@@ -977,11 +961,8 @@ chat.decay.function( (1:10)-1 )
 print("Slower decay function from t=0 to t=9")
 view.decay.function( (1:10)-1 )
 
-
-
   
 ```
-
 
 
 ```{r testMaskAndTraditionalWindowModel}
@@ -1014,21 +995,15 @@ my.mask = t(matrix(
 #debug(accumulate.units)
 
 my.accumulation = accumulate.units(context.object = these.hoos, 
-                                   codes = c('Data',
-                                              'Technical.Constraints',
-                                              'Performance.Parameters',
-                                              'Client.and.Consultant.Requests',
-                                              'Design.Reasoning',
-                                              'Collaboration'
-                                              ), 
+                                   codes = c('A','B','C'), 
                                    #time.column = "time", 
                                    #decay.function = decay.function, 
                                    decay.function = modal.decay.function, 
-                                   mode.column = "CommunicationType",
-                                   weight.by = sqrt,
+                                   mode.column = "Context",
+                                   weight.by = function(x) {x*1},
                                    mask = my.mask,
                                    #time.limit = 7,
-                                   meta.data = c("CONFIDENCE.Pre", "CONFIDENCE.Change"),
+                                   # meta.data = c("CONFIDENCE.Pre", "CONFIDENCE.Change"),
                                    return.ena.set = TRUE)
 
 #show results
@@ -1045,7 +1020,6 @@ print("::")
 
 
 ```
-
 # Try Plotting
 
 
@@ -1055,10 +1029,7 @@ ena_set <- ena.make.set(my.accumulation$ena.set)
 
 plot <- ena.plot(enaset = ena_set, title = "TMA Plot", dimension.labels = c("SVD1", "SVD2"))
 plot <- ena.plot.points(plot, points = ena_set$points, colors = c("red", "blue", "green"))
+# plot <- ena.plot.network(plot, network = list(ena_set$line.weights[2,]), colors = c("blue"))
 
 plot$plot
 ```
-
-
-
-

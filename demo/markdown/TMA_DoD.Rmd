@@ -1,0 +1,157 @@
+---
+title: "TMA_model_012"
+author: "Yeyu Wang"
+date: "7/16/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+Read data and specify variables. 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(dplyr)
+library(rENA)
+
+## Attempt to use to devtools here, so others that run this can circumvent the standard R PKG build process
+devtools::load_all(".")
+library(tma)
+# devtools::load_all("../../")
+
+DoD <- read.csv(system.file(package = "tma", 'extdata/DoD_processed.csv'), stringsAsFactors = FALSE)
+DoD$high.perform_low.perform <- ifelse(DoD$high.perform_low.perform == 1, "high", "low")
+DoD$dummy <- 1
+# DoD$mode <- 'Unimodal'
+DoD <- mutate_if(DoD, is.factor, factor.to.value)
+
+DoD.hoo.TMA <- list()
+DoD.hoo.TMA[[1]] <- list(speaker = "<UNIT>")
+
+DoD.units <- unique(DoD[,c("speaker", "high.perform_low.perform")])
+DoD.codes <- c("Cognitive.Error", 
+          "Visuospatial.Error", 
+          "Motor.Error", 
+          "Operative.Planning", 
+          "Identifying.Errors", 
+          "Giving.Instructions", 
+          "Frustration")
+DoD.mask <- t(matrix(
+                c(0,0,0,1,1,1,1,
+                  0,0,0,1,1,1,1,
+                  0,0,0,1,1,1,1,
+                  0,0,0,0,1,1,1,
+                  0,0,0,1,0,1,1,
+                  0,0,0,1,1,0,1, 
+                  0,0,0,1,1,1,0)
+                ,7,7))
+
+```
+
+### Model 0: TMA 
+1. Order	based
+2. Win (Step decay function): 
+    In Ruis et al. (2006), they specified the window to be 6. The equivalent model will be the step decay function with order. 
+3. Unimodality	
+4. Undirected with mask
+```{r}
+DoD.decay.uni <- Vectorize(function(x) {
+  if (x == 0) {
+    return(0.5);  
+  } else if( x < 6 && x > 0) {
+    return(1);
+  } else {
+    return(0);
+  }
+}, "x")
+
+DoD.model0 <- tma::tma(
+  data = DoD,
+  units = DoD.units,
+  codes = DoD.codes,
+  hoo.rules = DoD.hoo.TMA,
+  weight.by = function(x) {return(x)},
+  return.ena.set = TRUE,
+  time.column = NA,
+  decay.function = DoD.decay.uni,
+  meta.data = c("speaker", "high.perform_low.perform"),
+  time.limit = NA,
+  mask = DoD.mask
+)
+tma.set.model0 <- ena.make.set(DoD.model0$ena.set)
+```
+Wrapper for plotting
+```{r}
+plot.sub.group <- function(set, thickness, plot_name, plot_type){
+  high.learning.outcome = as.matrix(set$points$high.perform_low.perform$high)
+  low.learning.outcome = as.matrix(set$points$high.perform_low.perform$low)
+  high.learning.outcome.lineweights = as.matrix(set$line.weights$high.perform_low.perform$high)
+  low.learning.outcome.lineweights = as.matrix(set$line.weights$high.perform_low.perform$low)
+  high.learning.outcome.mean = as.vector(colMeans(high.learning.outcome.lineweights))
+  low.learning.outcome.mean = as.vector(colMeans(low.learning.outcome.lineweights))
+  subtracted.mean = high.learning.outcome.mean - low.learning.outcome.mean
+  
+  if (plot_type == "subtracted"){
+    plot = ena.plot(set, multiplier = thickness, title = plot_name) %>%
+      ena.plot.points(points = high.learning.outcome, colors = c("red")) %>%
+      ena.plot.points(points = low.learning.outcome, colors = c("blue")) %>%
+      ena.plot.group(point = high.learning.outcome, colors =c("red"),
+                     confidence.interval = "box") %>%
+      ena.plot.group(point = low.learning.outcome, colors =c("blue"),
+                     confidence.interval = "box") %>%
+      ena.plot.network(network = subtracted.mean, colors = c("red", "blue"))
+    
+  }
+  
+  if (plot_type == "groups"){
+    plot <- list()
+    plot$high <- ena.plot(set, title = plot_name, multiplier = thickness) %>%
+      ena.plot.points(points = high.learning.outcome, colors = c("red")) %>%
+      ena.plot.group(point = high.learning.outcome, colors =c("red"),
+                     confidence.interval = "box") %>% 
+      ena.plot.network(network = high.learning.outcome.mean, colors = c("red"))
+    plot$low <- ena.plot(set, title = plot_name, multiplier = thickness) %>%
+      ena.plot.points(points = low.learning.outcome, colors = c("blue")) %>%
+      ena.plot.group(point = low.learning.outcome, colors =c("blue"),
+                     confidence.interval = "box") %>% 
+      ena.plot.network(network = low.learning.outcome.mean, colors = "blue")
+  }
+  
+  return(plot)
+}
+
+```
+```{r}
+tma.set.model0.plot.subtracted <- plot.sub.group(tma.set.model0, 20, "TMA Model 0: masked, order-based, \nstep model of 6, uni, undirected", "subtracted")
+tma.set.model0.plot.subtracted$plot
+
+tma.set.model0.plot.high.perf <- plot.sub.group(tma.set.model0, 20, "TMA Model 0 - high performance", "groups")$high
+tma.set.model0.plot.high.perf$plot
+
+tma.set.model0.plot.low.perf <- plot.sub.group(tma.set.model0, 20, "TMA Model 0 - low performance", "groups")$low
+tma.set.model0.plot.low.perf$plot
+```
+
+
+
+Mask using regular ENA
+```{r}
+DoD.ena <- ena.accumulate.data(
+  units = DoD[,c("speaker","high.perform_low.perform", "dummy")],
+  conversation = DoD[,c("speaker", "dummy")],
+  codes = DoD[,DoD.codes],
+  metadata = DoD[,c("speaker", "high.perform_low.perform", "modality")],
+  window.size.forward = 6,
+  mask = DoD.mask
+)
+DoD.ena.set <- ena.make.set(DoD.ena)
+DoD.ena.set.plot.subtracted <- plot.sub.group(DoD.ena.set, 20, "ENA Model: masked, order-based, \nwindow of 6, uni, undirected", "subtracted")
+DoD.ena.set.plot.subtracted$plot
+
+DoD.ena.set.plot.high.perf <- plot.sub.group(DoD.ena.set, 20, "ENA Model - high performance", "groups")$high
+DoD.ena.set.plot.high.perf$plot
+
+DoD.ena.set.plot.low.perf <- plot.sub.group(DoD.ena.set, 20, "ENA Model - low performance", "groups")$low
+DoD.ena.set.plot.low.perf$plot
+
+```
+

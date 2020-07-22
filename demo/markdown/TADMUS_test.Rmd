@@ -1,0 +1,93 @@
+---
+title: "TADMUS_test"
+author: "Ariel Fogel"
+date: "7/20/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require(rENA);
+library(rENA);
+library(rstudioapi)
+library(tidyverse)
+# Select the directory containing the tma script, like the directory above^
+# setwd(selectDirectory())
+devtools::load_all(".")
+data = read.csv(system.file(package = "tma", 'extdata/TADMUSCoded.csv'), stringsAsFactors = FALSE);
+# d = read.csv('./TADMUSCoded.csv')
+data = data %>% 
+  group_by(Team, Scenario, TimeImputed) %>% 
+  mutate(average_secs = 
+           case_when(
+             str_detect(TimeImputed, '-') ~ 60/n(),
+             TRUE ~ 30/n()
+           )
+    ) %>% 
+  group_by(Team, Scenario) %>% 
+  mutate(time_secs = cumsum(average_secs)) %>% ungroup
+mean_time = data[,c('average_secs')] %>% t %>% as.vector %>% mean
+data = data %>% group_by(Team, Scenario) %>% mutate(time = 1:n())
+# Subset data so that it can 
+data = data[data$Team == '4/1/99' & data$Scenario == 'Bravo',];
+# Subset even further so we can manually check by hand
+data  = data[1:30,];
+
+code_cols = c(
+  "SeekingInformation", 
+  "DetectIdentify",
+  "TrackBehavior",
+  "StatusUpdate",
+  "AssessmentPrioritization",
+  "DefensiveOrders",
+  "DeterrentOrders",
+  "Recommendation"
+)
+speaker_units = c('COND', 'Team', 'MacroRole', 'Speaker');
+meta = c('MacroRole');
+conversation = c('Team', 'Scenario');
+
+accum = ena.accumulate.data(
+  units = data[,speaker_units],
+  conversation = data[,conversation],
+  codes = data[,code_cols],
+  window.size.back = 5,
+  # weight.by = function(x) {return(ifelse(x>0,1,0))}
+  weight.by = function(x) {return(x)}
+)
+
+ena_cc = accum$connection.counts[accum$connection.counts$MacroRole!='Other'];
+ena_cc = ena_cc[,2:33];
+
+# TMA
+
+my.hoo.usualENA = list();
+my.hoo.usualENA[[1]] = list(Team = "<UNIT>", Scenario = "<UNIT>");
+my.units = unique(data[,speaker_units]);
+# hoos.regular = get.contexts(units = my.units, data = d, hoo.rules = my.hoo.usualENA);
+modal.decay.function = list()
+modal.decay.function$Bravo = continuous.decay.function.convex;
+modal.decay.function$Bravo = step_function(5);
+
+devtools::load_all(".")
+tma_accumulation = tma(
+  data = data,
+  units = my.units,
+  codes = code_cols,
+  hoo.rules = my.hoo.usualENA,
+  # weight.by = function(x) {return(ifelse(x>0,1,0))},
+  weight.by = function(x) {x},
+  return.ena.set = TRUE,
+  time.column = NA,
+  decay.function = step_function(5),
+  mode.column = NA,
+  time.limit = NA,
+  meta.data = NA
+)
+
+tma_cc = tma_accumulation$ena.set$connection.counts[tma_accumulation$ena.set$connection.counts$MacroRole != 'Other']
+
+```
+
