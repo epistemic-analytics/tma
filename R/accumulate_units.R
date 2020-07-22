@@ -215,11 +215,14 @@ accumulate.units = function(context.object,
     #turn directed into undirected
     
     #upper triangle is some of directed connections
-    dimensions = f.codes %>% length();
-    undirected_adjacency_matrix = (Matrix::triu(this.code.matrix,1) %>% matrix(nrow= dimensions, ncol = dimensions)) + 
-      (Matrix::tril(this.code.matrix,-1) %>% rev %>%  matrix(nrow=dimensions, ncol = dimensions) %>% t %>% rev %>% matrix(nrow=dimensions, ncol = dimensions));
-    this.code.matrix[upper.tri(this.code.matrix)] = undirected_adjacency_matrix[upper.tri(undirected_adjacency_matrix)]
-
+    dimensions = length(f.codes);
+    # undirected_adjacency_matrix = (Matrix::triu(this.code.matrix,1) %>% matrix(nrow= dimensions, ncol = dimensions)) + 
+    #   (Matrix::tril(this.code.matrix,-1) %>% rev %>%  matrix(nrow=dimensions, ncol = dimensions) %>% t %>% rev %>% matrix(nrow=dimensions, ncol = dimensions));
+    # this.code.matrix[upper.tri(this.code.matrix)] = undirected_adjacency_matrix[upper.tri(undirected_adjacency_matrix)]
+    
+    upper_tri_indices <- upper.tri(this.code.matrix)
+    this.code.matrix[upper_tri_indices] <- this.code.matrix[upper_tri_indices] + t(this.code.matrix)[upper_tri_indices]
+    
     #make matrix symmetrical
     this.code.matrix[lower.tri(this.code.matrix)] = NA
     
