@@ -13,6 +13,9 @@ require(rENA);
 library(rENA);
 library(rstudioapi)
 library(tidyverse)
+red <- "#cc423a"
+blue <- "#009BE0"
+colors = c(red, blue)
 # Select the directory containing the tma script, like the directory above^
 # setwd(selectDirectory())
 devtools::load_all(".")
@@ -31,9 +34,9 @@ data = data %>%
 mean_time = data[,c('average_secs')] %>% t %>% as.vector %>% mean
 data = data %>% group_by(Team, Scenario) %>% mutate(time = 1:n())
 # Subset data so that it can 
-data = data[data$Team == '4/1/99' & data$Scenario == 'Bravo',];
+# data = data[data$Team == '4/1/99' & data$Scenario == 'Bravo',];
 # Subset even further so we can manually check by hand
-data  = data[1:30,];
+# data  = data[1:30,];
 
 code_cols = c(
   "SeekingInformation", 
@@ -59,7 +62,7 @@ accum = ena.accumulate.data(
 )
 
 ena_cc = accum$connection.counts[accum$connection.counts$MacroRole!='Other'];
-ena_cc = ena_cc[,2:33];
+# ena_cc = ena_cc[,2:33];
 
 # TMA
 
@@ -87,7 +90,72 @@ tma_accumulation = tma(
   meta.data = NA
 )
 
-tma_cc = tma_accumulation$ena.set$connection.counts[tma_accumulation$ena.set$connection.counts$MacroRole != 'Other']
 
+
+# tma_cc = tma_accumulation$ena.set$connection.counts[tma_accumulation$ena.set$connection.counts$MacroRole != 'Other']
+
+```
+
+```{r ena_plot, echo=FALSE}
+ena_set = ena.make.set(enadata = accum);
+ena_experimental_command_points =  ena_set$points$COND$Experimental[ena_set$points$COND$Experimental[, MacroRole == 'Command']];
+ena_experimental_command_lineweights = as.matrix(ena_set$line.weights$COND$Experimental[ena_set$line.weights$COND$Experimental[, MacroRole == 'Command']])
+ena_experimental_command_mean = as.vector(colMeans(ena_experimental_command_lineweights))
+ena_control_command_points =  ena_set$points$COND$Control[ena_set$points$COND$Control[, MacroRole == 'Command']];
+ena_control_command_lineweights = as.matrix(ena_set$line.weights$COND$Control[ena_set$line.weights$COND$Control[, MacroRole == 'Command']])
+ena_control_command_mean = as.vector(colMeans(ena_control_command_lineweights))
+ena_subtracted_mean = ena_control_command_mean - ena_experimental_command_mean
+
+ena_experimental_command_plot = ena.plot(ena_set, title = "ENA Experimental Command")  %>%
+  # ena.plot.points(points = experimental_command_points, confidence.interval = "box", colors = c(red))  %>%
+  ena.plot.group(point = ena_experimental_command_points, colors =c(red), confidence.interval = "box")  %>%
+  ena.plot.network(network = ena_experimental_command_mean, colors = c(red))
+ena_control_command_plot = ena.plot(ena_set, title = "ENA Control Command")  %>%
+  # ena.plot.points(points = ena_control_command_points, confidence.interval = "box", colors = c(blue))  %>%
+  ena.plot.group(point = ena_control_command_points, colors =c(blue), confidence.interval = "box") %>%
+  ena.plot.network(network = ena_control_command_mean, colors = c(blue))
+ena_subtraction_plot = ena.plot(ena_set, title = "ENA Subtraction Command")  %>%
+  # ena.plot.points(points = control_command_points, confidence.interval = "box", colors = c(blue))  %>%
+  ena.plot.group(point = ena_control_command_points, colors =c(blue), confidence.interval = "box") %>%
+  # ena.plot.points(points = experimental_command_points, confidence.interval = "box", colors = c(red))  %>%
+  ena.plot.group(point = ena_experimental_command_points, colors =c(red), confidence.interval = "box")  %>%
+  ena.plot.network(network = ena_subtracted_mean*1.5, colors = c(blue, red))
+```
+
+
+```{r tma_plot,echo=FALSE}
+ena_set = ena.make.set(enadata = accum);
+tma_set = ena.make.set(tma_accumulation$ena.set);
+tma_experimental_command_points =  tma_set$points$COND$Experimental[tma_set$points$COND$Experimental[, MacroRole == 'Command']];
+tma_experimental_command_lineweights = as.matrix(tma_set$line.weights$COND$Experimental[tma_set$line.weights$COND$Experimental[, MacroRole == 'Command']])
+tma_experimental_command_mean = as.vector(colMeans(tma_experimental_command_lineweights))
+tma_control_command_points =  tma_set$points$COND$Control[tma_set$points$COND$Control[, MacroRole == 'Command']];
+tma_control_command_lineweights = as.matrix(tma_set$line.weights$COND$Control[tma_set$line.weights$COND$Control[, MacroRole == 'Command']])
+tma_control_command_mean = as.vector(colMeans(tma_control_command_lineweights))
+tma_subtracted_mean = tma_control_command_mean - tma_experimental_command_mean
+
+tma_experimental_command_plot = ena.plot(tma_set, title = "TMA Experimental Command")  %>%
+  # ena.plot.points(points = experimental_command_points, confidence.interval = "box", colors = c(red))  %>%
+  ena.plot.group(point = tma_experimental_command_points, colors =c(red), confidence.interval = "box")  %>%
+  ena.plot.network(network = tma_experimental_command_mean, colors = c(red))
+tma_control_command_plot = ena.plot(tma_set, title = "TMA Control Command")  %>%
+  # ena.plot.points(points = tma_control_command_points, confidence.interval = "box", colors = c(blue))  %>%
+  ena.plot.group(point = tma_control_command_points, colors =c(blue), confidence.interval = "box") %>%
+  ena.plot.network(network = tma_control_command_mean, colors = c(blue))
+tma_subtraction_plot = ena.plot(tma_set, title = "TMA Subtraction Command")  %>%
+  # ena.plot.points(points = control_command_points, confidence.interval = "box", colors = c(blue))  %>%
+  ena.plot.group(point = tma_control_command_points, colors =c(blue), confidence.interval = "box") %>%
+  # ena.plot.points(points = experimental_command_points, confidence.interval = "box", colors = c(red))  %>%
+  ena.plot.group(point = tma_experimental_command_points, colors =c(red), confidence.interval = "box")  %>%
+  ena.plot.network(network = tma_subtracted_mean*1.5, colors = c(blue, red))
+```
+
+```{r plots}
+tma_control_command_plot$plot
+ena_control_command_plot$plot
+tma_experimental_command_plot$plot
+ena_experimental_command_plot$plot
+tma_subtraction_plot$plot
+ena_subtraction_plot$plot
 ```
 
