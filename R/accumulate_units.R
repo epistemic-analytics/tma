@@ -44,11 +44,9 @@ accumulate.units = function(context.object,
   if (any(is.na(mask[lower.tri(mask)]))) {mask[lower.tri(mask)] = mask[upper.tri(mask)]}
   
   #initialize metadata matrix, if needed
-  if(use.meta) {
-    # browser()
-    output.meta.data = f.raw[0, unique(c(names(f.units),f.meta.data))]
+  # Always initialize output.meta.data, only add extra metadata beyond units when necessary
+  output.meta.data = f.raw[0,c(names(f.units),f.meta.data[!is.na(f.meta.data)]) %>% unique]
     # output.meta.data = f.raw[0, unique(c(names(f.units),f.meta.data))]
-  }
   
   #initialize adjacency vector matrices
   undirected.adjacency.vectors = as.matrix(
@@ -100,9 +98,8 @@ accumulate.units = function(context.object,
     this.unit.data <- merge(this.context, this.unit, by = names(this.unit))[, colnames(this.context)]
     
     #get meta data for this unit and add to the the meta data dataframe
-    if(use.meta) {
-      output.meta.data = rbind(output.meta.data, get.unique.col.values(this.unit.data[,colnames(output.meta.data)]))
-    }
+    output.meta.data = rbind(output.meta.data, get.unique.col.values(this.unit.data[,output.meta.data %>% colnames]))
+    #output.meta.data = rbind(output.meta.data, get.unique.col.values(this.unit.data[,colnames(output.meta.data)]))
     
     #if there are non-zero rows for this unit, compute adjacencies
     if(nrow(this.unit.data) > 0) {
@@ -200,7 +197,6 @@ accumulate.units = function(context.object,
     #for this unit...
    
     #apply mask to the adjacency matrix
-    
     if(use.mask) this.code.matrix = this.code.matrix * mask
   
     #first, deal with directed matrix
@@ -221,8 +217,9 @@ accumulate.units = function(context.object,
     #turn directed into undirected
     
     #upper triangle is some of directed connections
-    this.code.matrix[upper.tri(this.code.matrix)] =
-      this.code.matrix[upper.tri(this.code.matrix)] + this.code.matrix[lower.tri(this.code.matrix)]
+    upper_tri_indices <- upper.tri(this.code.matrix)
+    this.code.matrix[upper_tri_indices] <- this.code.matrix[upper_tri_indices] + t(this.code.matrix)[upper_tri_indices]
+    
     #make matrix symmetrical
     this.code.matrix[lower.tri(this.code.matrix)] = NA
     
@@ -233,7 +230,7 @@ accumulate.units = function(context.object,
     undirected.adjacency.vectors = rbind(
       undirected.adjacency.vectors,
       this.code.matrix[upper.tri(this.code.matrix)]
-      )
+    )
    
     #go back to next context
   
