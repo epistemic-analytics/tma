@@ -49,7 +49,7 @@ accumulate.units = function(context.object,
   
   #initialize adjacency vector matrices
   undirected.adjacency.vectors = as.matrix(
-    data.frame(matrix(NA, nrow = 1, ncol = ncol(rENA:::namesToAdjacencyKey(f.codes))))[0,]
+    data.frame(matrix(NA, nrow = 1, ncol = ncol(rENA::namesToAdjacencyKey(f.codes))))[0,]
   )
   directed.adjacency.vectors = as.matrix(
     data.frame(matrix(NA, nrow = 1, ncol = length(f.codes)^2)[0,])
@@ -246,7 +246,7 @@ accumulate.units = function(context.object,
   #construct information for ENA set
   # browser()
   enadata = structure(list(), class = c("ENAdata", "list"))
-  enadata$adjacency.matrix = rENA:::namesToAdjacencyKey(f.codes)
+  enadata$adjacency.matrix = rENA::namesToAdjacencyKey(f.codes)
   enadata$codes = f.codes
   enadata$model = "TMA"
   enadata$raw = data.table::as.data.table(f.raw)
