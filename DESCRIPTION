@@ -11,10 +11,6 @@ Depends:
     R (>= 3.6)
 License: GPL-3 | file LICENSE
 Imports:
-    Rcpp,
-    R6,
-    methods,
-    foreach,
     stats,
     rENA,
     data.table
