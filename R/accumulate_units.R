@@ -230,7 +230,7 @@ accumulate.units = function(context.object,
     undirected.adjacency.vectors = rbind(
       undirected.adjacency.vectors,
       this.code.matrix[upper.tri(this.code.matrix)]
-      )
+    )
    
     #go back to next context
   

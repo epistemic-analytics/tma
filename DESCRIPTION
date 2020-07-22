@@ -18,7 +18,8 @@ Imports:
     foreach,
     stats,
     dplyr,
-    rENA
+    rENA,
+    Matrix
 Suggests:
     testthat (>= 2.1.0),
     knitr,
