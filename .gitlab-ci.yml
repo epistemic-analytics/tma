@@ -67,6 +67,9 @@ test:
     refs:
       - tags
   only:
+    refs:
+      - master
+      - branches
     variables:
       - $RHUB_EMAIL_ADDRESS
       - $RHUB_EMAIL_TOKEN
@@ -103,10 +106,6 @@ test:
                       if(length(rhub_errors) > 0) { quit(status = 1); }
                       else { quit(status = 0); }
                     } else { quit(status = 1); }"
-  only:
-    refs:
-      - master
-      - branches
   <<: *rhub_condition
 check:r-hub-windows-old-release:
   variables:
