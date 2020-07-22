@@ -45,8 +45,7 @@ accumulate.units = function(context.object,
   
   #initialize metadata matrix, if needed
   # Always initialize output.meta.data, only add extra metadata beyond units when necessary
-  output.meta.data = f.raw[0,c(names(f.units),f.meta.data[!is.na(f.meta.data)]) %>% unique]
-    # output.meta.data = f.raw[0, unique(c(names(f.units),f.meta.data))]
+  output.meta.data = f.raw[0, unique(c(names(f.units),f.meta.data[!is.na(f.meta.data)]))]
   
   #initialize adjacency vector matrices
   undirected.adjacency.vectors = as.matrix(
@@ -98,8 +97,7 @@ accumulate.units = function(context.object,
     this.unit.data <- merge(this.context, this.unit, by = names(this.unit))[, colnames(this.context)]
     
     #get meta data for this unit and add to the the meta data dataframe
-    output.meta.data = rbind(output.meta.data, get.unique.col.values(this.unit.data[,output.meta.data %>% colnames]))
-    #output.meta.data = rbind(output.meta.data, get.unique.col.values(this.unit.data[,colnames(output.meta.data)]))
+    output.meta.data = rbind(output.meta.data, get.unique.col.values(this.unit.data[,colnames(output.meta.data)]))
     
     #if there are non-zero rows for this unit, compute adjacencies
     if(nrow(this.unit.data) > 0) {
