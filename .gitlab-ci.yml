@@ -40,8 +40,8 @@ test:
   stage: test
   image: $REG_URL/release-test:latest
   script:
-    - rm -rf src/RcppExports*
-    - rm -rf R/RcppExports*
+    #- rm -rf src/RcppExports*
+    #- rm -rf R/RcppExports*
     - "sed -i -e \"s/Version: \\(.*\\)/Version: ${VERSION}/\" DESCRIPTION"
     - Rscript -e 'update(devtools::dev_package_deps("."))'
     - |
@@ -124,10 +124,10 @@ check:r-hub-ubuntu-gcc-release:
 #  variables:
 #    RHUB_PLATFORM: "ubuntu-gcc-devel"
 #  <<: *rhub_definition
-check:r-hub-macos-highsierra-release-cran:
-  variables:
-    RHUB_PLATFORM: "macos-highsierra-release-cran"
-  <<: *rhub_definition
+#check:r-hub-macos-highsierra-release-cran:
+#  variables:
+#    RHUB_PLATFORM: "macos-highsierra-release-cran"
+#  <<: *rhub_definition
 #check:r-hub-windows-devel:
 #  variables:
 #    RHUB_PLATFORM: "windows-x86_64-devel"
@@ -182,12 +182,12 @@ pages:
   stage: deploy
   image: $REG_URL/release-test:latest
   script:
-    - rm -rf src/RcppExports*
-    - rm -rf R/RcppExports*
+    #- rm -rf src/RcppExports*
+    #- rm -rf R/RcppExports*
     - "sed -i -e \"s/Version: \\(.*\\)/Version: ${VERSION}/\" DESCRIPTION"
     - Rscript -e 'update(devtools::dev_package_deps("."))'
     - Rscript -e 'install.packages("microbenchmark")'
-    - Rscript -e 'Rcpp::compileAttributes()'
+    #- Rscript -e 'Rcpp::compileAttributes()'
     - Rscript -e "devtools::install(\".\", quick = T, build = T, dependencies = F, upgrade = F)"
     - Rscript -e "pkgdown::build_site(preview = F, devel = T, lazy = T, new_process = T)"
     - |

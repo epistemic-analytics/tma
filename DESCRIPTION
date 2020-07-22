@@ -8,12 +8,12 @@ Version: 0.1.0
 Description: Transmodal Analysis for ENA. tma, along with rENA, is used to create and visualize network models of discourse and other phenomena from coded data.
 LazyData: TRUE
 Depends:
-    R (>= 3.6)
+    R (>= 3.6),
+    data.table
 License: GPL-3 | file LICENSE
 Imports:
     stats,
-    rENA,
-    data.table
+    rENA
 Suggests:
     testthat (>= 2.1.0),
     knitr,
