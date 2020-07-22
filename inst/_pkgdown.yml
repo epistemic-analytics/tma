@@ -1,0 +1,14 @@
+destination: public/
+navbar:
+  title: "TMA"
+  type: inverse
+  left:
+    - text: "Home"
+      href: index.html
+    - text: "Reference"
+      href: "reference/index.html"
+    - text: "Coverage"
+      href: "coverage/index.html"
+  right:
+    - icon: fa-gitlab
+      href: https://gitlab.com/epistemic-analytics/qe-packages/tma/
