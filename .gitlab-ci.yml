@@ -66,8 +66,11 @@ test:
   except:
     refs:
       - tags
+  only:
     variables:
-      - $CI_COMMIT_MESSAGE =~ /.*\[skip checks\].*/
+      - $RHUB_EMAIL_ADDRESS
+      - $RHUB_EMAIL_TOKEN
+      - $CI_COMMIT_MESSAGE =~ /.*\[run checks\].*/
 .rhub_definition: &rhub_definition
   stage: check
   image: $CI_REGISTRY_IMAGE/release:latest
@@ -104,9 +107,6 @@ test:
     refs:
       - master
       - branches
-    variables:
-      - $RHUB_EMAIL_ADDRESS
-      - $RHUB_EMAIL_TOKEN
   <<: *rhub_condition
 check:r-hub-windows-old-release:
   variables:
