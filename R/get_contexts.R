@@ -40,7 +40,8 @@ get.contexts = function(units, data, hoo.rules) {
       ## I'm not sure if the column ordering the reason behind using dplyr here, so I've added an additional [,] after
       ## merge so the results are identical to the call to `semi_join`, if not, then we should just use the option here.
       # this.unit.data <- merge(f.data.augmented, this.unit, by = names(this.unit))
-      this.unit.data <- merge(f.data.augmented, this.unit, by = names(this.unit))[, names(f.data.augmented)]
+      # this.unit.data <- merge(f.data.augmented, this.unit, by = names(this.unit))[, names(f.data.augmented)]
+      this.unit.data <- as.data.frame(data.table(f.data.augmented)[this.unit, names(f.data.augmented), on = names(this.unit), with = FALSE])
       
       #assign meta data for unit
       #create a list of named list with names equal to unit columns
@@ -74,7 +75,8 @@ get.contexts = function(units, data, hoo.rules) {
             # this.output = merge(this.output, this.values, by = this.col)
             
             ## See comment above re: semi_join and column ordering
-            this.output <- merge(this.output, this.values, by = this.col)[, colnames(this.output)]
+            # this.output <- merge(this.output, this.values, by = this.col)[, colnames(this.output)]
+            this.output <- as.data.frame(data.table(this.output)[this.values, colnames(this.output), on = this.col, with = FALSE])
           }
           
           #or, select rows that match the given regex
