@@ -2,8 +2,10 @@
 title: "TMA_model_012"
 author: "Yeyu Wang"
 date: "7/16/2020"
-output: html_document
-editor_options: 
+output:
+  html_document: default
+  pdf_document: default
+editor_options:
   chunk_output_type: console
 ---
 Read data and specify variables. 
@@ -12,13 +14,14 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(dplyr)
 library(rENA)
-
+# setwd(selectDirectory())
 ## Attempt to use to devtools here, so others that run this can circumvent the standard R PKG build process
 devtools::load_all(".")
-library(tma)
+library(tma) 
 # devtools::load_all("../../")
 
-DoD <- read.csv(system.file(package = "tma", 'extdata/DoD_processed.csv'), stringsAsFactors = FALSE)
+DoD <- read.csv(system.file(package = "tma", 'extdata/DoD_recoded_processed_7_25.csv'), stringsAsFactors = FALSE)
+DoD <- read.csv(system.file(package = "tma", 'extdata/DoD_recoded_7_28.csv'), stringsAsFactors = FALSE)
 DoD$high.perform_low.perform <- ifelse(DoD$high.perform_low.perform == 1, "high", "low")
 DoD$dummy <- 1
 # DoD$mode <- 'Unimodal'
@@ -69,11 +72,13 @@ DoD.model0 <- tma::tma(
   units = DoD.units,
   codes = DoD.codes,
   hoo.rules = DoD.hoo.TMA,
-  weight.by = function(x) {return(x)},
+  # weight.by = function(x) {return(x)},
+  # weight.by = function(x) {return(ifelse(x>0,1,0))},
+  weight.by = 'binary',
   return.ena.set = TRUE,
   time.column = NA,
   decay.function = DoD.decay.uni,
-  meta.data = c("speaker", "high.perform_low.perform"),
+  meta.data = NA,
   time.limit = NA,
   mask = DoD.mask
 )
@@ -92,28 +97,28 @@ plot.sub.group <- function(set, thickness, plot_name, plot_type){
   
   if (plot_type == "subtracted"){
     plot = ena.plot(set, multiplier = thickness, title = plot_name) %>%
-      ena.plot.points(points = high.learning.outcome, colors = c("red")) %>%
-      ena.plot.points(points = low.learning.outcome, colors = c("blue")) %>%
-      ena.plot.group(point = high.learning.outcome, colors =c("red"),
+      ena.plot.points(points = high.learning.outcome, colors = c("blue")) %>%
+      ena.plot.group(point = high.learning.outcome, colors =c("blue"),
                      confidence.interval = "box") %>%
-      ena.plot.group(point = low.learning.outcome, colors =c("blue"),
+      ena.plot.points(points = low.learning.outcome, colors = c("red")) %>%
+      ena.plot.group(point = low.learning.outcome, colors =c("red"),
                      confidence.interval = "box") %>%
-      ena.plot.network(network = subtracted.mean, colors = c("red", "blue"))
+      ena.plot.network(network = subtracted.mean, colors = c("blue","red"))
     
   }
   
   if (plot_type == "groups"){
     plot <- list()
     plot$high <- ena.plot(set, title = plot_name, multiplier = thickness) %>%
-      ena.plot.points(points = high.learning.outcome, colors = c("red")) %>%
-      ena.plot.group(point = high.learning.outcome, colors =c("red"),
+      ena.plot.points(points = high.learning.outcome, colors = c("blue")) %>%
+      ena.plot.group(point = high.learning.outcome, colors =c("blue"),
                      confidence.interval = "box") %>% 
-      ena.plot.network(network = high.learning.outcome.mean, colors = c("red"))
+      ena.plot.network(network = high.learning.outcome.mean, colors = c("blue"))
     plot$low <- ena.plot(set, title = plot_name, multiplier = thickness) %>%
-      ena.plot.points(points = low.learning.outcome, colors = c("blue")) %>%
-      ena.plot.group(point = low.learning.outcome, colors =c("blue"),
+      ena.plot.points(points = low.learning.outcome, colors = c("red")) %>%
+      ena.plot.group(point = low.learning.outcome, colors =c("red"),
                      confidence.interval = "box") %>% 
-      ena.plot.network(network = low.learning.outcome.mean, colors = "blue")
+      ena.plot.network(network = low.learning.outcome.mean, colors = "red")
   }
   
   return(plot)
@@ -122,36 +127,223 @@ plot.sub.group <- function(set, thickness, plot_name, plot_type){
 ```
 ```{r}
 tma.set.model0.plot.subtracted <- plot.sub.group(tma.set.model0, 20, "TMA Model 0: masked, order-based, \nstep model of 6, uni, undirected", "subtracted")
-tma.set.model0.plot.subtracted$plot
-
 tma.set.model0.plot.high.perf <- plot.sub.group(tma.set.model0, 20, "TMA Model 0 - high performance", "groups")$high
-tma.set.model0.plot.high.perf$plot
-
 tma.set.model0.plot.low.perf <- plot.sub.group(tma.set.model0, 20, "TMA Model 0 - low performance", "groups")$low
-tma.set.model0.plot.low.perf$plot
 ```
 
 
 
-Mask using regular ENA
-```{r}
-DoD.ena <- ena.accumulate.data(
-  units = DoD[,c("speaker","high.perform_low.perform", "dummy")],
+### Mask using regular ENA
+1. Window	based (win=6)
+2. Undirected with mask
+```{r, echo=FALSE}
+model_a = ena.accumulate.data(
+  units = DoD[,c("speaker", "dummy")],
   conversation = DoD[,c("speaker", "dummy")],
   codes = DoD[,DoD.codes],
-  metadata = DoD[,c("speaker", "high.perform_low.perform", "modality")],
-  window.size.forward = 6,
+  # weight.by = function(x) {return(ifelse(x>0,1,0))},
+  weight.by = 'binary',
+  # weight.by = function(x) {return(x)},
+  metadata = DoD[,c("speaker", "high.perform_low.perform")],
+  window.size.back = 6,
+  # mask = DoD.mask
+)
+
+model_b = ena.accumulate.data(
+  units = DoD[,c("speaker", 'Error', "dummy")],
+  conversation = DoD[,c("speaker", "dummy")],
+  codes = DoD[,DoD.codes],
+  # weight.by = function(x) {return(ifelse(x>0,1,0))},
+  weight.by = 'binary',
+  # weight.by = function(x) {return(ifelse(x>0,1,0))},
+  # weight.by = function(x) {return(x)},
+  metadata = DoD[,c("speaker", "high.perform_low.perform")],
+  window.size.back = 6
+  # mask = DoD.mask
+)
+
+connections_to_errors = model_b$connection.counts[model_b$connection.counts$Error == 1];
+updated_connection_counts = model_a$connection.counts[,-c(1,2,3:4)] - connections_to_errors[,-c(1,2,3:5)];
+model_a$connection.counts[,5:25]= updated_connection_counts;
+
+DoD.ena.set <- ena.make.set(model_a)
+high = DoD.ena.set$points[DoD.ena.set$points$high.perform_low.perform =='high']
+low = DoD.ena.set$points[DoD.ena.set$points$high.perform_low.perform =='low']
+
+svd1_low = low[,6] %>% t %>% as.vector
+svd2_low = low[,7] %>% t %>% as.vector
+svd1_high = high[,6] %>% t %>% as.vector
+svd2_high = high[,7] %>% t %>% as.vector
+t.test(svd1_low,svd1_high)
+t.test(svd2_low,svd2_high)
+# write.csv(DoD.ena.set$connection.counts, "~/Desktop/sanity_check/ena_model.csv")
+```
+```{r, echo=FALSE}
+DoD.ena.set.plot.subtracted <- plot.sub.group(DoD.ena.set, 20, "ENA Model: masked, order-based, \nwindow of 6, uni, undirected", "subtracted")
+DoD.ena.set.plot.high.perf <- plot.sub.group(DoD.ena.set, 20, "ENA Model - high performance", "groups")$high
+DoD.ena.set.plot.low.perf <- plot.sub.group(DoD.ena.set, 20, "ENA Model - low performance", "groups")$low
+```
+
+```{r model1, echo=FALSE}
+DoD.hoo.TMA <- list()
+DoD.hoo.TMA[[1]] <- list(speaker = "<UNIT>")
+devtools::load_all(".")
+DoD.model1 <- tma::tma(
+  data = DoD,
+  units = DoD.units,
+  codes = DoD.codes,
+  hoo.rules = DoD.hoo.TMA,
+  weight.by = function(x) {return(x)},
+  # weight.by = function(x) {return(ifelse(x>0,1,0))},
+  # weight.by = 'binary',
+  return.ena.set = TRUE,
+  time.column = 'time',
+  decay.function = unimodal_continuous_decay_13_bucket,
+  meta.data = NA,
+  time.limit = NA,
   mask = DoD.mask
 )
-DoD.ena.set <- ena.make.set(DoD.ena)
-DoD.ena.set.plot.subtracted <- plot.sub.group(DoD.ena.set, 20, "ENA Model: masked, order-based, \nwindow of 6, uni, undirected", "subtracted")
+DoD.model1_sextile <- tma::tma(
+  data = DoD,
+  units = DoD.units,
+  codes = DoD.codes,
+  hoo.rules = DoD.hoo.TMA,
+  weight.by = function(x) {return(x)},
+  # weight.by = function(x) {return(ifelse(x>0,1,0))},
+  # weight.by = 'binary',
+  return.ena.set = TRUE,
+  time.column = 'time',
+  decay.function = unimodal_continuous_decay_sextile,
+  meta.data = NA,
+  time.limit = NA,
+  mask = DoD.mask
+)
+DoD.model1_decile <- tma::tma(
+  data = DoD,
+  units = DoD.units,
+  codes = DoD.codes,
+  hoo.rules = DoD.hoo.TMA,
+  weight.by = function(x) {return(x)},
+  # weight.by = function(x) {return(ifelse(x>0,1,0))},
+  # weight.by = 'binary',
+  return.ena.set = TRUE,
+  time.column = 'time',
+  decay.function = unimodal_continuous_decay_decile,
+  meta.data = NA,
+  time.limit = NA,
+  mask = DoD.mask
+)
+DoD.model1_recoded <- tma::tma(
+  data = DoD,
+  units = DoD.units,
+  codes = DoD.codes,
+  hoo.rules = DoD.hoo.TMA,
+  weight.by = function(x) {return(x)},
+  # weight.by = function(x) {return(ifelse(x>0,1,0))},
+  # weight.by = 'binary',
+  return.ena.set = TRUE,
+  time.column = 'time',
+  decay.function = unimodal_after_recoding,
+  meta.data = NA,
+  time.limit = NA,
+  mask = DoD.mask
+)
+# DoD.model0$contexts$`P001::high`$context
+tma.set.model1 <- ena.make.set(DoD.model1$ena.set)
+tma.set.model1_sextile <- ena.make.set(DoD.model1_sextile$ena.set)
+tma.set.model1_decile <- ena.make.set(DoD.model1_decile$ena.set)
+tma.set.model1_recoded <- ena.make.set(DoD.model1_recoded$ena.set)
+high = tma.set.model1$points[tma.set.model1$points$high.perform_low.perform =='high']
+low = tma.set.model1$points[tma.set.model1$points$high.perform_low.perform =='low']
+
+svd1_low = low[,3] %>% t %>% as.vector
+svd2_low = low[,4] %>% t %>% as.vector
+svd1_high = high[,4] %>% t %>% as.vector
+svd2_high = high[,4] %>% t %>% as.vector
+t.test(svd1_low,svd1_high)
+t.test(svd2_low,svd2_high)
+# setwd(selectDirectory())
+# devtools::load_all("../directedena/.")
+devtools::load_all(".")
+DoD.directed <- tma::tma(
+  data = DoD,
+  units = DoD.units,
+  codes = DoD.codes,
+  hoo.rules = DoD.hoo.TMA,
+  weight.by = function(x) {return(x)},
+  # weight.by = function(x) {return(ifelse(x>0,1,0))},
+  # weight.by = 'binary',
+  return.ena.set = FALSE,
+  time.column = 'time',
+  decay.function = unimodal_continuous_decay_13_bucket,
+  meta.data = NA,
+  time.limit = NA,
+  mask = DoD.mask
+)
+DoD.directed_set = directedENA:::directed_model(DoD.directed$dena.set, rotation_on = 'ground', optimize_on = c("ground", "response"));
+directedENA:::plot.ena.directed.set(DoD.directed_set)
+
+tma.set.model1.plot.subtracted <- plot.sub.group(tma.set.model1, 20, "TMA Model 1: masked, median time lag derived bucket, \n undirected", "subtracted")
+tma.set.model1.plot.high.perf <- plot.sub.group(tma.set.model1, 20, "TMA Model 1: median time lag derived bucket - high performance", "groups")$high
+tma.set.model1.plot.low.perf <- plot.sub.group(tma.set.model1, 20, "TMA Model 1: median time lag derived bucket - low performance", "groups")$low
+tma.set.model1.plot.subtracted_sextile <- plot.sub.group(tma.set.model1_sextile, 20, "TMA Model 1: masked, Average time lag derived bucket, \n undirected", "subtracted")
+tma.set.model1.plot.high.perf_sextile <- plot.sub.group(tma.set.model1_sextile, 20, "TMA Model 1: Average time lag derived bucket - high performance", "groups")$high
+tma.set.model1.plot.low.perf_sextile <- plot.sub.group(tma.set.model1_sextile, 20, "TMA Model 1: Average time lag derived bucket - low performance", "groups")$low
+tma.set.model1.plot.subtracted_decile <- plot.sub.group(tma.set.model1_decile, 20, "TMA Model 1: masked, 10 bucket time lag derived bucket, \n undirected", "subtracted")
+tma.set.model1.plot.high.perf_decile <- plot.sub.group(tma.set.model1_decile, 20, "TMA Model 1: 10 bucket time lag derived bucket - high performance", "groups")$high
+tma.set.model1.plot.low.perf_decile <- plot.sub.group(tma.set.model1_decile, 20, "TMA Model 1: 10 bucket time lag derived bucket - low performance", "groups")$low
+tma.set.model1.plot.subtracted_recoded <- plot.sub.group(tma.set.model1_recoded, 20, "TMA Model 1: masked, 10 second buckets, \n undirected", "subtracted")
+tma.set.model1.plot.high.perf_recoded <- plot.sub.group(tma.set.model1_recoded, 20, "TMA Model 1: 10 second buckets - high performance", "groups")$high
+tma.set.model1.plot.low.perf_recoded <- plot.sub.group(tma.set.model1_recoded, 20, "TMA Model 1: 10 second buckets - low performance", "groups")$low
+```
+
+```{r model2, echo=FALSE}
+# modal.decay.function = list()
+# modal.decay.function$error = error.decay.function
+# modal.decay.function$discourse = discourse.decay.function
+# 
+# DoD.model2_recoded <- tma::tma(
+#   data = DoD,
+#   units = DoD.units,
+#   codes = DoD.codes,
+#   hoo.rules = DoD.hoo.TMA,
+#   weight.by = function(x) {return(x)},
+#   # weight.by = function(x) {return(ifelse(x>0,1,0))},
+#   # weight.by = 'binary',
+#   return.ena.set = TRUE,
+#   time.column = 'time',
+#   # mode.column = "modality",
+#   decay.function = modal.decay.function,
+#   meta.data = NA,
+#   time.limit = NA,
+#   mask = DoD.mask
+# )
+# 
+# tma.set.model2_recoded <- ena.make.set(DoD.model2_recoded$ena.set)
+# tma.set.model2.plot.subtracted <- plot.sub.group(tma.set.model2_recoded, 20, "TMA Model 1: masked, median time lag derived bucket, \n undirected", "subtracted")
+# tma.set.model2.plot.high.perf <- plot.sub.group(tma.set.model2_recoded, 20, "TMA Model 1: median time lag derived bucket - high performance", "groups")$high
+# tma.set.model2.plot.low.perf <- plot.sub.group(tma.set.model2_recoded, 20, "TMA Model 1: median time lag derived bucket - low performance", "groups")$low
+```
+
+
+```{r plots}
 DoD.ena.set.plot.subtracted$plot
-
-DoD.ena.set.plot.high.perf <- plot.sub.group(DoD.ena.set, 20, "ENA Model - high performance", "groups")$high
+tma.set.model0.plot.subtracted$plot
+# tma.set.model1.plot.subtracted$plot
+# tma.set.model1.plot.subtracted_sextile$plot
+# tma.set.model1.plot.subtracted_decile$plot
+tma.set.model1.plot.subtracted_recoded$plot
 DoD.ena.set.plot.high.perf$plot
-
-DoD.ena.set.plot.low.perf <- plot.sub.group(DoD.ena.set, 20, "ENA Model - low performance", "groups")$low
+tma.set.model0.plot.high.perf$plot
+# tma.set.model1.plot.high.perf$plot
+# tma.set.model1.plot.high.perf_sextile$plot
+# tma.set.model1.plot.high.perf_decile$plot
+tma.set.model1.plot.high.perf_recoded$plot
 DoD.ena.set.plot.low.perf$plot
-
+tma.set.model0.plot.low.perf$plot
+# tma.set.model1.plot.low.perf$plot
+# tma.set.model1.plot.low.perf_sextile$plot
+# tma.set.model1.plot.low.perf_decile$plot
+tma.set.model1.plot.low.perf_recoded$plot
 ```
 

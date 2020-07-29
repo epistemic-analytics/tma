@@ -22,6 +22,7 @@ accumulate.units = function(context.object,
                             time.limit = NA,
                             weight.by = sqrt,
                             meta.data = NA,
+                            return.dena.set = FALSE,
                             return.ena.set = TRUE
                             ){
   f.window.limit = time.limit
@@ -54,6 +55,7 @@ accumulate.units = function(context.object,
   directed.adjacency.vectors = as.matrix(
     data.frame(matrix(NA, nrow = 1, ncol = length(f.codes)^2)[0,])
   )
+  colnames(directed.adjacency.vectors) = paste("V", seq(length(f.codes) ^ 2), sep = "")
   
   
   #create blank code matrix template
@@ -62,6 +64,9 @@ accumulate.units = function(context.object,
   colnames(blank.code.matrix) = f.codes
   rownames(blank.code.matrix) = f.codes
   #blank.code.matrix
+  
+  # for use with binary flag
+  binarize_window = function(x) {return(ifelse(x>0,1,0))}
   
   #loop over contexts
   for (this.hoo in 1:length(f.contexts)) {
@@ -183,7 +188,31 @@ accumulate.units = function(context.object,
           #weighting function lets us account for inflation of connections
           #due to multiplication of weighted code values
           #we do the same thing in weighted ENA
-          this.code.matrix = this.code.matrix + f.weighting.function(this.connection.matrix)
+          if (class(f.weighting.function) != 'function' & return.ena.set){
+            if (f.weighting.function == 'binary') {
+              
+              # AJF HACK
+              # In order to get TMA accumulation to agree w/ rENA accumulation, we would need to perform the weighting
+              # on each window _after_ the undirected connections have been added up. This means that directed co-occurences
+              # would be treated as a single connection, the same as code connections across utterances.
+              # First, we need to apply the mask to the _window_'s connections
+              if(use.mask) this.connection.matrix = this.connection.matrix * mask
+              
+              # upper triangle is some of directed connections
+              upper_tri_indices <- upper.tri(this.connection.matrix)
+              diag(this.connection.matrix) = 0
+              this.connection.matrix[upper_tri_indices] <- this.connection.matrix[upper_tri_indices] + t(this.connection.matrix)[upper_tri_indices]
+              
+              #make matrix symmetrical
+              this.connection.matrix[lower.tri(this.connection.matrix)] = 0
+              this.code.matrix = this.code.matrix + binarize_window(this.connection.matrix);
+            } else {
+              stop('specify a valid weighting function')
+            }
+          } else {
+            this.code.matrix = this.code.matrix + f.weighting.function(this.connection.matrix)
+          }
+          
           
           #go back to next row for this unit
           
@@ -245,24 +274,47 @@ accumulate.units = function(context.object,
   
   #construct information for ENA set
   # browser()
-  enadata = structure(list(), class = c("ENAdata", "list"))
-  enadata$adjacency.matrix = rENA:::namesToAdjacencyKey(f.codes)
-  enadata$codes = f.codes
-  enadata$model = "TMA"
-  enadata$raw = data.table::as.data.table(f.raw)
-  enadata$units = f.units
-  enadata$meta.data = data.table::as.data.table(output.meta.data)
-  enadata$metadata = data.table::as.data.table(output.meta.data)
-  enadata$adjacency.vectors = data.table::as.data.table(undirected.adjacency.vectors)
-  enadata$accumulated.adjacency.vectors = data.table::as.data.table(undirected.adjacency.vectors)
+  if(return.ena.set) {
+    enadata = structure(list(), class = c("ENAdata", "list"))
+    enadata$adjacency.matrix = rENA:::namesToAdjacencyKey(f.codes)
+    enadata$codes = f.codes
+    enadata$model = "TMA"
+    enadata$raw = data.table::as.data.table(f.raw)
+    enadata$units = f.units
+    enadata$meta.data = data.table::as.data.table(output.meta.data)
+    enadata$metadata = data.table::as.data.table(output.meta.data)
+    enadata$adjacency.vectors = data.table::as.data.table(undirected.adjacency.vectors)
+    enadata$accumulated.adjacency.vectors = data.table::as.data.table(undirected.adjacency.vectors)
+    
+    output$for.ena$enadata=enadata
   
-  output$for.ena$enadata=enadata
+  # dena_data = directedena:::ena.set.directed(f.raw, f.units, NA, f.codes)
+  # dena_data$connection.counts <- data.table::as.data.table(directed.adjacency.vectors);
+  # dena_data$model$row.connection.counts = row.connection.counts;
+  # dena_data$meta.data = data.table::as.data.table(output.meta.data)
   
   #if ena set is requested, construct ena set using rENA:::ena.set
   #and remove the information used to create it
-  if(return.ena.set) {
+  
+  
     output$ena.set = rENA:::ena.set(enadata) #output$for.ena)
     output$for.ena = NULL
+  } else {
+    dena_data = directedENA:::ena.set.directed(f.raw, f.units, NA, f.codes)
+    dena_data$meta.data = data.table::as.data.table(output.meta.data)
+    # browser();
+     
+    dena_data$meta.data[, ENA_UNIT := apply(f.units, 1,paste, collapse = ".")]
+    ENA_UNIT = apply(f.units, 1,paste, collapse = ".") %>% as.vector()
+    # dena_data$connection.counts <- data.table::as.data.table(directed.adjacency.vectors)
+    dena_data$connection.counts <- data.table::as.data.table(cbind(ENA_UNIT, f.units, directed.adjacency.vectors))
+    dena_data$connection.counts = as.ena.matrix(x = dena_data$connection.counts, "ena.connections")
+    for( i in c('ENA_UNIT', f.units %>% colnames) ) {
+      set(dena_data$connection.counts, j = i, value = rENA::as.ena.metadata(dena_data$connection.counts[[i]]))
+    }
+    dena_data$model$row.connection.counts = data.table::as.data.table(cbind(ENA_UNIT, f.units, as.ena.matrix(x = directed.adjacency.vectors, "row.connections")))
+    # dena_data$model$row.connection.counts = cbind(dena_data$meta.data,data.table::as.data.table(directed.adjacency.vectors));
+    output$dena.set = dena_data;
   }
   
   return(output)
