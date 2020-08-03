@@ -131,6 +131,12 @@ unimodal_after_recoding = Vectorize(
   }
 )
 
+unimodal_after_recoding = Vectorize(
+  function(x) {
+    return(-2E-10*x^4 + 1E-07*x^3 - 4E-06*x^2 - 0.0071*x + 1.0285)
+  }, 'x'
+)
+
 #' Title
 #'
 #' @param x TBD

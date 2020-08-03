@@ -176,12 +176,10 @@ svd1_high = high[,6] %>% t %>% as.vector
 svd2_high = high[,7] %>% t %>% as.vector
 t.test(svd1_low,svd1_high)
 t.test(svd2_low,svd2_high)
-# write.csv(DoD.ena.set$connection.counts, "~/Desktop/sanity_check/ena_model.csv")
-```
-```{r, echo=FALSE}
 DoD.ena.set.plot.subtracted <- plot.sub.group(DoD.ena.set, 20, "ENA Model: masked, order-based, \nwindow of 6, uni, undirected", "subtracted")
 DoD.ena.set.plot.high.perf <- plot.sub.group(DoD.ena.set, 20, "ENA Model - high performance", "groups")$high
 DoD.ena.set.plot.low.perf <- plot.sub.group(DoD.ena.set, 20, "ENA Model - low performance", "groups")$low
+# write.csv(DoD.ena.set$connection.counts, "~/Desktop/sanity_check/ena_model.csv")
 ```
 
 ```{r model1, echo=FALSE}
@@ -233,6 +231,16 @@ DoD.model1_decile <- tma::tma(
   time.limit = NA,
   mask = DoD.mask
 )
+moving_average_bucket_poly_3 = Vectorize(
+  function(x) {
+    if (x <=11) {
+      return((-1/242)*x^2 + (1/11)*x + .5)
+    } else {
+      return(-5E-08*x^3 + 4E-05*x^2 - 0.0119*x + 1.2002)
+    }
+    return(-3E-08*x^3 + 3E-05*x^2 - 0.0096*x + 1.1271)
+  }, 'x'
+)
 DoD.model1_recoded <- tma::tma(
   data = DoD,
   units = DoD.units,
@@ -243,18 +251,18 @@ DoD.model1_recoded <- tma::tma(
   # weight.by = 'binary',
   return.ena.set = TRUE,
   time.column = 'time',
-  decay.function = unimodal_after_recoding,
+  decay.function = moving_average_bucket_poly_3,
   meta.data = NA,
   time.limit = NA,
   mask = DoD.mask
 )
 # DoD.model0$contexts$`P001::high`$context
-tma.set.model1 <- ena.make.set(DoD.model1$ena.set)
-tma.set.model1_sextile <- ena.make.set(DoD.model1_sextile$ena.set)
-tma.set.model1_decile <- ena.make.set(DoD.model1_decile$ena.set)
+# tma.set.model1_sextile <- ena.make.set(DoD.model1_sextile$ena.set)
+# tma.set.model1_decile <- ena.make.set(DoD.model1_decile$ena.set)
 tma.set.model1_recoded <- ena.make.set(DoD.model1_recoded$ena.set)
-high = tma.set.model1$points[tma.set.model1$points$high.perform_low.perform =='high']
-low = tma.set.model1$points[tma.set.model1$points$high.perform_low.perform =='low']
+# tma.set.model1 <- ena.make.set(DoD.model1$ena.set)
+high = tma.set.model1_recoded$points[tma.set.model1_recoded$points$high.perform_low.perform =='high']
+low = tma.set.model1_recoded$points[tma.set.model1_recoded$points$high.perform_low.perform =='low']
 
 svd1_low = low[,3] %>% t %>% as.vector
 svd2_low = low[,4] %>% t %>% as.vector
@@ -264,45 +272,8 @@ t.test(svd1_low,svd1_high)
 t.test(svd2_low,svd2_high)
 # setwd(selectDirectory())
 # devtools::load_all("../directedena/.")
-devtools::load_all(".")
-DoD.directed <- tma::tma(
-  data = DoD,
-  units = DoD.units,
-  codes = DoD.codes,
-  hoo.rules = DoD.hoo.TMA,
-  weight.by = function(x) {return(x)},
-  # weight.by = function(x) {return(ifelse(x>0,1,0))},
-  # weight.by = 'binary',
-  return.ena.set = FALSE,
-  time.column = 'time',
-  decay.function = unimodal_continuous_decay_13_bucket,
-  meta.data = NA,
-  time.limit = NA,
-  mask = DoD.mask
-)
-DoD.directed_set = directedENA:::directed_model(DoD.directed$dena.set, rotation_on = 'ground', optimize_on = c("ground", "response"));
-directedENA:::plot.ena.directed.set(DoD.directed_set)
-
-tma.set.model1.plot.subtracted <- plot.sub.group(tma.set.model1, 20, "TMA Model 1: masked, median time lag derived bucket, \n undirected", "subtracted")
-tma.set.model1.plot.high.perf <- plot.sub.group(tma.set.model1, 20, "TMA Model 1: median time lag derived bucket - high performance", "groups")$high
-tma.set.model1.plot.low.perf <- plot.sub.group(tma.set.model1, 20, "TMA Model 1: median time lag derived bucket - low performance", "groups")$low
-tma.set.model1.plot.subtracted_sextile <- plot.sub.group(tma.set.model1_sextile, 20, "TMA Model 1: masked, Average time lag derived bucket, \n undirected", "subtracted")
-tma.set.model1.plot.high.perf_sextile <- plot.sub.group(tma.set.model1_sextile, 20, "TMA Model 1: Average time lag derived bucket - high performance", "groups")$high
-tma.set.model1.plot.low.perf_sextile <- plot.sub.group(tma.set.model1_sextile, 20, "TMA Model 1: Average time lag derived bucket - low performance", "groups")$low
-tma.set.model1.plot.subtracted_decile <- plot.sub.group(tma.set.model1_decile, 20, "TMA Model 1: masked, 10 bucket time lag derived bucket, \n undirected", "subtracted")
-tma.set.model1.plot.high.perf_decile <- plot.sub.group(tma.set.model1_decile, 20, "TMA Model 1: 10 bucket time lag derived bucket - high performance", "groups")$high
-tma.set.model1.plot.low.perf_decile <- plot.sub.group(tma.set.model1_decile, 20, "TMA Model 1: 10 bucket time lag derived bucket - low performance", "groups")$low
-tma.set.model1.plot.subtracted_recoded <- plot.sub.group(tma.set.model1_recoded, 20, "TMA Model 1: masked, 10 second buckets, \n undirected", "subtracted")
-tma.set.model1.plot.high.perf_recoded <- plot.sub.group(tma.set.model1_recoded, 20, "TMA Model 1: 10 second buckets - high performance", "groups")$high
-tma.set.model1.plot.low.perf_recoded <- plot.sub.group(tma.set.model1_recoded, 20, "TMA Model 1: 10 second buckets - low performance", "groups")$low
-```
-
-```{r model2, echo=FALSE}
-# modal.decay.function = list()
-# modal.decay.function$error = error.decay.function
-# modal.decay.function$discourse = discourse.decay.function
-# 
-# DoD.model2_recoded <- tma::tma(
+# devtools::load_all(".")
+# DoD.directed <- tma::tma(
 #   data = DoD,
 #   units = DoD.units,
 #   codes = DoD.codes,
@@ -310,19 +281,90 @@ tma.set.model1.plot.low.perf_recoded <- plot.sub.group(tma.set.model1_recoded, 2
 #   weight.by = function(x) {return(x)},
 #   # weight.by = function(x) {return(ifelse(x>0,1,0))},
 #   # weight.by = 'binary',
-#   return.ena.set = TRUE,
+#   return.ena.set = FALSE,
 #   time.column = 'time',
-#   # mode.column = "modality",
-#   decay.function = modal.decay.function,
+#   decay.function = unimodal_continuous_decay_13_bucket,
 #   meta.data = NA,
 #   time.limit = NA,
 #   mask = DoD.mask
 # )
+# DoD.directed_set = directedENA:::directed_model(DoD.directed$dena.set, rotation_on = 'ground', optimize_on = c("ground", "response"));
+# directedENA:::plot.ena.directed.set(DoD.directed_set, units = high_low[2], multiplier = 20, multiplier_nodes = 20, with_points = TRUE, with_mean = TRUE, node_size_dynamic = TRUE, colors = c(blue), title= 'High Performers')
+
+tma.set.model1_recoded.plot.subtracted <- plot.sub.group(tma.set.model1_recoded, 20, "TMA Model 1: masked, median time lag derived bucket, \n undirected", "subtracted")
+tma.set.model1_recoded.plot.high.perf <- plot.sub.group(tma.set.model1_recoded, 20, "TMA Model 1: median time lag derived bucket - high performance", "groups")$high
+tma.set.model1_recoded.plot.low.perf <- plot.sub.group(tma.set.model1_recoded, 20, "TMA Model 1: median time lag derived bucket - low performance", "groups")$low
+# tma.set.model1.plot.subtracted_sextile <- plot.sub.group(tma.set.model1_sextile, 20, "TMA Model 1: masked, Average time lag derived bucket, \n undirected", "subtracted")
+# tma.set.model1.plot.high.perf_sextile <- plot.sub.group(tma.set.model1_sextile, 20, "TMA Model 1: Average time lag derived bucket - high performance", "groups")$high
+# tma.set.model1.plot.low.perf_sextile <- plot.sub.group(tma.set.model1_sextile, 20, "TMA Model 1: Average time lag derived bucket - low performance", "groups")$low
+# tma.set.model1.plot.subtracted_decile <- plot.sub.group(tma.set.model1_decile, 20, "TMA Model 1: masked, 10 bucket time lag derived bucket, \n undirected", "subtracted")
+# tma.set.model1.plot.high.perf_decile <- plot.sub.group(tma.set.model1_decile, 20, "TMA Model 1: 10 bucket time lag derived bucket - high performance", "groups")$high
+# tma.set.model1.plot.low.perf_decile <- plot.sub.group(tma.set.model1_decile, 20, "TMA Model 1: 10 bucket time lag derived bucket - low performance", "groups")$low
+# tma.set.model1.plot.subtracted_recoded <- plot.sub.group(tma.set.model1_recoded, 20, "TMA Model 1: masked, 10 second buckets, \n undirected", "subtracted")
+# tma.set.model1.plot.high.perf_recoded <- plot.sub.group(tma.set.model1_recoded, 20, "TMA Model 1: 10 second buckets - high performance", "groups")$high
+# tma.set.model1.plot.low.perf_recoded <- plot.sub.group(tma.set.model1_recoded, 20, "TMA Model 1: 10 second buckets - low performance", "groups")$low
+```
+
+```{r model2, echo=FALSE}
+modal.decay.function = list()
+error.decay.function = Vectorize(
+  function(x) {
+    if (x <=15.4) {
+      return((-25/11858)*x^2 + (5/77)*x + .5)
+    } else {
+      return(-2E-13*x^6 + 1E-10*x^5 - 5E-08*x^4 + 8E-06*x^3 - 0.0006*x^2 + 0.0113*x + 0.9243)
+    }
+    return(-2E-12*x^5 + 2E-09*x^4 - 9E-07*x^3 + 0.0002*x^2 - 0.0204*x + 1.3013)
+  }, 'x'
+)
+modal.decay.function$error = error.decay.function
+discourse.decay.function = Vectorize(
+  function(x){
+    if (x >= 0 & x < 240) {
+      return(2E-13*x^6 - 2E-10*x^5 + 7E-08*x^4 - 1E-05*x^3 + 0.001*x^2 - 0.0482*x + 1.0012
+)
+    } else {
+      return(0)
+    }
+  }, 'x'
+)
+modal.decay.function$discourse = Vectorize(
+  function(x) {
+    return(.5677*exp(-.023*x))
+  }, 'x'
+)
 # 
-# tma.set.model2_recoded <- ena.make.set(DoD.model2_recoded$ena.set)
-# tma.set.model2.plot.subtracted <- plot.sub.group(tma.set.model2_recoded, 20, "TMA Model 1: masked, median time lag derived bucket, \n undirected", "subtracted")
-# tma.set.model2.plot.high.perf <- plot.sub.group(tma.set.model2_recoded, 20, "TMA Model 1: median time lag derived bucket - high performance", "groups")$high
-# tma.set.model2.plot.low.perf <- plot.sub.group(tma.set.model2_recoded, 20, "TMA Model 1: median time lag derived bucket - low performance", "groups")$low
+devtools::load_all(".")
+DoD.model2_recoded <- tma::tma(
+  data = DoD,
+  units = DoD.units,
+  codes = DoD.codes,
+  hoo.rules = DoD.hoo.TMA,
+  weight.by = function(x) {return(x)},
+  # weight.by = function(x) {return(ifelse(x>0,1,0))},
+  # weight.by = 'binary',
+  return.ena.set = TRUE,
+  time.column = 'time',
+  mode.column = "modality",
+  decay.function = modal.decay.function,
+  meta.data = NA,
+  time.limit = NA,
+  mask = DoD.mask
+)
+# 
+tma.set.model2_recoded <- ena.make.set(DoD.model2_recoded$ena.set)
+high = tma.set.model2_recoded$points[tma.set.model2_recoded$points$high.perform_low.perform =='high']
+low = tma.set.model2_recoded$points[tma.set.model2_recoded$points$high.perform_low.perform =='low']
+svd1_low = low[,3] %>% t %>% as.vector
+svd2_low = low[,4] %>% t %>% as.vector
+svd1_high = high[,4] %>% t %>% as.vector
+svd2_high = high[,4] %>% t %>% as.vector
+t.test(svd1_low,svd1_high)
+t.test(svd2_low,svd2_high)
+
+tma.set.model2.plot.subtracted <- plot.sub.group(tma.set.model2_recoded, 20, "TMA Model 2 masked, median time lag derived bucket, \n undirected", "subtracted")
+tma.set.model2.plot.high.perf <- plot.sub.group(tma.set.model2_recoded, 20, "TMA Model 2: median time lag derived bucket - high performance", "groups")$high
+tma.set.model2.plot.low.perf <- plot.sub.group(tma.set.model2_recoded, 20, "TMA Model 2: median time lag derived bucket - low performance", "groups")$low
 ```
 
 
@@ -332,18 +374,21 @@ tma.set.model0.plot.subtracted$plot
 # tma.set.model1.plot.subtracted$plot
 # tma.set.model1.plot.subtracted_sextile$plot
 # tma.set.model1.plot.subtracted_decile$plot
-tma.set.model1.plot.subtracted_recoded$plot
+tma.set.model1_recoded.plot.subtracted$plot
+tma.set.model2.plot.subtracted$plot
 DoD.ena.set.plot.high.perf$plot
 tma.set.model0.plot.high.perf$plot
 # tma.set.model1.plot.high.perf$plot
 # tma.set.model1.plot.high.perf_sextile$plot
 # tma.set.model1.plot.high.perf_decile$plot
-tma.set.model1.plot.high.perf_recoded$plot
+tma.set.model1_recoded.plot.high.perf$plot
+tma.set.model2.plot.high.perf$plot
 DoD.ena.set.plot.low.perf$plot
 tma.set.model0.plot.low.perf$plot
 # tma.set.model1.plot.low.perf$plot
 # tma.set.model1.plot.low.perf_sextile$plot
 # tma.set.model1.plot.low.perf_decile$plot
-tma.set.model1.plot.low.perf_recoded$plot
+tma.set.model1_recoded.plot.low.perf$plot
+tma.set.model2.plot.low.perf$plot
 ```
 
