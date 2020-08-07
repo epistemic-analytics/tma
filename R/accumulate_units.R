@@ -16,7 +16,7 @@
 accumulate.units = function(context.object, 
                             time.column = NA,  
                             codes, 
-                            decay.function = default.decay.function, 
+                            decay.function = NA, 
                             mode.column = NA, 
                             mask = NA,
                             time.limit = NA,
@@ -140,15 +140,16 @@ accumulate.units = function(context.object,
           #get codes for ground and response
           response.codes = as.matrix(this.context[response, f.codes])
           ground.codes = as.matrix(this.context[ground, f.codes])
-          
+          # browser();
   
           #compute decays
           #
           #Get modes, if needed
           ground.modes = NA
           if(use.modes) ground.modes = these.modes[ground]
-  
+          # browser();
           #get decays -- get.decay.modes handles whether to use modes or not
+          # browser();
           my.decays = get.decay.modes(
               now = response.time,
               event.time = this.time[ground],
@@ -157,7 +158,7 @@ accumulate.units = function(context.object,
           )
   
           #apply decays to ground
-          
+          # 
           #if there is only a single line of data, multiple by scalar
           if(length(my.decays) == 1) {
             ground.codes = ground.codes * my.decays 
@@ -167,42 +168,45 @@ accumulate.units = function(context.object,
           #by a different scalar from a vector of scalars 
             ground.codes = t(t(ground.codes) %*% diag(my.decays))
           }
-          
+          # browser();
           #find the ground code corresponsing the the response line
           #since the response line is in its own "window" for connections
           #and we can't assume that for its mode the decay at time_0 = 1
           this.response.in.ground = t(ground.codes[response.in.ground,])
-  
+          
           #collapse the ground codes into a vector colsums
-          this.ground = t(as.matrix(.colSums(ground.codes, m = length(ground), n = length(f.codes))))
+          # this.ground = t(as.matrix(.colSums(ground.codes, m = length(ground), n = length(f.codes))))
+          only_ground_connections = this.ground - this.response.in.ground
   
           #compute connections
-          this.connection.matrix = crossprod(this.ground, response.codes)
-          
+          # this.connection.matrix = crossprod(this.ground, response.codes)
+          this.connection.matrix = crossprod(only_ground_connections, response.codes)
           #compute the connections from the response to itself
-          this.self.connection = crossprod(this.response.in.ground, response.codes)
+          # this.self.connection = crossprod(this.response.in.ground, response.codes)
+          this.self.connection = 0.5*(t(response.codes)%*%response.codes - as.vector(response.codes) * diag(length(response.codes)))
   
           #remove self-references in response code from from the adjacency counts
-          diag(this.connection.matrix) = diag(this.connection.matrix) - diag(this.self.connection)
+          # diag(this.connection.matrix) = diag(this.connection.matrix) - diag(this.self.connection)
+          this.connection.matrix = this.connection.matrix + this.self.connection
           
           #weighting function lets us account for inflation of connections
           #due to multiplication of weighted code values
           #we do the same thing in weighted ENA
           if (class(f.weighting.function) != 'function' & return.ena.set){
             if (f.weighting.function == 'binary') {
-              
+
               # AJF HACK
               # In order to get TMA accumulation to agree w/ rENA accumulation, we would need to perform the weighting
               # on each window _after_ the undirected connections have been added up. This means that directed co-occurences
               # would be treated as a single connection, the same as code connections across utterances.
               # First, we need to apply the mask to the _window_'s connections
               if(use.mask) this.connection.matrix = this.connection.matrix * mask
-              
+
               # upper triangle is some of directed connections
               upper_tri_indices <- upper.tri(this.connection.matrix)
               diag(this.connection.matrix) = 0
               this.connection.matrix[upper_tri_indices] <- this.connection.matrix[upper_tri_indices] + t(this.connection.matrix)[upper_tri_indices]
-              
+
               #make matrix symmetrical
               this.connection.matrix[lower.tri(this.connection.matrix)] = 0
               this.code.matrix = this.code.matrix + binarize_window(this.connection.matrix);
@@ -212,10 +216,7 @@ accumulate.units = function(context.object,
           } else {
             this.code.matrix = this.code.matrix + f.weighting.function(this.connection.matrix)
           }
-          
-          
           #go back to next row for this unit
-          
         } #done looping over rows for this unit
         
     } #end of if statement -- the above is all skipped if there are no
@@ -302,7 +303,6 @@ accumulate.units = function(context.object,
   } else {
     dena_data = directedENA:::ena.set.directed(f.raw, f.units, NA, f.codes)
     dena_data$meta.data = data.table::as.data.table(output.meta.data)
-    # browser();
      
     dena_data$meta.data[, ENA_UNIT := apply(f.units, 1,paste, collapse = ".")]
     ENA_UNIT = apply(f.units, 1,paste, collapse = ".") %>% as.vector()
