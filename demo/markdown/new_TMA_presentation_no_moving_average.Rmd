@@ -543,7 +543,7 @@ tma.set.model0.plot.subtracted$plot
 ```{r include=F}
 modal.decay.function = list()
 error_decay_function <- Vectorize(function(x) {
-  scalar = 1.5
+  scalar = 1.22
   if (x<=16.65) {
     result = ((-400/110889)*x^2 + (40/333)*x)*scalar
   } else {
@@ -576,7 +576,7 @@ DoD.model2_weighted <- tma::tma(
   mask = DoD.mask
 )
 tma.set.model2_weighted <- ena.make.set(DoD.model2_weighted$ena.set)
-tma.set.model2_weighted.plot.subtracted <- plot.sub.group(tma.set.model2_weighted, 20, "TMA Model 2: multiple decay functions, weighted", "subtracted", flip_x = F, flip_y = F)
+tma.set.model2_weighted.plot.subtracted <- plot.sub.group(tma.set.model2_weighted, 20, "TMA Model 2: multiple decay functions, weighted", "subtracted", flip_x = T, flip_y = T)
 high = tma.set.model2_weighted$points[tma.set.model2_weighted$points$high.perform_low.perform =='high']
 low = tma.set.model2_weighted$points[tma.set.model2_weighted$points$high.perform_low.perform =='low']
 svd1_low_tma_model_2_weighted = low[,c("SVD1")] %>% t %>% as.vector

@@ -175,7 +175,7 @@ accumulate.units = function(context.object,
           this.response.in.ground = t(ground.codes[response.in.ground,])
           
           #collapse the ground codes into a vector colsums
-          # this.ground = t(as.matrix(.colSums(ground.codes, m = length(ground), n = length(f.codes))))
+          this.ground = t(as.matrix(.colSums(ground.codes, m = length(ground), n = length(f.codes))))
           only_ground_connections = this.ground - this.response.in.ground
   
           #compute connections
