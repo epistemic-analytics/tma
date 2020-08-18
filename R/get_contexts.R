@@ -144,7 +144,6 @@ get.contexts_dt = function(units, data, hoo.rules) {
     #temporary names to variables. I can assign values and step through the function
     #while I am writing/deebugging. Then when the function works, I can create the function
     #call and pass the parameters to these termporary variables.
-    browser()
     f.data = data
     f.units = as.data.table(units, key = names(units))
     f.hoo = hoo.rules
@@ -230,7 +229,6 @@ get.contexts_dt = function(units, data, hoo.rules) {
         # }
         #finished with all conditions for this rule
       
-        browser()
         this.values <- this.unit.data[, {
           rule_matches <- sapply(names(.SD), function(n) {
             grepl(.SD[[n]], pattern = this.rule[[n]])
@@ -248,15 +246,11 @@ get.contexts_dt = function(units, data, hoo.rules) {
         #This merge function removes duplicate rows and keeps output in the order
         #of column "Rows"
         else {
-          # browser()
           hoos[[i]][["context"]] = merge_on(hoos[[i]][["context"]], this.output, "Rows")
-        }
-    
-              
+        }     
       }
       # finished with rules
     
-      # browser()
       #remove row numbers
       hoos[[i]][["context"]] = as.data.frame(hoos[[i]][["context"]])[, -1]
     }
