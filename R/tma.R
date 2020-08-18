@@ -27,7 +27,8 @@ tma <- function(
   mode.column = NA,
   time.limit = NA,
   mask = NA,
-  meta.data = NA
+  meta.data = NA,
+  beta = FALSE
 ) {
   # hoo rules must be list of lists
   #note that options here are...
@@ -35,8 +36,14 @@ tma <- function(
   #               for which context is being constructed
   #   ...any regex
   #generate contexts for this data: TMA
-  hoos.TMA = get.contexts(units = units, data = data, hoo.rules = hoo.rules);
-  # browser()
+  if(beta == FALSE) {
+    hoos.TMA = get.contexts(units = units, data = data, hoo.rules = hoo.rules);
+  }
+  else {
+    # browser()
+    hoos.TMA = get.contexts_dt(units = units, data = data, hoo.rules = hoo.rules);
+  }
+  
   accumulation = accumulate.units(
     context.object = hoos.TMA,
     codes = codes,

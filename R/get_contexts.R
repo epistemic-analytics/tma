@@ -144,13 +144,16 @@ get.contexts_dt = function(units, data, hoo.rules) {
     #temporary names to variables. I can assign values and step through the function
     #while I am writing/deebugging. Then when the function works, I can create the function
     #call and pass the parameters to these termporary variables.
+    browser()
     f.data = data
-    f.units = units
+    f.units = as.data.table(units, key = names(units))
     f.hoo = hoo.rules
+    
 
     #add row numbeers to the data (needed to keep data sorted)
-    Rows = 1:nrow(f.data)
-    f.data.augmented = cbind(Rows, f.data)
+    # Rows = 1:nrow(f.data)
+    # f.data.augmented = cbind(Rows, f.data)
+    f.data.augmented <- as.data.table(cbind(Rows = 1:nrow(f.data), f.data), key = names(units))
     
     #initialize output list for contexts
     hoos = list()
@@ -161,8 +164,7 @@ get.contexts_dt = function(units, data, hoo.rules) {
     
       #initialize this hoo
       hoos[[i]] = list()
-      hoos[[i]][["context"]] = f.data.augmented[0,] #quick hack to create a blank copy of an
-                                                    #existing matrix
+      hoos[[i]][["context"]] = f.data.augmented[0,] #quick hack to create a blank copy of an existing data.table
       
       #get this unit data -- semi join takes thing from the left variable that match
       #things from the right variable in the columns in BY
@@ -171,17 +173,24 @@ get.contexts_dt = function(units, data, hoo.rules) {
       ## I'm not sure if the column ordering the reason behind using dplyr here, so I've added an additional [,] after
       ## merge so the results are identical to the call to `semi_join`, if not, then we should just use the option here.
       # this.unit.data <- merge(f.data.augmented, this.unit, by = names(this.unit))
-      this.unit.data <- merge(f.data.augmented, this.unit, by = names(this.unit))[, names(f.data.augmented)]
+      # this.unit.data <- merge(f.data.augmented, this.unit, by = names(this.unit))[, names(f.data.augmented)]
+      # this.unit.data <- f.data.augmented[this.unit, names(f.data.augmented), with = FALSE];
+      this.unit.data <- f.data.augmented[this.unit, names(f.data.augmented), on = names(this.unit), with = FALSE]
       
       #assign meta data for unit
       #create a list of named list with names equal to unit columns
-      for(j in names(this.unit)) hoos[[i]][["unit"]][j] = this.unit[,j]
-      #put in values for this unit
-      hoos[[i]][["unit"]] =  as.data.frame(
-        t(hoos[[i]][["unit"]]), 
-        col.names = names(hoos[[i]][["unit"]]),
-        stringsAsFactors = FALSE
-      )
+      # for(j in names(this.unit)) {
+      #   hoos[[i]][["unit"]][j] = this.unit[,j, with = FALSE]
+      # }
+      # 
+      # #put in values for this unit
+      # hoos[[i]][["unit"]] =  as.data.frame(
+      #   t(hoos[[i]][["unit"]]), 
+      #   col.names = names(hoos[[i]][["unit"]]),
+      #   stringsAsFactors = FALSE
+      # )
+      hoos[[i]]$unit <- as.data.frame(this.unit)
+      # browser(expr = {this.unit$UserName == "User3"})
  
       # for this unit, process each context rule 
       for(this.rule in f.hoo) {
@@ -190,35 +199,51 @@ get.contexts_dt = function(units, data, hoo.rules) {
         this.output = f.data.augmented
         
         #loop over conditions in each rule to extract data
-        for(k in 1:length(this.rule)) {
-          
-          this.condition = this.rule[[k]]
-          #get the column name this condition applies to
-          this.col = names(this.rule[k])
-          
-          #replace <UNIT> with data from this unit and filter by those values
-          if(this.condition == "<UNIT>") {
-            #get values for column for this unit
-            this.values = as.data.frame(unique(this.unit.data[,this.col]), stringsAsFactors = FALSE)
-            names(this.values) = this.col
-            #select rows with these values in the column
-            # this.output = merge(this.output, this.values, by = this.col)
-            
-            ## See comment above re: semi_join and column ordering
-            this.output <- merge(this.output, this.values, by = this.col)[, colnames(this.output)]
-          }
-          
-          #or, select rows that match the given regex
-          else{
-            this.output = subset(
-              this.output, grepl(this.condition, this.output[,this.col])
-            )
-          }
-        }#finished with all conditions for this rule
+        # browser()
+        
+        # for(k in 1:length(this.rule)) {
+        #   
+        #   this.condition = this.rule[[k]]
+        #   #get the column name this condition applies to
+        #   this.col = names(this.rule[k])
+        #   
+        #   #replace <UNIT> with data from this unit and filter by those values
+        #   if(this.condition == "<UNIT>") {
+        #     #get values for column for this unit
+        #     this.values = unique(this.unit.data[, ..this.col])
+        #     # names(this.values) = this.col
+        #     #select rows with these values in the column
+        #     # this.output = merge(this.output, this.values, by = this.col)
+        #     
+        #     ## See comment above re: semi_join and column ordering
+        #     # this.output <- merge(this.output, this.values, by = this.col)[, colnames(this.output)]
+        #     # this.output <- this.output[this.values, colnames(this.output), on = this.col, with = FALSE]
+        #     this.output <- this.output[this.values, , on = this.col]
+        #   }
+        #   
+        #   #or, select rows that match the given regex
+        #   else{
+        #     this.output = subset(
+        #       this.output, grepl(this.condition, this.output[,this.col])
+        #     )
+        #   }
+        # }
+        #finished with all conditions for this rule
       
-        #if this is the first rulw (or otherwise the list is empty), store temporary output
-        if (nrow(hoos[[i]][["context"]]) == 0) hoos[[i]][["context"]] = this.output
-    
+        browser()
+        this.values <- this.unit.data[, {
+          rule_matches <- sapply(names(.SD), function(n) {
+            grepl(.SD[[n]], pattern = this.rule[[n]])
+          })
+          unique(.SD[rowSums(rule_matches) == ncol(.SD), ])
+        }, .SDcols = names(this.rule)]
+        this.output <- this.output[this.values, names(this.output), on = names(this.values), with = FALSE];
+        
+        #if this is the first rule (or otherwise the list is empty), store temporary output
+        if (nrow(hoos[[i]][["context"]]) == 0) {
+          hoos[[i]][["context"]] = this.output
+        }
+        
         #otherwise, merge new temporary output into existing
         #This merge function removes duplicate rows and keeps output in the order
         #of column "Rows"
@@ -231,8 +256,9 @@ get.contexts_dt = function(units, data, hoo.rules) {
       }
       # finished with rules
     
+      # browser()
       #remove row numbers
-      hoos[[i]][["context"]] = hoos[[i]][["context"]][, -1]
+      hoos[[i]][["context"]] = as.data.frame(hoos[[i]][["context"]])[, -1]
     }
     #finished with unit  
   
@@ -251,8 +277,9 @@ get.contexts_dt = function(units, data, hoo.rules) {
   output$hoo.rules = f.hoo    #add rules used
   
   #add information ENA needs
-  output$units = f.units      #units  
-  output$raw.data = f.data    #raw data
+  # - keeping as data.frame versions for now (clm)
+  output$units = as.data.frame(f.units)      #units  
+  output$raw.data = as.data.frame(f.data)    #raw data
 
   return(output)
 }
