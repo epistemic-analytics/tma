@@ -86,7 +86,7 @@ accumulate.units = function(context.object,
     #because we are using time to define our connections
     this.context = this.context[rowSums(as.matrix(this.context[,f.codes])) > 0,]
     
-    Rows = 1:nrow(this.context)
+    Rows = seq_len(nrow(this.context))
     this.context = cbind(Rows, this.context)
     
     #get unit name
@@ -102,7 +102,8 @@ accumulate.units = function(context.object,
     this.unit.data <- merge(this.context, this.unit, by = names(this.unit))[, colnames(this.context)]
     
     #get meta data for this unit and add to the the meta data dataframe
-    output.meta.data = rbind(output.meta.data, get.unique.col.values(this.unit.data[,colnames(output.meta.data)]))
+    # output.meta.data = rbind(output.meta.data, get.unique.col.values(this.unit.data[,colnames(output.meta.data)]))
+    output.meta.data = rbind(output.meta.data, get.unique.col.values(this.unit[,colnames(output.meta.data)]))
     
     #if there are non-zero rows for this unit, compute adjacencies
     if(nrow(this.unit.data) > 0) {
@@ -146,10 +147,11 @@ accumulate.units = function(context.object,
           #
           #Get modes, if needed
           ground.modes = NA
-          if(use.modes) ground.modes = these.modes[ground]
-          # browser();
+          if(use.modes) {
+            ground.modes = these.modes[ground]
+          }
+          
           #get decays -- get.decay.modes handles whether to use modes or not
-          # browser();
           my.decays = get.decay.modes(
               now = response.time,
               event.time = this.time[ground],
@@ -162,10 +164,11 @@ accumulate.units = function(context.object,
           #if there is only a single line of data, multiple by scalar
           if(length(my.decays) == 1) {
             ground.codes = ground.codes * my.decays 
-          } else {
-            
+          } 
+          
           #otherwise this is a bit of fancy math that multiplies each row of the matrix 
           #by a different scalar from a vector of scalars 
+          else {            
             ground.codes = t(t(ground.codes) %*% diag(my.decays))
           }
           # browser();
@@ -265,16 +268,23 @@ accumulate.units = function(context.object,
   }#done looping over contexts
   
   #construct output
-  output = list()
+  # output = list()
   
-  #add contexts (with additions of adjacency matrices) to output
-  output$contexts = f.contexts
   #add additional information for modeling
-  output$directed.adjacency.vectors = directed.adjacency.vectors
-  output$units = f.units
+  directed.adjacency.vectors <- as.ena.matrix(data.table::as.data.table(directed.adjacency.vectors), "ena.connections")
+  undirected.adjacency.vectors <- as.ena.matrix(data.table::as.data.table(undirected.adjacency.vectors), "ena.connections")
+  for(col in seq(ncol(directed.adjacency.vectors))) {
+    set(x = directed.adjacency.vectors, j = col, value = as.ena.co.occurrence(directed.adjacency.vectors[[col]]))
+  }
+  for(col in seq(ncol(undirected.adjacency.vectors))) {
+    set(x = undirected.adjacency.vectors, j = col, value = as.ena.co.occurrence(undirected.adjacency.vectors[[col]]))
+  }
   
-  #construct information for ENA set
-  # browser()
+  #### Construct ENA Sets ----
+  
+  output <- list()
+  
+  # Standard ENA Set
   if(return.ena.set) {
     enadata = structure(list(), class = c("ENAdata", "list"))
     enadata$adjacency.matrix = rENA:::namesToAdjacencyKey(f.codes)
@@ -287,35 +297,40 @@ accumulate.units = function(context.object,
     enadata$adjacency.vectors = data.table::as.data.table(undirected.adjacency.vectors)
     enadata$accumulated.adjacency.vectors = data.table::as.data.table(undirected.adjacency.vectors)
     
-    output$for.ena$enadata=enadata
-  
-  # dena_data = directedena:::ena.set.directed(f.raw, f.units, NA, f.codes)
-  # dena_data$connection.counts <- data.table::as.data.table(directed.adjacency.vectors);
-  # dena_data$model$row.connection.counts = row.connection.counts;
-  # dena_data$meta.data = data.table::as.data.table(output.meta.data)
-  
-  #if ena set is requested, construct ena set using rENA:::ena.set
-  #and remove the information used to create it
-  
-  
-    output$ena.set = rENA:::ena.set(enadata) #output$for.ena)
-    output$for.ena = NULL
-  } else {
-    dena_data = directedENA:::ena.set.directed(f.raw, f.units, NA, f.codes)
-    dena_data$meta.data = data.table::as.data.table(output.meta.data)
-     
-    dena_data$meta.data[, ENA_UNIT := apply(f.units, 1,paste, collapse = ".")]
-    ENA_UNIT = apply(f.units, 1,paste, collapse = ".") %>% as.vector()
-    # dena_data$connection.counts <- data.table::as.data.table(directed.adjacency.vectors)
-    dena_data$connection.counts <- data.table::as.data.table(cbind(ENA_UNIT, f.units, directed.adjacency.vectors))
-    dena_data$connection.counts = as.ena.matrix(x = dena_data$connection.counts, "ena.connections")
-    for( i in c('ENA_UNIT', f.units %>% colnames) ) {
-      set(dena_data$connection.counts, j = i, value = rENA::as.ena.metadata(dena_data$connection.counts[[i]]))
-    }
-    dena_data$model$row.connection.counts = data.table::as.data.table(cbind(ENA_UNIT, f.units, as.ena.matrix(x = directed.adjacency.vectors, "row.connections")))
-    # dena_data$model$row.connection.counts = cbind(dena_data$meta.data,data.table::as.data.table(directed.adjacency.vectors));
-    output$dena.set = dena_data;
+    output = rENA:::ena.set(enadata) #output$for.ena)
   }
+  
+  # Directed ENA Set
+  else {
+    ENA_UNIT <- rENA::merge_columns_c(f.units, cols = colnames(f.units));
+    
+    dena_data = directedENA:::ena.set.directed(f.raw, f.units, NA, f.codes)
+    dena_data$meta.data <- data.table::as.data.table(cbind(ENA_UNIT, output.meta.data))
+    for( i in colnames(dena_data$meta.data) ) {
+      set(dena_data$meta.data, j = i, value = rENA::as.ena.metadata(dena_data$meta.data[[i]]))
+    }
+    code_length <- length(dena_data$rotation$codes);
+    dena_data$rotation$adjacency.key <- data.table::data.table(matrix(c(
+      rep(1:code_length, each = code_length),
+      rep(1:code_length, code_length)),
+      byrow = TRUE, nrow = 2
+    ))
+    dena_data$connection.counts <- data.table::as.data.table(cbind(dena_data$meta.data, directed.adjacency.vectors))
+    dena_data$connection.counts = rENA::as.ena.matrix(x = dena_data$connection.counts, "ena.connections")
+    # for( i in c('ENA_UNIT', colnames(f.units)) ) {
+    #   set(dena_data$connection.counts, j = i, value = rENA::as.ena.metadata(dena_data$connection.counts[[i]]))
+    # }
+    # dena_data$model$row.connection.counts = data.table::as.data.table(cbind( as.ena.matrix(x = directed.adjacency.vectors, "row.connections")))
+    # dena_data$model$row.connection.counts = cbind(dena_data$meta.data,data.table::as.data.table(directed.adjacency.vectors));
+    dena_data$model$row.connection.counts = data.table::as.data.table(cbind(dena_data$meta.data, directed.adjacency.vectors))
+    dena_data$model$row.connection.counts <- rENA::as.ena.matrix(dena_data$model$row.connection.counts, "row.connections")
+    
+    output = dena_data;
+  }
+  
+  output$model$contexts <- f.contexts;
+  
+  # browser()
   
   return(output)
 
