@@ -183,7 +183,9 @@ accumulate.units = function(context.object,
           this.connection.matrix = crossprod(only_ground_connections, response.codes)
           #compute the connections from the response to itself
           # this.self.connection = crossprod(this.response.in.ground, response.codes)
-          this.self.connection = 0.5*(t(response.codes)%*%response.codes - as.vector(response.codes) * diag(length(response.codes)))
+          response.matrix <- crossprod(response.codes)
+          # this.self.connection = 0.5*(t(response.codes)%*%response.codes - as.vector(response.codes) * diag(length(response.codes)))
+          this.self.connection = 0.5*(response.matrix - diag(diag(response.matrix)))
   
           #remove self-references in response code from from the adjacency counts
           # diag(this.connection.matrix) = diag(this.connection.matrix) - diag(this.self.connection)
