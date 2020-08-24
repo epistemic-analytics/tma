@@ -1,0 +1,696 @@
+---
+title: "Untitled"
+author: "Ariel Fogel"
+date: "8/6/2020"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(dplyr)
+library(rENA)
+red <- "#cc423a"
+blue <- "#009BE0"
+# setwd(rstudioapi::selectDirectory())
+## Attempt to use to devtools here, so others that run this can circumvent the standard R PKG build process
+devtools::load_all(".")
+library(tma) 
+# devtools::load_all("../../")
+
+DoD <- read.csv(system.file(package = "tma", 'extdata/DoD_recoded_processed_7_25.csv'), stringsAsFactors = FALSE)
+DoD <- read.csv(system.file(package = "tma", 'extdata/DoD_recoded_7_28.csv'), stringsAsFactors = FALSE)
+DoD$high.perform_low.perform <- ifelse(DoD$high.perform_low.perform == 1, "high", "low")
+DoD$dummy <- 1
+# DoD$mode <- 'Unimodal'
+DoD <- mutate_if(DoD, is.factor, factor.to.value)
+
+DoD.hoo.TMA <- list()
+DoD.hoo.TMA[[1]] <- list(speaker = "<UNIT>")
+
+DoD.units <- unique(DoD[,c("speaker", "high.perform_low.perform")])
+DoD.codes <- c("Cognitive.Error", 
+          "Visuospatial.Error", 
+          "Motor.Error", 
+          "Operative.Planning", 
+          "Identifying.Errors", 
+          "Giving.Instructions", 
+          "Frustration")
+DoD.mask <- t(matrix(
+                c(0,0,0,1,1,1,1,
+                  0,0,0,1,1,1,1,
+                  0,0,0,1,1,1,1,
+                  0,0,0,0,1,1,1,
+                  0,0,0,1,0,1,1,
+                  0,0,0,1,1,0,1, 
+                  0,0,0,1,1,1,0)
+                ,7,7))
+
+plot.sub.group <- function(set, thickness, plot_name, plot_type, flip_x = F, flip_y = F){
+  if (flip_x) {
+    set$points = set$points %>% mutate(SVD1 = SVD1 * -1)
+    set$rotation$nodes = set$rotation$nodes %>% mutate(SVD1 = SVD1 * -1)
+  } 
+  if (flip_y) {
+    set$points = set$points %>% mutate(SVD2 = SVD2  * -1)
+    set$rotation$nodes = set$rotation$nodes %>% mutate(SVD2 = SVD2  * -1)
+  }
+  high.learning.outcome = as.matrix(set$points$high.perform_low.perform$high)
+  low.learning.outcome = as.matrix(set$points$high.perform_low.perform$low)
+  high.learning.outcome.lineweights = as.matrix(set$line.weights$high.perform_low.perform$high)
+  low.learning.outcome.lineweights = as.matrix(set$line.weights$high.perform_low.perform$low)
+  high.learning.outcome.mean = as.vector(colMeans(high.learning.outcome.lineweights))
+  low.learning.outcome.mean = as.vector(colMeans(low.learning.outcome.lineweights))
+  subtracted.mean = high.learning.outcome.mean - low.learning.outcome.mean
+  
+  if (plot_type == "subtracted"){
+    plot = ena.plot(set, multiplier = thickness, title = plot_name) %>%
+      ena.plot.points(points = high.learning.outcome, colors = c("blue")) %>%
+      ena.plot.group(point = high.learning.outcome, colors =c("blue"),
+                     confidence.interval = "box") %>%
+      ena.plot.points(points = low.learning.outcome , colors = c("red")) %>%
+      ena.plot.group(point = low.learning.outcome, colors =c("red"),
+                     confidence.interval = "box") %>%
+      ena.plot.network(network = subtracted.mean, colors = c("blue","red"))
+    
+  }
+  
+  if (plot_type == "groups"){
+    plot <- list()
+    plot$high <- ena.plot(set, title = plot_name, multiplier = thickness) %>%
+      ena.plot.points(points = high.learning.outcome, colors = c("blue")) %>%
+      ena.plot.group(point = high.learning.outcome, colors =c("blue"),
+                     confidence.interval = "box") %>% 
+      ena.plot.network(network = high.learning.outcome.mean, colors = c("blue"))
+    plot$low <- ena.plot(set, title = plot_name, multiplier = thickness) %>%
+      ena.plot.points(points = low.learning.outcome, colors = c("red")) %>%
+      ena.plot.group(point = low.learning.outcome, colors =c("red"),
+                     confidence.interval = "box") %>% 
+      ena.plot.network(network = low.learning.outcome.mean, colors = "red")
+  }
+  
+  return(plot)
+}
+```
+## ENA
+```{r ena, include =F}
+model_a = ena.accumulate.data(
+  units = DoD[,c("speaker", "dummy")],
+  conversation = DoD[,c("speaker", "dummy")],
+  codes = DoD[,DoD.codes],
+  weight.by = 'binary',
+  metadata = DoD[,c("speaker", "high.perform_low.perform")],
+  window.size.back = 6,
+)
+
+model_b = ena.accumulate.data(
+  units = DoD[,c("speaker", 'Error', "dummy")],
+  conversation = DoD[,c("speaker", "dummy")],
+  codes = DoD[,DoD.codes],
+  weight.by = 'binary',
+  metadata = DoD[,c("speaker", "high.perform_low.perform")],
+  window.size.back = 6
+)
+
+connections_to_errors = model_b$connection.counts[model_b$connection.counts$Error == 1];
+updated_connection_counts = model_a$connection.counts[,-c(1,2,3:4)] - connections_to_errors[,-c(1,2,3:5)];
+model_a$connection.counts[,5:25]= updated_connection_counts;
+
+DoD.ena.set <- ena.make.set(model_a)
+high = DoD.ena.set$points[DoD.ena.set$points$high.perform_low.perform =='high']
+low = DoD.ena.set$points[DoD.ena.set$points$high.perform_low.perform =='low']
+svd1_low_ena = low[,c("SVD1")] %>% t %>% as.vector
+svd2_low_ena = low[,c("SVD2")] %>% t %>% as.vector
+svd1_high_ena = high[,c("SVD1")] %>% t %>% as.vector
+svd2_high_ena = high[,c("SVD2")] %>% t %>% as.vector
+
+DoD.ena.set.plot.subtracted <- plot.sub.group(DoD.ena.set, 20, "ENA Model: masked, \nwindow of 6, uni, undirected", "subtracted")
+```
+```{r, warning=F, echo=F}
+t.test(svd1_low_ena,svd1_high_ena)
+t.test(svd2_low_ena,svd2_high_ena)
+DoD.ena.set.plot.subtracted$plot
+```
+
+
+## TMA Model 0
+### TMA Step Function, Order Based
+```{r include=F}
+DoD.decay.uni <- Vectorize(function(x) {
+  if (x == 0) {
+    return(0.5);  
+  } else if( x < 6 && x > 0) {
+    return(1);
+  } else {
+    return(0);
+  }
+}, "x")
+
+DoD.model0 <- tma::tma(
+  data = DoD,
+  units = DoD.units,
+  codes = DoD.codes,
+  hoo.rules = DoD.hoo.TMA,
+  weight.by = 'binary',
+  return.ena.set = TRUE,
+  time.column = NA,
+  decay.function = DoD.decay.uni,
+  meta.data = NA,
+  time.limit = NA,
+  mask = DoD.mask
+)
+tma.set.model0 <- ena.make.set(DoD.model0$ena.set)
+tma.set.model0.plot.subtracted <- plot.sub.group(tma.set.model0, 20, "TMA Model 0: order-based", "subtracted")
+high = tma.set.model0$points[tma.set.model0$points$high.perform_low.perform =='high']
+low = tma.set.model0$points[tma.set.model0$points$high.perform_low.perform =='low']
+svd1_low_tma_model_0 = low[,c("SVD1")] %>% t %>% as.vector
+svd2_low_tma_model_0 = low[,c("SVD2")] %>% t %>% as.vector
+svd1_high_tma_model_0 = high[,c("SVD1")] %>% t %>% as.vector
+svd2_high_tma_model_0 = high[,c("SVD2")] %>% t %>% as.vector
+```
+```{r, warning=F, echo=F}
+t.test(svd1_low_tma_model_0,svd1_high_tma_model_0)
+t.test(svd2_low_tma_model_0,svd2_high_tma_model_0)
+tma.set.model0.plot.subtracted$plot
+```
+
+### TMA Step Function, Order Based, weighted
+```{r include=F}
+DoD.decay.uni_weighted <- Vectorize(function(x) {
+  scalar = 5;
+  if (x == 0) {
+    return(0.5*scalar);  
+  } else if( x < 6 && x > 0) {
+    return(1*scalar);
+  } else {
+    return(0);
+  }
+}, "x")
+
+DoD.model0_weighted <- tma::tma(
+  data = DoD,
+  units = DoD.units,
+  codes = DoD.codes,
+  hoo.rules = DoD.hoo.TMA,
+  weight.by = 'binary',
+  return.ena.set = TRUE,
+  time.column = NA,
+  decay.function = DoD.decay.uni_weighted,
+  meta.data = NA,
+  time.limit = NA,
+  mask = DoD.mask
+)
+tma.set.model0_weighted <- ena.make.set(DoD.model0_weighted$ena.set)
+tma.set.model0_weighted.plot.subtracted <- plot.sub.group(tma.set.model0_weighted, 20, "TMA Model 0: order-based, weighted", "subtracted")
+high = tma.set.model0_weighted$points[tma.set.model0_weighted$points$high.perform_low.perform =='high']
+low = tma.set.model0_weighted$points[tma.set.model0_weighted$points$high.perform_low.perform =='low']
+svd1_low_tma_model_0 = low[,c("SVD1")] %>% t %>% as.vector
+svd2_low_tma_model_0 = low[,c("SVD2")] %>% t %>% as.vector
+svd1_high_tma_model_0 = high[,c("SVD1")] %>% t %>% as.vector
+svd2_high_tma_model_0 = high[,c("SVD2")] %>% t %>% as.vector
+```
+
+```{r, warning=F, echo=F}
+t.test(svd1_low_tma_model_0,svd1_high_tma_model_0)
+t.test(svd2_low_tma_model_0,svd2_high_tma_model_0)
+tma.set.model0_weighted.plot.subtracted$plot
+```
+
+
+```{r include=F}
+DoD.decay.uni <- Vectorize(function(x) {
+  scalar = 1;
+  if (x == 0) {
+    return(0.5*scalar);  
+  } else if( x < 6 && x > 0) {
+    return(1*scalar);
+  } else {
+    return(0);
+  }
+}, "x")
+
+DoD.model0_no_norm <- tma::tma(
+  data = DoD,
+  units = DoD.units,
+  codes = DoD.codes,
+  hoo.rules = DoD.hoo.TMA,
+  weight.by = 'binary',
+  return.ena.set = TRUE,
+  time.column = NA,
+  decay.function = DoD.decay.uni,
+  meta.data = NA,
+  time.limit = NA,
+  mask = DoD.mask
+)
+tma.set.model0_no_norm <- ena.make.set(
+  DoD.model0_no_norm$ena.set, 
+  norm.by = fun_skip_sphere_norm
+)
+tma.set.model0_no_norm.plot.subtracted <- plot.sub.group(tma.set.model0_no_norm, 20, "TMA Model 0: order-based, no sphere normalization", "subtracted")
+high = tma.set.model0_no_norm$points[tma.set.model0_no_norm$points$high.perform_low.perform =='high']
+low = tma.set.model0_no_norm$points[tma.set.model0_no_norm$points$high.perform_low.perform =='low']
+svd1_low_tma_model_0 = low[,c("SVD1")] %>% t %>% as.vector
+svd2_low_tma_model_0 = low[,c("SVD2")] %>% t %>% as.vector
+svd1_high_tma_model_0 = high[,c("SVD1")] %>% t %>% as.vector
+svd2_high_tma_model_0 = high[,c("SVD2")] %>% t %>% as.vector
+```
+
+```{r, warning=F, echo=F, include=F}
+t.test(svd1_low_tma_model_0,svd1_high_tma_model_0)
+t.test(svd2_low_tma_model_0,svd2_high_tma_model_0)
+tma.set.model0_no_norm.plot.subtracted$plot
+```
+
+```{r include=F}
+DoD.decay.uni_scalar_2 <- Vectorize(function(x) {
+  scalar = 5;
+  if (x == 0) {
+    return(0.5*scalar);  
+  } else if( x < 6 && x > 0) {
+    return(1*scalar);
+  } else {
+    return(0);
+  }
+}, "x")
+
+DoD.model0_scalar_2_no_norm <- tma::tma(
+  data = DoD,
+  units = DoD.units,
+  codes = DoD.codes,
+  hoo.rules = DoD.hoo.TMA,
+  weight.by = 'binary',
+  return.ena.set = TRUE,
+  time.column = NA,
+  decay.function = DoD.decay.uni_scalar_2,
+  meta.data = NA,
+  time.limit = NA,
+  mask = DoD.mask
+)
+tma.set.model0_scalar_2_no_norm <- ena.make.set(
+  DoD.model0_scalar_2_no_norm$ena.set, 
+  norm.by = fun_skip_sphere_norm
+)
+tma.set.model0_scalar_2_no_norm.plot.subtracted <- plot.sub.group(tma.set.model0_scalar_2_no_norm, 20, "TMA Model 0: order based, weighted, no sphere normalization", "subtracted")
+high = tma.set.model0_scalar_2_no_norm$points[tma.set.model0_scalar_2_no_norm$points$high.perform_low.perform =='high']
+low = tma.set.model0_scalar_2_no_norm$points[tma.set.model0_scalar_2_no_norm$points$high.perform_low.perform =='low']
+svd1_low_tma_model_0 = low[,c("SVD1")] %>% t %>% as.vector
+svd2_low_tma_model_0 = low[,c("SVD2")] %>% t %>% as.vector
+svd1_high_tma_model_0 = high[,c("SVD1")] %>% t %>% as.vector
+svd2_high_tma_model_0 = high[,c("SVD2")] %>% t %>% as.vector
+```
+
+```{r, warning=F, echo=F, include=F}
+t.test(svd1_low_tma_model_0,svd1_high_tma_model_0)
+t.test(svd2_low_tma_model_0,svd2_high_tma_model_0)
+tma.set.model0_scalar_2_no_norm.plot.subtracted$plot
+```
+
+
+## TMA Model 1
+### Continuous Decay Function
+```{r include=F}
+error_decay_function <- Vectorize(function(x) {
+  scalar = 1
+  if (x<=16.65) {
+    result = ((-400/110889)*x^2 + (40/333)*x)*scalar
+  } else {
+    # result = -0.345*log(x) + 1.9893;
+    # result = 1.3484*exp(-0.013*x);
+    result = (-.00000004*x^3+.00004*x^2-0.0113*x+1.1773)*scalar
+  }
+  return(result)
+  return(ifelse(result<0,0,result))
+}, "x")
+DoD.hoo.TMA <- list()
+DoD.hoo.TMA[[1]] <- list(speaker = "<UNIT>")
+DoD.model1 <- tma::tma(
+  data = DoD,
+  units = DoD.units,
+  codes = DoD.codes,
+  hoo.rules = DoD.hoo.TMA,
+  weight.by = function(x) {x},
+  return.ena.set = TRUE,
+  time.column = 'time',
+  decay.function = error_decay_function,
+  meta.data = NA,
+  time.limit = NA,
+  mask = DoD.mask
+)
+tma.set.model1 <- ena.make.set(DoD.model1$ena.set)
+tma.set.model1.plot.subtracted <- plot.sub.group(tma.set.model1, 20, "TMA Model 1: continuous decay function", "subtracted", flip_x = F, flip_y = T)
+high = tma.set.model1$points[tma.set.model1$points$high.perform_low.perform =='high']
+low = tma.set.model1$points[tma.set.model1$points$high.perform_low.perform =='low']
+svd1_low_tma_model_1 = low[,c("SVD1")] %>% t %>% as.vector
+svd2_low_tma_model_1 = low[,c("SVD2")] %>% t %>% as.vector
+svd1_high_tma_model_1 = high[,c("SVD1")] %>% t %>% as.vector
+svd2_high_tma_model_1 = high[,c("SVD2")] %>% t %>% as.vector
+```
+```{r, warning=F, echo=F}
+t.test(svd1_low_tma_model_1,svd1_high_tma_model_1)
+t.test(svd2_low_tma_model_1,svd2_high_tma_model_1)
+tma.set.model1.plot.subtracted$plot
+```
+
+### Continuous Decay, weighted
+
+```{r include=F}
+error_decay_function <- Vectorize(function(x) {
+  scalar = 1.5
+  if (x<=16.65) {
+    result = ((-400/110889)*x^2 + (40/333)*x)*scalar
+  } else {
+    # result = -0.345*log(x) + 1.9893;
+    # result = 1.3484*exp(-0.013*x);
+    result = (-.00000004*x^3+.00004*x^2-0.0113*x+1.1773)*scalar
+  }
+  return(result)
+}, "x")
+
+DoD.model1_weighted <- tma::tma(
+  data = DoD,
+  units = DoD.units,
+  codes = DoD.codes,
+  hoo.rules = DoD.hoo.TMA,
+  weight.by = function(x) { x },
+  return.ena.set = TRUE,
+  time.column = 'time',
+  decay.function = error_decay_function,
+  meta.data = NA,
+  time.limit = NA,
+  mask = DoD.mask
+)
+tma.set.model1_weighted <- ena.make.set(DoD.model1_weighted$ena.set)
+tma.set.model1_weighted.plot.subtracted <- plot.sub.group(tma.set.model1_weighted, 20, "TMA Model 1: continuous decay function, weighted", "subtracted", flip_x = F, flip_y = F)
+high = tma.set.model1_weighted$points[tma.set.model1_weighted$points$high.perform_low.perform =='high']
+low = tma.set.model1_weighted$points[tma.set.model1_weighted$points$high.perform_low.perform =='low']
+svd1_low_tma_model_1_weighted = low[,c("SVD1")] %>% t %>% as.vector
+svd2_low_tma_model_1_weighted = low[,c("SVD2")] %>% t %>% as.vector
+svd1_high_tma_model_1_weighted = high[,c("SVD1")] %>% t %>% as.vector
+svd2_high_tma_model_1_weighted = high[,c("SVD2")] %>% t %>% as.vector
+```
+```{r, warning=F, echo=F}
+t.test(svd1_low_tma_model_1_weighted,svd1_high_tma_model_1_weighted)
+t.test(svd2_low_tma_model_1_weighted,svd2_high_tma_model_1_weighted)
+tma.set.model1_weighted.plot.subtracted$plot
+```
+
+```{r include=F}
+error_decay_function <- Vectorize(function(x) {
+ scalar = 1
+  if (x<=16.65) {
+    result = ((-400/110889)*x^2 + (40/333)*x)*scalar
+  } else {
+    # result = -0.345*log(x) + 1.9893;
+    # result = 1.3484*exp(-0.013*x);
+    result = (-.00000004*x^3+.00004*x^2-0.0113*x+1.1773)*scalar
+  }
+ return(result)
+}, "x")
+
+devtools::load_all('.')
+DoD.model1_no_norm <- tma::tma(
+  data = DoD,
+  units = DoD.units,
+  codes = DoD.codes,
+  hoo.rules = DoD.hoo.TMA,
+  weight.by = function(x) { x },
+  return.ena.set = TRUE,
+  time.column = 'time',
+  decay.function = error_decay_function,
+  meta.data = NA,
+  time.limit = NA,
+  mask = DoD.mask
+)
+tma.set.model1_no_norm <- ena.make.set(
+  DoD.model1_no_norm$ena.set, 
+  norm.by = fun_skip_sphere_norm
+)
+tma.set.model1_no_norm.plot.subtracted <- plot.sub.group(tma.set.model1_no_norm, 20, "TMA Model 1: continuous decay function, no sphere normalization", "subtracted", flip_y = T)
+high = tma.set.model1_no_norm$points[tma.set.model1_no_norm$points$high.perform_low.perform =='high']
+low = tma.set.model1_no_norm$points[tma.set.model1_no_norm$points$high.perform_low.perform =='low']
+svd1_low_tma_model_1_no_norm = low[,c("SVD1")] %>% t %>% as.vector
+svd2_low_tma_model_1_no_norm = low[,c("SVD2")] %>% t %>% as.vector
+svd1_high_tma_model_1_no_norm = high[,c("SVD1")] %>% t %>% as.vector
+svd2_high_tma_model_1_no_norm = high[,c("SVD2")] %>% t %>% as.vector
+```
+```{r, warning=F, echo=F, include=F}
+t.test(svd1_low_tma_model_1_no_norm,svd1_high_tma_model_1_no_norm)
+t.test(svd2_low_tma_model_1_no_norm,svd2_high_tma_model_1_no_norm)
+tma.set.model1_no_norm.plot.subtracted$plot
+```
+
+```{r include=F}
+error_decay_function <- Vectorize(function(x) {
+  scalar = 1.5
+  if (x<=16.65) {
+    result = ((-400/110889)*x^2 + (40/333)*x)*scalar
+  } else {
+    # result = -0.345*log(x) + 1.9893;
+    # result = 1.3484*exp(-0.013*x);
+    result = (-.00000004*x^3+.00004*x^2-0.0113*x+1.1773)*scalar
+  }
+  return(result)
+}, "x")
+
+DoD.model1_weighted_no_norm <- tma::tma(
+  data = DoD,
+  units = DoD.units,
+  codes = DoD.codes,
+  hoo.rules = DoD.hoo.TMA,
+  weight.by = function(x) { x },
+  return.ena.set = TRUE,
+  time.column = 'time',
+  decay.function = error_decay_function,
+  meta.data = NA,
+  time.limit = NA,
+  mask = DoD.mask
+)
+tma.set.model1_weighted_no_norm <- ena.make.set(
+  DoD.model1_weighted_no_norm$ena.set, 
+  norm.by = fun_skip_sphere_norm
+)
+tma.set.model1_weighted_no_norm.plot.subtracted <- plot.sub.group(tma.set.model1_weighted_no_norm, 20, "TMA Model 1: continuous decay function, weighted, no sphere normalization", "subtracted", flip_x = T, flip_y = T)
+high = tma.set.model1_weighted_no_norm$points[tma.set.model1_weighted_no_norm$points$high.perform_low.perform =='high']
+low = tma.set.model1_weighted_no_norm$points[tma.set.model1_weighted_no_norm$points$high.perform_low.perform =='low']
+svd1_low_tma_model_1_weighted_no_norm = low[,c("SVD1")] %>% t %>% as.vector
+svd2_low_tma_model_1_weighted_no_norm = low[,c("SVD2")] %>% t %>% as.vector
+svd1_high_tma_model_1_weighted_no_norm = high[,c("SVD1")] %>% t %>% as.vector
+svd2_high_tma_model_1_weighted_no_norm = high[,c("SVD2")] %>% t %>% as.vector
+```
+```{r, warning=F, echo=F, include=F}
+t.test(svd1_low_tma_model_1_weighted_no_norm,svd1_high_tma_model_1_weighted_no_norm)
+t.test(svd2_low_tma_model_1_weighted_no_norm,svd2_high_tma_model_1_weighted_no_norm)
+tma.set.model1_weighted_no_norm.plot.subtracted$plot
+```
+
+## TMA Model 2, Multimodal
+### Different Continuous Decay Functions by Mode
+
+```{r include=F}
+modal.decay.function = list()
+error_decay_function <- Vectorize(function(x) {
+  scalar = 1
+  if (x<=16.65) {
+    result = ((-400/110889)*x^2 + (40/333)*x)*scalar
+  } else {
+    # result = -0.345*log(x) + 1.9893;
+    # result = 1.3484*exp(-0.013*x);
+    result = (-.00000004*x^3+.00004*x^2-0.0113*x+1.1773)*scalar
+  }
+  return(result)
+}, "x")
+modal.decay.function$error = error_decay_function
+modal.decay.function$discourse = Vectorize(
+  function(x) {
+    return(exp(-.023*x))
+  }, 'x'
+)
+
+
+DoD.model2 <- tma::tma(
+  data = DoD,
+  units = DoD.units,
+  codes = DoD.codes,
+  hoo.rules = DoD.hoo.TMA,
+  weight.by = function(x) { x },
+  return.ena.set = TRUE,
+  time.column = 'time',
+  mode.column = "modality",
+  decay.function = modal.decay.function,
+  meta.data = NA,
+  time.limit = NA,
+  mask = DoD.mask
+)
+tma.set.model2 <- ena.make.set(DoD.model2$ena.set)
+tma.set.model2.plot.subtracted <- plot.sub.group(tma.set.model2, 20, "TMA Model 2: multiple decay functions", "subtracted", flip_y = T, flip_x =T)
+high = tma.set.model2$points[tma.set.model2$points$high.perform_low.perform =='high']
+low = tma.set.model2$points[tma.set.model2$points$high.perform_low.perform =='low']
+svd1_low_tma_model_2 = low[,c("SVD1")] %>% t %>% as.vector
+svd2_low_tma_model_2 = low[,c("SVD2")] %>% t %>% as.vector
+svd1_high_tma_model_2 = high[,c("SVD1")] %>% t %>% as.vector
+svd2_high_tma_model_2 = high[,c("SVD2")] %>% t %>% as.vector
+```
+```{r, warning=F, echo=F}
+t.test(svd1_low_tma_model_2,svd1_high_tma_model_2)
+t.test(svd2_low_tma_model_2,svd2_high_tma_model_2)
+tma.set.model2.plot.subtracted$plot
+tma.set.model0.plot.subtracted$plot
+```
+
+### Different Continuous Decay Functions by Mode, weighted for Error mode
+
+```{r include=F}
+modal.decay.function = list()
+error_decay_function <- Vectorize(function(x) {
+  scalar = 1.22
+  if (x<=16.65) {
+    result = ((-400/110889)*x^2 + (40/333)*x)*scalar
+  } else {
+    # result = -0.345*log(x) + 1.9893;
+    # result = 1.3484*exp(-0.013*x);
+    result = (-.00000004*x^3+.00004*x^2-0.0113*x+1.1773)*scalar
+  }
+  return(result)
+}, "x")
+modal.decay.function$error = error_decay_function
+modal.decay.function$discourse = Vectorize(
+  function(x) {
+    scalar = 1
+    return((exp(-.023*x))*scalar)
+  }, 'x'
+)
+devtools::load_all('.')
+DoD.model2_weighted <- tma::tma(
+  data = DoD,
+  units = DoD.units,
+  codes = DoD.codes,
+  hoo.rules = DoD.hoo.TMA,
+  weight.by = function(x) { x },
+  return.ena.set = TRUE,
+  time.column = 'time',
+  mode.column = "modality",
+  decay.function = modal.decay.function,
+  meta.data = NA,
+  time.limit = NA,
+  mask = DoD.mask
+)
+tma.set.model2_weighted <- ena.make.set(DoD.model2_weighted$ena.set)
+tma.set.model2_weighted.plot.subtracted <- plot.sub.group(tma.set.model2_weighted, 20, "TMA Model 2: multiple decay functions, weighted", "subtracted", flip_x = T, flip_y = T)
+high = tma.set.model2_weighted$points[tma.set.model2_weighted$points$high.perform_low.perform =='high']
+low = tma.set.model2_weighted$points[tma.set.model2_weighted$points$high.perform_low.perform =='low']
+svd1_low_tma_model_2_weighted = low[,c("SVD1")] %>% t %>% as.vector
+svd2_low_tma_model_2_weighted = low[,c("SVD2")] %>% t %>% as.vector
+svd1_high_tma_model_2_weighted = high[,c("SVD1")] %>% t %>% as.vector
+svd2_high_tma_model_2_weighted = high[,c("SVD2")] %>% t %>% as.vector
+```
+```{r, warning=F, echo=F}
+t.test(svd1_low_tma_model_2_weighted,svd1_high_tma_model_2_weighted)
+t.test(svd2_low_tma_model_2_weighted,svd2_high_tma_model_2_weighted)
+tma.set.model2_weighted.plot.subtracted$plot
+tma.set.model0.plot.subtracted$plot
+```
+
+```{r include=F}
+modal.decay.function = list()
+error_decay_function <- Vectorize(function(x) {
+  scalar = 1
+  if (x<=16.65) {
+    result = ((-400/110889)*x^2 + (40/333)*x)*scalar
+  } else {
+    # result = -0.345*log(x) + 1.9893;
+    # result = 1.3484*exp(-0.013*x);
+    result = (-.00000004*x^3+.00004*x^2-0.0113*x+1.1773)*scalar
+  }
+  return(result)
+}, "x")
+modal.decay.function$error = error_decay_function
+modal.decay.function$discourse = Vectorize(
+  function(x) {
+    return(exp(-.023*x))
+  }, 'x'
+)
+
+DoD.model2_no_norm <- tma::tma(
+  data = DoD,
+  units = DoD.units,
+  codes = DoD.codes,
+  hoo.rules = DoD.hoo.TMA,
+  weight.by = function(x) { x },
+  return.ena.set = TRUE,
+  time.column = 'time',
+  mode.column = "modality",
+  decay.function = modal.decay.function,
+  meta.data = NA,
+  time.limit = NA,
+  mask = DoD.mask
+)
+tma.set.model2_no_norm <- ena.make.set(
+  DoD.model2_no_norm$ena.set, 
+  norm.by = fun_skip_sphere_norm
+)
+tma.set.model2_no_norm.plot.subtracted <- plot.sub.group(tma.set.model2_no_norm, 20, "TMA Model 2: multiple decay functions, no sphere normalization", "subtracted",flip_x = T, flip_y = T)
+high = tma.set.model2_no_norm$points[tma.set.model2_no_norm$points$high.perform_low.perform =='high']
+low = tma.set.model2_no_norm$points[tma.set.model2_no_norm$points$high.perform_low.perform =='low']
+svd1_low_tma_model_2_no_norm = low[,c("SVD1")] %>% t %>% as.vector
+svd2_low_tma_model_2_no_norm = low[,c("SVD2")] %>% t %>% as.vector
+svd1_high_tma_model_2_no_norm = high[,c("SVD1")] %>% t %>% as.vector
+svd2_high_tma_model_2_no_norm = high[,c("SVD2")] %>% t %>% as.vector
+```
+```{r, warning=F, echo=F, include=F}
+t.test(svd1_low_tma_model_2_no_norm,svd1_high_tma_model_2_no_norm)
+t.test(svd2_low_tma_model_2_no_norm,svd2_high_tma_model_2_no_norm)
+tma.set.model2_no_norm.plot.subtracted$plot
+```
+
+```{r include=F}
+modal.decay.function = list()
+error_decay_function <- Vectorize(function(x) {
+  scalar = 1.5
+  if (x<=16.65) {
+    result = ((-400/110889)*x^2 + (40/333)*x)*scalar
+  } else {
+    # result = -0.345*log(x) + 1.9893;
+    # result = 1.3484*exp(-0.013*x);
+    result = (-.00000004*x^3+.00004*x^2-0.0113*x+1.1773)*scalar
+  }
+  return(result)
+}, "x")
+modal.decay.function$error = error_decay_function
+modal.decay.function$discourse = Vectorize(
+  function(x) {
+    return(exp(-.023*x))
+  }, 'x'
+)
+
+DoD.model2_weighted_no_norm <- tma::tma(
+  data = DoD,
+  units = DoD.units,
+  codes = DoD.codes,
+  hoo.rules = DoD.hoo.TMA,
+  weight.by = function(x) { x },
+  return.ena.set = TRUE,
+  time.column = 'time',
+  mode.column = "modality",
+  decay.function = modal.decay.function,
+  meta.data = NA,
+  time.limit = NA,
+  mask = DoD.mask
+)
+tma.set.model2_weighted_no_norm <- ena.make.set(
+  DoD.model2_weighted_no_norm$ena.set, 
+  norm.by = fun_skip_sphere_norm
+)
+tma.set.model2_weighted_no_norm.plot.subtracted <- plot.sub.group(tma.set.model2_weighted_no_norm, 20, "TMA Model 2: multiple decay functions, weighted, no sphere normalization", "subtracted", flip_y= TRUE)
+high = tma.set.model2_weighted_no_norm$points[tma.set.model2_weighted_no_norm$points$high.perform_low.perform =='high']
+low = tma.set.model2_weighted_no_norm$points[tma.set.model2_weighted_no_norm$points$high.perform_low.perform =='low']
+svd1_low_tma_model_2_weighted_no_norm = low[,c("SVD1")] %>% t %>% as.vector
+svd2_low_tma_model_2_weighted_no_norm = low[,c("SVD2")] %>% t %>% as.vector
+svd1_high_tma_model_2_weighted_no_norm = high[,c("SVD1")] %>% t %>% as.vector
+svd2_high_tma_model_2_weighted_no_norm = high[,c("SVD2")] %>% t %>% as.vector
+```
+```{r, warning=F, echo=F, include = F}
+t.test(svd1_low_tma_model_2_weighted_no_norm,svd1_high_tma_model_2_weighted_no_norm)
+t.test(svd2_low_tma_model_2_weighted_no_norm,svd2_high_tma_model_2_weighted_no_norm)
+tma.set.model2_weighted_no_norm.plot.subtracted$plot
+```
