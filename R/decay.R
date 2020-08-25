@@ -198,7 +198,7 @@ get.decay = function(now, decay.function, event.time = 0) {
     #zero out negative decays
     decays[decays<0] = 0
     output[ok.values] = decays
-    }
+  }
   return(output)
 }
 
