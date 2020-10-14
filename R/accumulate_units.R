@@ -13,18 +13,20 @@
 #'
 #' @return TBD
 #' @export
-accumulate.units = function(context.object, 
-                            time.column = NA,  
-                            codes, 
-                            decay.function = NA, 
-                            mode.column = NA, 
-                            mask = NA,
-                            time.limit = NA,
-                            weight.by = sqrt,
-                            meta.data = NA,
-                            return.dena.set = FALSE,
-                            return.ena.set = TRUE
-                            ){
+accumulate.units = function(
+  context.object, 
+  time.column = NA,  
+  codes, 
+  decay.function = NA, 
+  mode.column = NA, 
+  mask = NA,
+  time.limit = NA,
+  weight.by = sqrt,
+  meta.data = NA,
+  return.dena.set = FALSE,
+  return.ena.set = TRUE,
+  conversations = NULL
+) {
   f.window.limit = time.limit
   f.contexts = context.object$contexts
   f.codes = codes
@@ -84,7 +86,7 @@ accumulate.units = function(context.object,
     #remove rows with no codes from the data
     #we don't need them as "spacers" for the rest of the data
     #because we are using time to define our connections
-    this.context = this.context[rowSums(as.matrix(this.context[,f.codes])) > 0,]
+    # this.context = this.context[rowSums(as.matrix(this.context[,f.codes])) > 0,]
     
     Rows = seq_len(nrow(this.context))
     this.context = cbind(Rows, this.context)
@@ -107,6 +109,7 @@ accumulate.units = function(context.object,
     
     #if there are non-zero rows for this unit, compute adjacencies
     if(nrow(this.unit.data) > 0) {
+      this.unit.data <- this.unit.data[order(this.unit.data$Order), ]
   
         #get rows associated with this unit
         unit.rows = this.unit.data$Rows
@@ -158,6 +161,12 @@ accumulate.units = function(context.object,
               modes = ground.modes,
               decay.function = f.decay
           )
+          
+          conv_mask = rep(1, length(my.decays))
+          if(!is.null(conversations) && any(ground != response)) {
+            conv_mask <- ((rowSums(sapply(conversations, function(d) this.context[response, d] == this.context[ground, d])) == length(conversations)) * 1);
+          }
+          my.decays <- my.decays * conv_mask;
   
           #apply decays to ground
           # 

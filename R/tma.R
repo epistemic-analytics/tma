@@ -28,7 +28,8 @@ tma <- function(
   time.limit = NA,
   mask = NA,
   meta.data = NA,
-  beta = FALSE
+  beta = FALSE,
+  conversations = NULL
 ) {
   # hoo rules must be list of lists
   #note that options here are...
@@ -54,7 +55,8 @@ tma <- function(
     time.limit = time.limit,
     meta.data = meta.data,
     mask = mask,
-    return.ena.set = return.ena.set
+    return.ena.set = return.ena.set,
+    conversations = conversations
   )
   return(accumulation);
 }
