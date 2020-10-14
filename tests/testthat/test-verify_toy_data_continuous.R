@@ -31,7 +31,7 @@ test_that("verify directed", {
   ),3,3))
   colnames(User1_directed) = rownames(User1_directed) = c('A','B','C')
   testthat::expect_equal(
-    User1_directed, accumulation_window_3$contexts$`FirstGame::User1`$directed.adjacency
+    User1_directed, accumulation_window_3$model$contexts$`FirstGame::User1`$directed.adjacency
   )
   
   User2_directed = t(matrix(c(
@@ -41,7 +41,7 @@ test_that("verify directed", {
   ),3,3))
   colnames(User2_directed) = rownames(User2_directed) = c('A','B','C')
   testthat::expect_equal(
-    User2_directed, accumulation_window_3$contexts$`FirstGame::User2`$directed.adjacency
+    User2_directed, accumulation_window_3$model$contexts$`FirstGame::User2`$directed.adjacency
   )
   
   User3_directed = t(matrix(c(
@@ -51,7 +51,7 @@ test_that("verify directed", {
   ),3,3))
   colnames(User3_directed) = rownames(User3_directed) = c('A','B','C')
   testthat::expect_equal(
-    User3_directed, accumulation_window_3$contexts$`FirstGame::User3`$directed.adjacency
+    User3_directed, accumulation_window_3$model$contexts$`FirstGame::User3`$directed.adjacency
   )
 })
 
@@ -63,7 +63,7 @@ test_that("verify undirected", {
   ),3,3))
   colnames(User1_undirected) = rownames(User1_undirected) = c('A','B','C')
   testthat::expect_equal(
-    User1_undirected, accumulation_window_3$contexts$`FirstGame::User1`$undirected.adjacancy
+    User1_undirected, accumulation_window_3$model$contexts$`FirstGame::User1`$undirected.adjacancy
   )
   
   User2_undirected = t(matrix(c(
@@ -73,7 +73,7 @@ test_that("verify undirected", {
   ),3,3))
   colnames(User2_undirected) = rownames(User2_undirected) = c('A','B','C')
   testthat::expect_equal(
-    User2_undirected, accumulation_window_3$contexts$`FirstGame::User2`$undirected.adjacancy
+    User2_undirected, accumulation_window_3$model$contexts$`FirstGame::User2`$undirected.adjacancy
   )
   
   User3_undirected = t(matrix(c(
@@ -83,6 +83,6 @@ test_that("verify undirected", {
   ),3,3))
   colnames(User3_undirected) = rownames(User3_undirected) = c('A','B','C')
   testthat::expect_equal(
-    User3_undirected, accumulation_window_3$contexts$`FirstGame::User3`$undirected.adjacancy
+    User3_undirected, accumulation_window_3$model$contexts$`FirstGame::User3`$undirected.adjacancy
   )
 })
