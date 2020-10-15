@@ -306,7 +306,7 @@ get_contexts <- function(x, units_by, rules, indices.only = TRUE) {
     })) == length(units_by)
     
     # Find rows that fit Horizon of Observation rules
-    hoo_rows <- sapply(hoo_rules, function(rule) {
+    hoo_rows <- sapply(rules, function(rule) {
       
       # Apply each part of the rule
       rules_matched <- sapply(names(rule), function(u) {
