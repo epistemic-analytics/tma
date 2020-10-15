@@ -8,13 +8,15 @@ accumulate.units(
   context.object,
   time.column = NA,
   codes,
-  decay.function = default.decay.function,
+  decay.function = NA,
   mode.column = NA,
   mask = NA,
   time.limit = NA,
   weight.by = sqrt,
   meta.data = NA,
-  return.ena.set = TRUE
+  return.dena.set = FALSE,
+  return.ena.set = TRUE,
+  conversations = NULL
 )
 }
 \arguments{

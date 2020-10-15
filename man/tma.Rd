@@ -16,7 +16,9 @@ tma(
   mode.column = NA,
   time.limit = NA,
   mask = NA,
-  meta.data = NA
+  meta.data = NA,
+  beta = FALSE,
+  conversations = NULL
 )
 }
 \arguments{
