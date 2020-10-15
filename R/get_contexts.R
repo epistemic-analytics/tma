@@ -277,3 +277,62 @@ get.contexts_dt = function(units, data, hoo.rules) {
 
   return(output)
 }
+
+#' Get Contexts for each unit in x
+#'
+#' @param x data.frame or data.table
+#' @param units_by character vector
+#' @param rules list
+#' @param indices.only boolean If TRUE, default, returns row indices for each unit, otherwise will return subset tables
+#'
+#' @return List, named by each unique unit, containing either row indices (indicies.only = TRUE) 
+#' or subset data.tables of x (indices.only = FALSE)
+#' @export
+get_contexts <- function(x, units_by, rules, indices.only = TRUE) {
+  # Convert to data.table if needed
+  if(!inherits(x, "data.table")) {
+    x <- data.table(x, stringsAsFactors = FALSE)
+  }
+  
+  # Find the unique units in the set
+  unique_units <- unique(x[, ..units_by]);
+  
+  # Match the contexts
+  context_rows <- sapply(seq(nrow(unique_units)), function(.GRP) {
+    
+    # Rows in context b/c of the unit matched  
+    unit_rows <- rowSums(sapply(units_by, function(u) {
+      x[[u]] %chin% unique_units[[u]][.GRP]
+    })) == length(units_by)
+    
+    # Find rows that fit Horizon of Observation rules
+    hoo_rows <- sapply(hoo_rules, function(rule) {
+      
+      # Apply each part of the rule
+      rules_matched <- sapply(names(rule), function(u) {
+        if( is.logical(rule[[u]]) && rule[[u]] == TRUE ) {
+          x[[u]] %chin% unique(x[[u]][unit_rows])
+        }
+        else {
+          x[[u]] %chin% rule[[u]]
+        }
+      })
+      rowSums(rules_matched) == length(names(rule))
+    })
+    
+    # Rows that either that of the unit or in the HoO
+    # converted to row indices
+    passed_rows <- which(unit_rows | hoo_rows)
+    
+    # Don't worry about rows after the unit's last row
+    passed_rows #[passed_rows <= max(which(unit_rows))]
+  }, simplify = FALSE);
+  names(context_rows) <- apply(unique_units, 1, paste, collapse = "::");
+  
+  if(indices.only) {
+    context_rows
+  }
+  else {
+    lapply(context_rows, function(rows) { x[rows, ] })
+  }
+}
