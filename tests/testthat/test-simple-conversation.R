@@ -32,8 +32,8 @@ test_that("verify results", {
   all_units_rs <- unique(RS.data[, units_by])
   rs_contexts_old <- get.contexts(all_units_rs, data = as.data.frame(RS.data), hoo.rules = hoo_rules_old);
 
-  testthat::expect_true(all(sapply(names(rs_contexts_tables), function(n) {
-    all.equal(data.frame(rs_contexts_tables[[n]]), rs_contexts_old$contexts[[n]]$context, check.attributes = FALSE)
+  testthat::expect_true(all(sapply(names(rs_contexts_tables$contexts), function(n) {
+    all.equal(data.frame(rs_contexts_tables$contexts[[n]]$context), rs_contexts_old$contexts[[n]]$context, check.attributes = FALSE)
   })))
 })
 

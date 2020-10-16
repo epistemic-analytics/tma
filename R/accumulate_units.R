@@ -37,8 +37,8 @@ accumulate.units = function(
   f.mode = mode.column
   f.weighting.function = weight.by
   f.meta.data = meta.data
-  f.units = context.object$units
-  f.raw = context.object$raw.data
+  f.units = as.data.frame(context.object$units)
+  f.raw = as.data.frame(context.object$raw.data)
   
   use.modes = ifelse(any(is.na(f.mode)), FALSE, TRUE)
   use.meta = ifelse(any(is.na(f.meta.data)), FALSE, TRUE)
@@ -78,11 +78,10 @@ accumulate.units = function(
     this.code.matrix = blank.code.matrix
     
     #get data from this context
-    this.context = f.contexts[[this.hoo]]$context
+    this.context = as.data.frame(f.contexts[[this.hoo]]$context)
     
-  
     #set row numbers
-    Order = 1:nrow(this.context)
+    Order = seq(nrow(this.context))
     this.context = cbind(Order, this.context)
   
     #remove rows with no codes from the data

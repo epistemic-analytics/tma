@@ -44,7 +44,12 @@ tma <- function(
   }
   else {
     # browser()
-    hoos.TMA = get.contexts_dt(units = units, data = data, hoo.rules = hoo.rules);
+    # hoos.TMA = get.contexts_dt(units = units, data = data, hoo.rules = hoo.rules);
+    if ( is.data.frame(units) ) {
+      hoos.TMA = get_contexts(x = data, units_by = colnames(units), rules = hoo.rules, indices.only = FALSE);
+    } else {
+      hoos.TMA = get_contexts(x = data, units_by = units, rules = hoo.rules, indices.only = FALSE);
+    }
   }
   
   accumulation = accumulate.units(

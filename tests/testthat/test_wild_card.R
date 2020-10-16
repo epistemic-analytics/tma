@@ -5,7 +5,7 @@ my.units = unique(d[, unit_cols])
 
 d_grp2 <- data.table::copy(d)
 d_grp2$GroupName <- "Group_2"
-rbind(d, d_grp2)
+# rbind(d, d_grp2)
 d2 <- rbind(d, d_grp2)
 
 my.units2 = unique(d2[, unit_cols])
@@ -36,8 +36,8 @@ accumulation_window = tma(
 )
 
 wc.hoo.TMA = list()
-wc.hoo.TMA[[1]] = list(Condition = "*", GroupName = "*", Context = "Public")
-wc.hoo.TMA[[2]] = list(Condition = "*", GroupName = "*", UserName = "*")
+wc.hoo.TMA[[1]] = list(Condition = TRUE, GroupName = TRUE, Context = "Public")
+#wc.hoo.TMA[[2]] = list(Condition = TRUE, GroupName = TRUE, UserName = TRUE)
 accumulation_window_2 = tma(
   data = d2,
   units = my.units2,

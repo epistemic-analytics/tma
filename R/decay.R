@@ -9,8 +9,8 @@ step_function = function(window_size) {
     Vectorize(
       function(x) {
       if (x == 0) {
-        # return(1);
-        return(0.5);
+        return(1);
+        # return(0.5);
       } else if( x < window_size & x > 0) {
         return(1);
       } else {

@@ -306,11 +306,14 @@ get_contexts <- function(x, units_by, rules, indices.only = TRUE) {
     })) == length(units_by)
     
     # Find rows that fit Horizon of Observation rules
-    hoo_rows <- sapply(rules, function(rule) {
+    hoo_rows <- rowSums(sapply(rules, function(rule) {
       
       # Apply each part of the rule
       rules_matched <- sapply(names(rule), function(u) {
-        if( is.logical(rule[[u]]) && rule[[u]] == TRUE ) {
+        if( 
+          (is.logical(rule[[u]]) && rule[[u]] == TRUE) || 
+          (rule[[u]] == "<UNIT>")
+        ) {
           x[[u]] %chin% unique(x[[u]][unit_rows])
         }
         else {
@@ -318,7 +321,7 @@ get_contexts <- function(x, units_by, rules, indices.only = TRUE) {
         }
       })
       rowSums(rules_matched) == length(names(rule))
-    })
+    })) > 0
     
     # Rows that either that of the unit or in the HoO
     # converted to row indices
@@ -333,6 +336,17 @@ get_contexts <- function(x, units_by, rules, indices.only = TRUE) {
     context_rows
   }
   else {
-    lapply(context_rows, function(rows) { x[rows, ] })
+    unit_contexts <- apply(unique_units, 1, function(u) {
+      list(
+        "context" = x[context_rows[[paste(u, collapse = "::")]], ],
+        "unit" = data.frame(as.list(u))
+      )
+    });
+    names(unit_contexts) <- names(context_rows);
+    list(
+      "contexts" = unit_contexts,
+      "units" = unique_units,
+      "raw.data" = x
+    )
   }
 }
