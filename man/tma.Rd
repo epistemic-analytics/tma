@@ -45,6 +45,10 @@ tma(
 \item{mask}{TBD}
 
 \item{meta.data}{TBD}
+
+\item{beta}{TBD}
+
+\item{conversations}{TBD}
 }
 \value{
 TBD

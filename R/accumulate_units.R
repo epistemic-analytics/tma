@@ -10,6 +10,8 @@
 #' @param weight.by TBD
 #' @param meta.data TBD
 #' @param return.ena.set TBD
+#' @param return.dena.set TBD
+#' @param conversations TBD
 #'
 #' @return TBD
 #' @export
@@ -298,7 +300,7 @@ accumulate.units = function(
   # Standard ENA Set
   if(return.ena.set) {
     enadata = structure(list(), class = c("ENAdata", "list"))
-    enadata$adjacency.matrix = rENA:::namesToAdjacencyKey(f.codes)
+    enadata$adjacency.matrix = rENA::namesToAdjacencyKey(f.codes)
     enadata$codes = f.codes
     enadata$model = "TMA"
     enadata$raw = data.table::as.data.table(f.raw)
@@ -315,7 +317,7 @@ accumulate.units = function(
   else {
     ENA_UNIT <- rENA::merge_columns_c(f.units, cols = colnames(f.units));
     
-    dena_data = directedENA:::ena.set.directed(f.raw, f.units, NA, f.codes)
+    dena_data = directedENA::ena.set.directed(f.raw, f.units, NA, f.codes)
     dena_data$meta.data <- data.table::as.data.table(cbind(ENA_UNIT, output.meta.data))
     for( i in colnames(dena_data$meta.data) ) {
       set(dena_data$meta.data, j = i, value = rENA::as.ena.metadata(dena_data$meta.data[[i]]))

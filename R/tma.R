@@ -12,6 +12,8 @@
 #' @param time.limit TBD
 #' @param mask TBD
 #' @param meta.data TBD
+#' @param beta TBD
+#' @param conversations TBD
 #'
 #' @return TBD
 #' @export

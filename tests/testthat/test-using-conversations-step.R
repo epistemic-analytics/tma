@@ -1,5 +1,7 @@
 testthat::context("Test Conversation Parameter with Step Function")
-RS.data <- read.csv(system.file("extdata/rs.data.csv", package = "tma"), stringsAsFactors = FALSE)
+data(test_rsdata)
+RS.data <- test_rsdata
+# RS.data <- read.csv("extdata/rs.data.csv", stringsAsFactors = FALSE)
 RS.data$Context <- "Public"
 RS.data$Row <- seq(nrow(RS.data))
 

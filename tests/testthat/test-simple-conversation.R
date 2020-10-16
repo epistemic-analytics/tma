@@ -14,7 +14,8 @@ testthat::context("Test updated get context approach")
 # d$Timestamp <- c(converted_dates, pushed_dates);
 
 test_that("verify results", {
-  RS.data <- read.csv(system.file("extdata/rs.data.csv", package = "tma"), stringsAsFactors = FALSE)
+  data(test_rsdata)
+  RS.data <- test_rsdata
   RS.data$Context <- "Public"
   RS.data$Row <- seq(nrow(RS.data))
   

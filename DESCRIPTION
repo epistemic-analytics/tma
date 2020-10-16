@@ -13,7 +13,8 @@ Depends:
 License: GPL-3 | file LICENSE
 Imports:
     stats,
-    rENA
+    rENA,
+    directedENA
 Suggests:
     testthat (>= 2.1.0),
     knitr,

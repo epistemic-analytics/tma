@@ -38,7 +38,11 @@ accumulate.units(
 
 \item{meta.data}{TBD}
 
+\item{return.dena.set}{TBD}
+
 \item{return.ena.set}{TBD}
+
+\item{conversations}{TBD}
 }
 \value{
 TBD
