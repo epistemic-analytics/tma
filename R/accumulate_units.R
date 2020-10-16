@@ -317,7 +317,7 @@ accumulate.units = function(
   else {
     ENA_UNIT <- rENA::merge_columns_c(f.units, cols = colnames(f.units));
     
-    dena_data = directedENA::ena.set.directed(f.raw, f.units, NA, f.codes)
+    dena_data = ena.set.directed(f.raw, f.units, NA, f.codes)
     dena_data$meta.data <- data.table::as.data.table(cbind(ENA_UNIT, output.meta.data))
     for( i in colnames(dena_data$meta.data) ) {
       set(dena_data$meta.data, j = i, value = rENA::as.ena.metadata(dena_data$meta.data[[i]]))

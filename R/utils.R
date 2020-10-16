@@ -203,3 +203,25 @@ get.quoted.columns = function(x, as.one.line = FALSE){
   for (i in n) cat("'", i, "'", ifelse(as.one.line, ", ", ",\n"), sep = "")
   return(NULL)
 }
+
+ena.set.directed <- function(data, units, conversations, codes, ...) {
+  as.ena.directed.set(
+    list(
+      meta.data = NULL,
+      model = list(
+        model.type = "Directed",
+        raw.input = data.table::as.data.table(data)
+      ),
+      rotation = list (
+        codes = codes,
+        nodes = NULL
+      ),
+      plots = list(),
+      "_function.params" = list(
+        units = units,
+        conversations = conversations,
+        codes = codes
+      )
+    )
+  )
+}
