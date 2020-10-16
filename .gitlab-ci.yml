@@ -116,10 +116,14 @@ check:r-hub-windows-release:
   variables:
     RHUB_PLATFORM: "windows-x86_64-release"
   <<: *rhub_definition
-check:r-hub-ubuntu-gcc-release:
+check:r-hub-macos-highsierra-release-cran:
   variables:
-    RHUB_PLATFORM: "ubuntu-gcc-release"
+    RHUB_PLATFORM: "macos-highsierra-release-cran"
   <<: *rhub_definition
+#check:r-hub-ubuntu-gcc-release:
+#  variables:
+#    RHUB_PLATFORM: "ubuntu-gcc-release"
+#  <<: *rhub_definition
 #check:r-hub-ubuntu-gcc-devel:
 #  variables:
 #    RHUB_PLATFORM: "ubuntu-gcc-devel"
@@ -176,7 +180,6 @@ check:r-hub-ubuntu-gcc-release:
 release:cran-manual:
   <<: *release_definition
   when: manual
-
 
 pages:
   stage: deploy
