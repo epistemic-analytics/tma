@@ -298,6 +298,7 @@ get_contexts <- function(x, units_by, rules, indices.only = TRUE) {
   unique_units <- unique(x[, ..units_by]);
   
   # Match the contexts
+  conversations <- NULL;
   context_rows <- sapply(seq(nrow(unique_units)), function(.GRP) {
     
     # Rows in context b/c of the unit matched  
@@ -309,23 +310,30 @@ get_contexts <- function(x, units_by, rules, indices.only = TRUE) {
     hoo_rows <- rowSums(sapply(rules, function(rule) {
       
       # Apply each part of the rule
-      rules_matched <- sapply(names(rule), function(u) {
-        if( 
-          (is.logical(rule[[u]]) && rule[[u]] == TRUE) || 
-          (rule[[u]] == "<UNIT>")
-        ) {
-          x[[u]] %chin% unique(x[[u]][unit_rows])
-        }
-        else {
-          x[[u]] %chin% rule[[u]]
-        }
-      })
-      rowSums(rules_matched) == length(names(rule))
-    })) > 0
+      if( length(rule) == 1 && names(rule) == "Split.on" ) {
+        conversations <<- rule[["Split.on"]]
+        rep(FALSE, nrow(x))
+      }
+      else {
+        rules_matched <- sapply(names(rule), function(u) {
+          if( 
+            (is.logical(rule[[u]]) && rule[[u]] == TRUE) || 
+            (rule[[u]] == "<UNIT>")
+          ) {
+            x[[u]] %chin% unique(x[[u]][unit_rows])
+          }
+          else {
+            x[[u]] %chin% rule[[u]]
+          } 
+        })
+        rowSums(rules_matched) == length(names(rule))
+      }
+    }))
     
     # Rows that either that of the unit or in the HoO
     # converted to row indices
-    passed_rows <- which(unit_rows | hoo_rows)
+    # passed_rows <- which(unit_rows | hoo_rows)
+    passed_rows <- which(hoo_rows > 0)
     
     # Don't worry about rows after the unit's last row
     passed_rows #[passed_rows <= max(which(unit_rows))]
@@ -337,10 +345,17 @@ get_contexts <- function(x, units_by, rules, indices.only = TRUE) {
   }
   else {
     unit_contexts <- apply(unique_units, 1, function(u) {
-      list(
+      to_ret <- list(
         "context" = x[context_rows[[paste(u, collapse = "::")]], ],
         "unit" = data.frame(as.list(u))
       )
+      if(!is.null(conversations)) {
+        to_ret[["context"]] <- split(x = to_ret[["context"]], by = conversations)
+      }
+      else {
+        to_ret[["context"]] <- list(to_ret[["context"]])
+      }
+      to_ret
     });
     names(unit_contexts) <- names(context_rows);
     list(

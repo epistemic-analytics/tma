@@ -46,19 +46,22 @@ accumulate.units = function(
   use.window = ifelse(any(is.na(f.time)), TRUE, FALSE)
   
   #create undirected mask if there are NAs in lower triangle of given mask
-  if (any(is.na(mask[lower.tri(mask)]))) {mask[lower.tri(mask)] = mask[upper.tri(mask)]}
+  if(use.mask) {
+    if (any(is.na(mask[lower.tri(mask)]))) {
+      mask[lower.tri(mask)] = mask[upper.tri(mask)]
+    }
+  }
+  else {
+    mask <- matrix(1, nrow = length(f.codes), ncol = length(f.codes));
+  }
   
-  #initialize metadata matrix, if needed
+  # initialize metadata matrix, if needed
   # Always initialize output.meta.data, only add extra metadata beyond units when necessary
   output.meta.data = f.raw[0, unique(c(names(f.units),f.meta.data[!is.na(f.meta.data)]))]
   
-  #initialize adjacency vector matrices
-  undirected.adjacency.vectors = as.matrix(
-    data.frame(matrix(NA, nrow = 1, ncol = ncol(rENA::namesToAdjacencyKey(f.codes))))[0,]
-  )
-  directed.adjacency.vectors = as.matrix(
-    data.frame(matrix(NA, nrow = 1, ncol = length(f.codes)^2)[0,])
-  )
+  # initialize adjacency vector matrices
+  undirected.adjacency.vectors = as.matrix(data.frame(matrix(NA, nrow = 1, ncol = ncol(rENA::namesToAdjacencyKey(f.codes))))[0,])
+  directed.adjacency.vectors = as.matrix(data.frame(matrix(NA, nrow = 1, ncol = length(f.codes)^2)[0,]))
   colnames(directed.adjacency.vectors) = paste("V", seq(length(f.codes) ^ 2), sep = "")
   
   
@@ -74,52 +77,64 @@ accumulate.units = function(
   
   #loop over contexts
   for (this.hoo in 1:length(f.contexts)) {
-    #initialize connection  matrix for this unit
-    this.code.matrix = blank.code.matrix
+    f.contexts[[this.hoo]]$directed.adjacency = blank.code.matrix;
+    f.contexts[[this.hoo]]$undirected.adjacency = vector("numeric", 3);
+    unit.undirected.adjacency.vectors = as.matrix(data.frame(matrix(NA, nrow = 1, ncol = ncol(rENA::namesToAdjacencyKey(f.codes))))[0,])
+    unit.directed.adjacency.vectors = as.matrix(data.frame(matrix(NA, nrow = 1, ncol = length(f.codes)^2)[0,]))
+    
     
     #get data from this context
-    this.context = as.data.frame(f.contexts[[this.hoo]]$context)
+    all_contexts = NULL;
+    for(this.context in f.contexts[[this.hoo]]$context) {
+      #initialize connection  matrix for this unit
+      this.code.matrix = blank.code.matrix
+      
+      #get unit name
+      this.unit = f.contexts[[this.hoo]]$unit
+      
+      # print(this.unit);
+      # print(this.context);
+      
+      # this.context = as.data.frame(f.contexts[[this.hoo]]$context)
+      this.context = as.data.frame(this.context);
+      #set row numbers
+      Order = seq(nrow(this.context))
+      this.context = cbind(Order, this.context)
     
-    #set row numbers
-    Order = seq(nrow(this.context))
-    this.context = cbind(Order, this.context)
-  
-    #remove rows with no codes from the data
-    #we don't need them as "spacers" for the rest of the data
-    #because we are using time to define our connections
-    # this.context = this.context[rowSums(as.matrix(this.context[,f.codes])) > 0,]
+      #remove rows with no codes from the data
+      #we don't need them as "spacers" for the rest of the data
+      #because we are using time to define our connections
+      # this.context = this.context[rowSums(as.matrix(this.context[,f.codes])) > 0,]
+      
+      Rows = seq_len(nrow(this.context))
+      this.context = cbind(Rows, this.context)
+      
+      #find rows belonging to unit
+      # browser()
+      # this.unit.data = semi_join(this.context, this.unit, by = names(this.unit))
+      
+      ## I'm not sure if the column ordering the reason behind using dplyr here, so I've added an additional [,] after
+      ## merge so the results are identical to the call to `semi_join`, if not, then we should just use the option here.
+      # this.unit.data <- merge(this.context, this.unit, by = names(this.unit))
+      this.unit.data <- merge(this.context, this.unit, by = names(this.unit))[, colnames(this.context)]
+      
+      #get meta data for this unit and add to the the meta data dataframe
+      # output.meta.data = rbind(output.meta.data, get.unique.col.values(this.unit.data[,colnames(output.meta.data)]))
+      output.meta.data = rbind(output.meta.data, get.unique.col.values(this.unit[,colnames(output.meta.data)]))
+      
+      #if there are non-zero rows for this unit, compute adjacencies
+      if(nrow(this.unit.data) > 0) {
+        this.unit.data <- this.unit.data[order(this.unit.data$Order), ]
     
-    Rows = seq_len(nrow(this.context))
-    this.context = cbind(Rows, this.context)
-    
-    #get unit name
-    this.unit = f.contexts[[this.hoo]]$unit
-    
-    #find rows belonging to unit
-    # browser()
-    # this.unit.data = semi_join(this.context, this.unit, by = names(this.unit))
-    
-    ## I'm not sure if the column ordering the reason behind using dplyr here, so I've added an additional [,] after
-    ## merge so the results are identical to the call to `semi_join`, if not, then we should just use the option here.
-    # this.unit.data <- merge(this.context, this.unit, by = names(this.unit))
-    this.unit.data <- merge(this.context, this.unit, by = names(this.unit))[, colnames(this.context)]
-    
-    #get meta data for this unit and add to the the meta data dataframe
-    # output.meta.data = rbind(output.meta.data, get.unique.col.values(this.unit.data[,colnames(output.meta.data)]))
-    output.meta.data = rbind(output.meta.data, get.unique.col.values(this.unit[,colnames(output.meta.data)]))
-    
-    #if there are non-zero rows for this unit, compute adjacencies
-    if(nrow(this.unit.data) > 0) {
-      this.unit.data <- this.unit.data[order(this.unit.data$Order), ]
-  
         #get rows associated with this unit
         unit.rows = this.unit.data$Rows
       
         #get times, or if window model (ie, not times given), use rows
         if(use.window) {
           this.time = this.context$Order
-        } else {
-          this.time = this.context[,f.time]
+        }
+        else {
+          this.time = this.context[, f.time]
         }
         
         #print(this.time)
@@ -225,59 +240,62 @@ accumulate.units = function(
               #make matrix symmetrical
               this.connection.matrix[lower.tri(this.connection.matrix)] = 0
               this.code.matrix = this.code.matrix + binarize_window(this.connection.matrix);
-            } else {
+            }
+            else {
               stop('specify a valid weighting function')
             }
-          } else {
+          }
+          else {
             this.code.matrix = this.code.matrix + f.weighting.function(this.connection.matrix)
           }
           #go back to next row for this unit
         } #done looping over rows for this unit
+          
+      } #end of if statement -- the above is all skipped if there are no
+        #non-zero rows to loop over for the unit
+      
+      #for this unit...
+     
+      # Apply mask ------
+      ### to the adjacency matrix 
+      # if(use.mask) this.code.matrix = this.code.matrix * mask
+    
+      # Directed Adjacency ------
+        # add directed adjacency matrix to the context
+        f.contexts[[this.hoo]]$directed.adjacency = f.contexts[[this.hoo]]$directed.adjacency + (this.code.matrix * mask)
         
-    } #end of if statement -- the above is all skipped if there are no
-      #non-zero rows to loop over for the unit
+        #construct directed adjacency vector
+        unit.directed.adjacency.vectors = rbind(unit.directed.adjacency.vectors, as.vector(this.code.matrix * mask))
+
+      # Undirected Adjacency ------
+        #commenting this out keeps self-connections in undirecteed matrix
+        #but it will be removed for ena adjacency vectors
+        #diag(this.code.matrix) = 0
+        
+        # turn directed into undirected
+        
+        #upper triangle is some of directed connections
+        upper_tri_indices <- upper.tri(this.code.matrix);
+        ut_matrix <- this.code.matrix * mask;
+        ut_matrix[upper_tri_indices] <- ut_matrix[upper_tri_indices] + t(ut_matrix)[upper_tri_indices]
+        # this.code.matrix[upper_tri_indices] <- this.code.matrix[upper_tri_indices] + t(this.code.matrix)[upper_tri_indices]
+        
+        #make matrix symmetrical
+        ut_matrix[lower.tri(ut_matrix)] = NA
+        
+        #add undirected matrix to context 
+        f.contexts[[this.hoo]]$undirected.adjacency = f.contexts[[this.hoo]]$undirected.adjacency + (ut_matrix * mask);
+      
+        #create undirected vector
+        unit.undirected.adjacency.vectors = rbind( unit.undirected.adjacency.vectors, ut_matrix[upper_tri_indices] );
+    }
     
-    #for this unit...
-   
-    #apply mask to the adjacency matrix
-    if(use.mask) this.code.matrix = this.code.matrix * mask
-  
-    #first, deal with directed matrix
+    directed.adjacency.vectors = rbind( directed.adjacency.vectors, colSums(unit.directed.adjacency.vectors) );
+    undirected.adjacency.vectors = rbind( undirected.adjacency.vectors, colSums(unit.undirected.adjacency.vectors) );
     
-    #add directed adjacency matrix to the context
-    f.contexts[[this.hoo]]$directed.adjacency = this.code.matrix
-    
-    #construct directed adjacency vector
-    directed.adjacency.vectors = rbind(directed.adjacency.vectors, as.vector(this.code.matrix))
-  
-    
-    #next, undirected
-    
-    #commenting this out keeps self-connections in undirecteed matrix
-    #but it will be removed for ena adjacency vectors
-    #diag(this.code.matrix) = 0
-    
-    #turn directed into undirected
-    
-    #upper triangle is some of directed connections
-    upper_tri_indices <- upper.tri(this.code.matrix)
-    this.code.matrix[upper_tri_indices] <- this.code.matrix[upper_tri_indices] + t(this.code.matrix)[upper_tri_indices]
-    
-    #make matrix symmetrical
-    this.code.matrix[lower.tri(this.code.matrix)] = NA
-    
-    #add undirected matrix to context 
-    f.contexts[[this.hoo]]$undirected.adjacancy = this.code.matrix
-    
-    #create undirected vector
-    undirected.adjacency.vectors = rbind(
-      undirected.adjacency.vectors,
-      this.code.matrix[upper.tri(this.code.matrix)]
-    )
-   
-    #go back to next context
-  
-  }#done looping over contexts
+    # go back to next context
+  }
+  #done looping over contexts
   
   #construct output
   # output = list()
