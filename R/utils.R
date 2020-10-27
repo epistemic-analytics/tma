@@ -146,12 +146,12 @@ merge_on = function(x, y, order.column = NA) {
 #'
 #' @return TBD
 #' @export
-get.unique.col.values = function(df){
-  output = data.frame(matrix(NA, nrow = 1, ncol = ncol(df)))
+get.unique.col.values = function(df) {
+  output = data.frame(matrix(NA, nrow = 1, ncol = ncol(df)), stringsAsFactors = FALSE)
   names(output) = names(df)
   for (this.col in names(df)) {
-      this.value = unique(df[,this.col])
-      if(length(this.value) == 1) output[1,this.col] = this.value
+      this.value = as.vector(unique(df[, this.col]));
+      if(length(this.value) == 1) output[1, this.col] = this.value;
   } 
   return(output)
 }

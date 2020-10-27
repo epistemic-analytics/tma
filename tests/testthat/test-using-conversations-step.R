@@ -1,13 +1,10 @@
 testthat::context("Test Conversation Parameter with Step Function")
 data(test_rsdata)
-RS.data <- test_rsdata
+RS.data <- as.data.table(test_rsdata)
 # RS.data <- read.csv("extdata/rs.data.csv", stringsAsFactors = FALSE)
 RS.data$Context <- "Public"
-RS.data$Row <- seq(nrow(RS.data))
+RS.data$ID <- seq(nrow(RS.data))
 
-my.hoo.TMA = list(
-  list(Condition = "<UNIT>", GroupName = "<UNIT>", Context = "Public")
-)
 my.units = RS.data[,c("Condition", "UserName"), drop = FALSE]
 codes <- c("Data", "Technical.Constraints", "Performance.Parameters",
   "Client.and.Consultant.Requests", "Design.Reasoning", "Collaboration");
@@ -62,29 +59,50 @@ reg_decays = list(
 #   meta.data = c('Condition')
 #   # ,conversations = my.conversations
 # )
-tma_conv = tma(
+# tma_conv = tma(
+#   data = RS.data,
+#   units = unique(my.units),
+#   codes = codes,
+#   hoo.rules = my.hoo.TMA,
+#   weight.by = function(x) {return((x))},
+#   return.ena.set = TRUE,
+#   time.column = NA,
+#   decay.function = reg_decays,
+#   mode.column = 'Context',
+#   time.limit = NA,
+#   # mask = NA,
+#   meta.data = c('Condition')
+# )
+rs_conv <- tma2(
+  x = RS.data,
+  units = c("Condition", "UserName"),
+  hoo_rules = rules(
+    (GroupName %in% UNIT$GroupName) & (Condition == UNIT$Condition)
+  )
+  ,split_rules = ActivityNumber
+)
+rs_ctx <- attr(rs_conv, "tma_contexts")
+rs_accum = accumulate_units(
   data = RS.data,
-  units = unique(my.units),
+  context.object = rs_ctx,
+  units = RS.data[, c("Condition", "UserName")],
   codes = codes,
-  hoo.rules = my.hoo.TMA,
-  weight.by = function(x) {return((x))},
+  weight.by = weight_func,
   return.ena.set = TRUE,
-  time.column = NA,
+  time.column = "ID",
   decay.function = reg_decays,
   mode.column = 'Context',
   time.limit = NA,
   # mask = NA,
-  meta.data = c('Condition')
-  ,conversations = my.conversations
+  meta.data = c('Condition', 'UserName')
 )
-
 # tma_reg_set <- ena.make.set(tma_reg)
-tma_conv_set <- ena.make.set(tma_conv)
+tma_conv_set <- rENA::ena.make.set(rs_accum)
 
-accum = ena.accumulate.data(
+accum = rENA::ena.accumulate.data(
   units = my.units,
-  conversation = RS.data[, my.conversations, drop = FALSE],
-  codes = RS.data[, codes, drop = FALSE],
+  conversation = RS.data[, c("Condition", "GroupName"), with = FALSE],
+  codes = RS.data[, c(codes), with = FALSE],
   model = "EndPoint",
   window.size.back = test_window_size
   ,weight.by = "product"

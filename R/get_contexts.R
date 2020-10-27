@@ -341,7 +341,18 @@ get_contexts <- function(x, units_by, rules, indices.only = TRUE) {
   names(context_rows) <- apply(unique_units, 1, paste, collapse = "::");
   
   if(indices.only) {
-    context_rows
+    if(!is.null(conversations)) {
+      lapply(context_rows, function(context) {
+          split(context, unlist(x[context, ..conversations]))
+      })
+    }
+    else {
+      # context_rows
+      sapply(names(context_rows), function(x) list(context_rows[x]))
+      # context_rows_new <- lapply(seq(context_rows), function(x) list(context_rows[[x]]))
+      # names(context_rows_new) <- names(context_rows)
+      # context_rows_new
+    }
   }
   else {
     unit_contexts <- apply(unique_units, 1, function(u) {

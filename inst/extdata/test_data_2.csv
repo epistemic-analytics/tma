@@ -1,14 +1,14 @@
-Day,Mode,GroupName,UserName,Condition,Context,Timestamp,A,B,C
-1,View,Group_1,User1,FirstGame,Private,9/17/13 9:43, 1,0,0
-1,View,Group_1,User2,FirstGame,Public,9/17/13 9:46,  0,1,1
-1,Chat,Group_1,User3,FirstGame,Public,9/17/13 9:49,  1,0,0
-1,View,Group_1,User1,FirstGame,Public,9/17/13 9:52,  0,0,1
-1,View,Group_1,User2,FirstGame,Public,9/17/13 9:55,  0,1,0
-1,View,Group_1,User3,FirstGame,Public,9/17/13 9:58,  1,0,1
-
-2,View,Group_1,User1,FirstGame,Private,9/17/13 10:43,0,1,0
-2,Chat,Group_1,User2,FirstGame,Public,9/17/13 10:46, 1,1,1
-2,Chat,Group_1,User3,FirstGame,Public,9/17/13 10:49, 0,1,0
-2,Chat,Group_1,User1,FirstGame,Public,9/17/13 10:52, 1,0,1
-2,Chat,Group_1,User2,FirstGame,Public,9/17/13 10:55, 0,1,1
-2,Chat,Group_1,User3,FirstGame,Public,9/17/13 10:58, 1,1,0
+Day,Mode,GroupName,UserName,To,Condition,Context,Timestamp,A,B,C
+1,View,Group_1,User1,,FirstGame,Private,9/17/13 9:43, 1,0,0
+1,View,Group_1,User2,,FirstGame,Public,9/17/13 9:46,  0,1,1
+1,DM,Group_1,User2,User1,FirstGame,Public,9/17/13 9:46,  0,1,1
+1,Chat,Group_1,User3,,FirstGame,Public,9/17/13 9:49,  1,0,0
+1,View,Group_1,User1,,FirstGame,Public,9/17/13 9:52,  0,0,1
+1,View,Group_1,User2,,FirstGame,Public,9/17/13 9:55,  0,1,0
+1,View,Group_1,User3,,FirstGame,Public,9/17/13 9:58,  1,0,1
+2,View,Group_1,User1,,FirstGame,Private,9/17/13 10:43,0,1,0
+2,Chat,Group_1,User2,,FirstGame,Public,9/17/13 10:46, 1,1,1
+2,Chat,Group_1,User3,,FirstGame,Public,9/17/13 10:49, 0,1,0
+2,Chat,Group_1,User1,,FirstGame,Public,9/17/13 10:52, 1,0,1
+2,Chat,Group_1,User2,,FirstGame,Public,9/17/13 10:55, 0,1,1
+2,Chat,Group_1,User3,,FirstGame,Public,9/17/13 10:58, 1,1,0

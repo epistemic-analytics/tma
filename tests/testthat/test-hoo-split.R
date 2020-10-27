@@ -10,12 +10,13 @@ testthat::context("Test Conversation Parameter with Step Function")
 # write.csv(x = RS.data, file = "inst/extdata/rs.data-modes.csv")
 
 # RS.modes <- read.csv("inst/extdata/rs.data-modes.csv", stringsAsFactors = FALSE);
-test.modes <- read.csv("inst/extdata/test_data_2.csv", stringsAsFactors = FALSE);
+test.modes <- read.csv("../../inst/extdata/test_data_2.csv", stringsAsFactors = FALSE);
 
 my.hoo.TMA = list(
   list(Condition = "<UNIT>", GroupName = "<UNIT>", Mode = "Chat"),
   list(Condition = "<UNIT>", UserName = "<UNIT>", Mode = "View")
-  # ,list(Split.on = "Day")
+  #,list(Split.on = "Day")
+  #list(Day = "<UNIT>") # Multiple values auto-split?
 )
 
 #someone in my group, I can see chat and facial expressions (but not computer)
@@ -55,19 +56,53 @@ reg_decays = list(
   Private = step_func(test_window_size),
   Public = step_func(test_window_size)
 )
-tma_conv = tma(
-  data = test.modes,
-  units = unique(my.units),
-  codes = codes,
-  hoo.rules = my.hoo.TMA,
-  weight.by = function(x) {return((x))},
-  return.ena.set = TRUE,
-  time.column = NA,
-  decay.function = reg_decays,
-  mode.column = 'Context',
-  time.limit = NA,
-  # mask = NA,
-  meta.data = c('Condition')
-  ,conversations = my.conversations
-  ,beta = TRUE
-)
+
+
+testthat::test_that("context methods equal", {
+  contexts_beta <- get_contexts(x = test.modes, units_by = colnames(my.units), rules = my.hoo.TMA[1:2], indices.only = FALSE);
+  contexts_orig <- get.contexts(units = unique(my.units), data = test.modes, hoo.rules = my.hoo.TMA[1:2])
+  
+  testthat::expect_true(all(
+    data.table(contexts_orig$contexts$`FirstGame::User1`$context) == 
+    contexts_beta$contexts$`FirstGame::User1`$context[[1]]
+  ))
+})
+
+testthat::test_that("tma methods equal", {
+  weight_func <- function(x) {return((x))}
+  
+  #microbenchmark::microbenchmark(
+  tma_conv_orig = tma(
+    data = test.modes,
+    units = unique(my.units),
+    codes = codes,
+    hoo.rules = my.hoo.TMA[1:2],
+    weight.by = weight_func,
+    return.ena.set = TRUE,
+    time.column = NA,
+    decay.function = reg_decays,
+    mode.column = 'Context',
+    time.limit = NA,
+    # mask = NA,
+    meta.data = c('Condition')
+    ,beta = FALSE
+  ) #,
+  tma_conv_beta = tma(
+    data = test.modes,
+    units = unique(my.units),
+    codes = codes,
+    hoo.rules = my.hoo.TMA[1:2],
+    weight.by = weight_func,
+    return.ena.set = TRUE,
+    time.column = NA,
+    decay.function = reg_decays,
+    mode.column = 'Context',
+    time.limit = NA,
+    # mask = NA,
+    meta.data = c('Condition')
+    ,beta = TRUE
+  )
+  #,times = 10)
+  
+  testthat::expect_equal(tma_conv_orig$meta.data, tma_conv_beta$meta.data)
+})

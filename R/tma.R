@@ -13,7 +13,7 @@
 #' @param mask TBD
 #' @param meta.data TBD
 #' @param beta TBD
-#' @param conversations TBD
+#' @param indices.only TBD
 #'
 #' @return TBD
 #' @export
@@ -31,7 +31,7 @@ tma <- function(
   mask = NA,
   meta.data = NA,
   beta = FALSE,
-  conversations = NULL
+  indices.only = FALSE
 ) {
   # hoo rules must be list of lists
   #note that options here are...
@@ -41,29 +41,44 @@ tma <- function(
   #generate contexts for this data: TMA
   if(beta == FALSE) {
     hoos.TMA = get.contexts(units = units, data = data, hoo.rules = hoo.rules);
+  
+    accumulation = accumulate.units(
+      context.object = hoos.TMA,
+      codes = codes,
+      time.column = time.column,
+      decay.function = decay.function,
+      mode.column = mode.column,
+      weight.by = weight.by,
+      time.limit = time.limit,
+      meta.data = meta.data,
+      mask = mask,
+      return.ena.set = return.ena.set
+    )
   }
   else {
     # browser()
     # hoos.TMA = get.contexts_dt(units = units, data = data, hoo.rules = hoo.rules);
     if ( is.data.frame(units) ) {
-      hoos.TMA = get_contexts(x = data, units_by = colnames(units), rules = hoo.rules, indices.only = FALSE);
-    } else {
-      hoos.TMA = get_contexts(x = data, units_by = units, rules = hoo.rules, indices.only = FALSE);
+      hoos.TMA = get_contexts(x = data, units_by = colnames(units), rules = hoo.rules, indices.only = indices.only);
     }
-  }
+    else {
+      hoos.TMA = get_contexts(x = data, units_by = units, rules = hoo.rules, indices.only = indices.only);
+    }
   
-  accumulation = accumulate.units(
-    context.object = hoos.TMA,
-    codes = codes,
-    time.column = time.column,
-    decay.function = decay.function,
-    mode.column = mode.column,
-    weight.by = weight.by,
-    time.limit = time.limit,
-    meta.data = meta.data,
-    mask = mask,
-    return.ena.set = return.ena.set,
-    conversations = conversations
-  )
+    accumulation = accumulate_units(
+      data = as.data.table(data),
+      context.object = hoos.TMA,
+      units = as.data.table(units),
+      codes = codes,
+      time.column = time.column,
+      decay.function = decay.function,
+      mode.column = mode.column,
+      weight.by = weight.by,
+      time.limit = time.limit,
+      meta.data = meta.data,
+      mask = mask,
+      return.ena.set = return.ena.set
+    )
+  }
   return(accumulation);
 }

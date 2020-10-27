@@ -18,7 +18,7 @@ tma(
   mask = NA,
   meta.data = NA,
   beta = FALSE,
-  conversations = NULL
+  indices.only = FALSE
 )
 }
 \arguments{
@@ -48,7 +48,7 @@ tma(
 
 \item{beta}{TBD}
 
-\item{conversations}{TBD}
+\item{indices.only}{TBD}
 }
 \value{
 TBD
