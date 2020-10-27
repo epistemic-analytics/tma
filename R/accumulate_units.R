@@ -381,11 +381,11 @@ accumulate.units = function(
 #' @return TBD
 #' @export
 accumulate_units = function(
-  data,
-  context.object, 
-  time.column = NULL,
-  units,
+  x,
+  # context.object, 
+  # units,
   codes, 
+  time.column = NULL,
   decay.function = NULL, 
   mode.column = NULL, 
   mask = NULL,
@@ -393,18 +393,20 @@ accumulate_units = function(
   weight.by = sqrt,
   meta.data = NULL,
   return.dena.set = FALSE,
-  return.ena.set = TRUE,
-  conversations = NULL
+  return.ena.set = TRUE
 ) {
+  data <- x$model$raw.input;
+  f.contexts <- x$model$contexts; #context.object #$contexts
+  units <- x$`_function.params`$units; 
+  
   f.window.limit = time.limit
-  f.contexts = context.object #$contexts
   f.codes = codes
   f.time = time.column
   f.decay = decay.function
   f.mode = mode.column
   f.weighting.function = weight.by
   f.meta.data = meta.data
-  f.units = as.data.frame(names(context.object))
+  f.units = as.data.frame(names(f.contexts))
   f.raw <- data.table::copy(data);
   f.raw[, QEID := .I]
   
@@ -419,7 +421,6 @@ accumulate_units = function(
   # initialize adjacency vector matrices
   undirected.adjacency.vectors = data.frame(matrix(0, nrow = 1, ncol = ncol(rENA::namesToAdjacencyKey(f.codes))))[0,]
   directed.adjacency.vectors = data.frame(matrix(0, nrow = 1, ncol = length(f.codes)^2)[0,]);
-  # browser();
   
   #create undirected mask if there are NAs in lower triangle of given mask
   if( use.mask ) {
@@ -472,43 +473,23 @@ accumulate_units = function(
       this.unit.rows <- bk[this.unit, , on = names(this.unit), which = TRUE, nomatch = NULL];
       
       output.meta.data = rbind(output.meta.data, unique(this.context[this.unit.rows, colnames(output.meta.data), with = FALSE]))
-      # lapply(this.unit.rows, function(row) {
-      #   #browser()
-      #   rows <- bk[ID %chin% bk$parents[[row]], .SD , .SDcols = codes]
-      #   response.time <- this.time[row]
-      #   print(response.time)
-      #   rows
-      # })
-      # bk[,  , by = this.unit.rows]
-      # bk[, {
-      #   grounds <- lapply(.SD$ID, seq)
-      #   print(grounds)
-      # }, by = c(colnames(units))]
-      # browser(expr = { any(is.na(this.unit.rows)) })
       lapply(this.unit.rows, function(ur) {
         response.time <- this.time[ur];
         ground <- which(this.time <= response.time)
-        #print(response.time)
-        #print(ground)
         response.in.ground = which(ground == ur)
         response.codes = as.matrix(this.context[ur, c(codes), with = FALSE])
-        # print(response.codes)
-        # browser(expr = { any(is.na(response.codes)) })
         ground.codes = as.matrix(this.context[ground, c(codes), with = FALSE])
-        # print(ground.codes)
         ground.modes = NA
         if(use.modes) {
           ground.modes = these.modes[ground]
         }
-        # print(ground.modes)
+        
         my.decays = get.decay.modes(
           now = response.time,
           event.time = this.time[ground],
           modes = ground.modes,
           decay.function = f.decay
         )
-        #this.context[ur, .SD, .SDcols = codes]   
-        # print(my.decays)
         
         if(length(my.decays) == 1) {
           ground.codes = ground.codes * my.decays 
@@ -519,30 +500,24 @@ accumulate_units = function(
         else {            
           ground.codes = t(t(ground.codes) %*% diag(my.decays))
         }
-        # browser();
+        
         #find the ground code corresponsing the the response line
         #since the response line is in its own "window" for connections
         #and we can't assume that for its mode the decay at time_0 = 1
         this.response.in.ground = ground.codes[response.in.ground,]
         
         #collapse the ground codes into a vector colsums
-        # browser()
         this.ground = t(as.matrix(.colSums(ground.codes, m = length(ground), n = length(f.codes))))
-        # this.ground = matrix(colSums(ground.codes), ncol = length(f.codes))
         only_ground_connections = as.matrix(this.ground - this.response.in.ground)
         
-        # browser()
         #compute connections
-        # this.connection.matrix = crossprod(this.ground, response.codes)
         this.connection.matrix = crossprod(only_ground_connections, response.codes)
+        
         #compute the connections from the response to itself
-        # this.self.connection = crossprod(this.response.in.ground, response.codes)
         response.matrix <- crossprod(response.codes)
-        # this.self.connection = 0.5*(t(response.codes)%*%response.codes - as.vector(response.codes) * diag(length(response.codes)))
-        this.self.connection = 0.5*(response.matrix - diag(diag(response.matrix)))
+        this.self.connection = 0.5 * (response.matrix - diag(diag(response.matrix)))
 
         #remove self-references in response code from from the adjacency counts
-        # diag(this.connection.matrix) = diag(this.connection.matrix) - diag(this.self.connection)
         this.connection.matrix = this.connection.matrix + this.self.connection
         
         #weighting function lets us account for inflation of connections
@@ -578,8 +553,6 @@ accumulate_units = function(
         
         # Directed Adjacency ------
           # add directed adjacency matrix to the context
-          # print(unit.code.matrices[[names(f.contexts)[unit.index]]]$directed.adjacency + (this.code.matrix * mask));
-          # browser(expr = { unit.index == 3 })
           unit.code.matrices[[names(f.contexts)[unit.index]]]$directed.adjacency <<- unit.code.matrices[[names(f.contexts)[unit.index]]]$directed.adjacency + (this.code.matrix * mask)
         
           #construct directed adjacency vector
@@ -590,7 +563,6 @@ accumulate_units = function(
           upper_tri_indices <- upper.tri(this.code.matrix);
           ut_matrix <- this.code.matrix * mask;
           ut_matrix[upper_tri_indices] <- ut_matrix[upper_tri_indices] + t(ut_matrix)[upper_tri_indices]
-          # this.code.matrix[upper_tri_indices] <- this.code.matrix[upper_tri_indices] + t(this.code.matrix)[upper_tri_indices]
           
           #make matrix symmetrical
           ut_matrix[lower.tri(ut_matrix)] = NA
@@ -611,32 +583,44 @@ accumulate_units = function(
   #### Construct ENA Sets ----
   
   #add additional information for modeling
-  directed.adjacency.vectors <- rENA::as.ena.matrix(data.table::as.data.table(directed.adjacency.vectors), "ena.connections")
-  undirected.adjacency.vectors <- rENA::as.ena.matrix(data.table::as.data.table(undirected.adjacency.vectors), "ena.connections")
-  for(col in seq(ncol(directed.adjacency.vectors))) {
-    data.table::set(x = directed.adjacency.vectors, j = col, value = rENA::as.ena.co.occurrence(directed.adjacency.vectors[[col]]))
-  }
-  for(col in seq(ncol(undirected.adjacency.vectors))) {
-    data.table::set(x = undirected.adjacency.vectors, j = col, value = rENA::as.ena.co.occurrence(undirected.adjacency.vectors[[col]]))
-  }
+  directed.adjacency.vectors <- structure(
+    lapply(directed.adjacency.vectors, rENA::as.ena.co.occurrence), 
+    class = c("ena.connections", "data.table", "data.frame"),
+    names = apply(t(apply(matrix(c(rep(seq(f.codes), times = length(f.codes)), rep(seq(f.codes), each = length(f.codes))), ncol = 2), 2, function(x) LETTERS[x])), 2, paste, collapse = " & ")
+  );
   
-  output <- list()
-  # browser()
+  undirected.adjacency.vectors <- structure(
+    lapply(undirected.adjacency.vectors, rENA::as.ena.co.occurrence), 
+    class = c("ena.connections", "data.table", "data.frame"),
+    names = apply(rENA::namesToAdjacencyKey(f.codes), 2, paste, collapse = " & ")
+  );
+  
+  x$meta.data <- structure(
+    lapply(unique(output.meta.data), rENA::as.ena.metadata),
+    class = c("ena.matrix", "data.table", "data.frame")
+  )
+  
   # Standard ENA Set
-  output.meta.data <- unique(output.meta.data);
   if(return.ena.set) {
-    enadata = structure(list(), class = c("ENAdata", "list"))
-    enadata$adjacency.matrix = rENA::namesToAdjacencyKey(f.codes)
-    enadata$codes = f.codes
-    enadata$model = "TMA"
-    enadata$raw = data.table::as.data.table(f.raw)
-    enadata$units = f.units
-    enadata$meta.data = data.table::as.data.table(output.meta.data)
-    enadata$metadata = data.table::as.data.table(output.meta.data)
-    enadata$adjacency.vectors = data.table::as.data.table(undirected.adjacency.vectors)
-    enadata$accumulated.adjacency.vectors = data.table::as.data.table(undirected.adjacency.vectors)
+    x$rotation = structure(list(
+      codes = f.codes,
+      adjacency.key = structure(
+        rENA::namesToAdjacencyKey(f.codes),
+        dimnames = list( NULL, names(undirected.adjacency.vectors))
+      )
+    ), class = c("ena.rotation.set", "list"));
     
-    output = rENA:::ena.set(enadata) #output$for.ena)
+    x$connection.counts <- data.table::copy(undirected.adjacency.vectors);
+    x$connection.counts <- structure(cbind(x$meta.data, x$connection.counts), class = class(undirected.adjacency.vectors));
+    
+    # TODO: This needs to be updated to reflect the accumulation for each row in the data
+    # enadata$accumulated.adjacency.vectors = data.table::as.data.table(undirected.adjacency.vectors)
+    x$model$row.connection.counts <- structure(
+      data.table::copy(x$connection.counts),
+      class = c("row.connections", "ena.matrix", "data.table", "data.frame")
+    );
+    
+    output = x; #rENA:::ena.set(enadata);
   }
   
   # Directed ENA Set
@@ -662,9 +646,7 @@ accumulate_units = function(
     output = dena_data;
   }
   
-  output$model$contexts <- f.contexts;
-  
-  # browser()
+  output$model$contexts <- f.contexts
   
   return(output)
 }
