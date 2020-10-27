@@ -40,17 +40,17 @@ rs_set <- rENA::ena.make.set(rs_set)
 
 accum = rENA::ena.accumulate.data(
   units = my.units,
-  conversation = RS.data[, c("Condition", "GroupName"), with = FALSE],
+  conversation = RS.data[, ..conversations.by],
   codes = RS.data[, c(codes), with = FALSE],
   model = "EndPoint",
-  window.size.back = test_window_size
-  ,weight.by = "product"
+  window.size.back = test_window_size,
+  weight.by = "product"
 );
 accum_set <- rENA::ena.make.set(accum)
 rs_set$connection.counts[1,]
 accum$connection.counts[1,]
 
-test_that("verify results", {
+testthat::test_that("verify results", {
   testthat::expect_equal(as.matrix(rs_set$points), as.matrix(accum_set$points))
   testthat::expect_equal(as.matrix(rs_set$line.weights), as.matrix(accum_set$line.weights))
   testthat::expect_equal(as.matrix(rs_set$rotation$nodes), as.matrix(accum_set$rotation$nodes))

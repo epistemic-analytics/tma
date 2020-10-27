@@ -439,7 +439,6 @@ accumulate_units = function(
     undirected.adjacency = structure(rep(0, ncol(blank.code.matrix)))
   )), length(names(f.contexts))), names = names(f.contexts))
   for( unit.index in seq(f.contexts)) { #nrow(units)) ) {
-    browser( expr = { unit.index == 237 })
     this.unit <- unique(units)[unit.index, ];
     unit.contexts <- f.contexts[[unit.index]];
     unit.undirected.adjacency.vectors = data.frame(matrix(0, nrow = 1, ncol = ncol(rENA::namesToAdjacencyKey(f.codes))))[0,]

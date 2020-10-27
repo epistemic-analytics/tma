@@ -27,10 +27,6 @@ units <- function(x, by) {
   
   unique_unit_labels <- apply(unique_units, 1, function(y) paste(y, collapse = "::"));
 
-  # attr(x, "tma_units_by") <- by;
-  # attr(x, "tma_units") <- unique_units;
-  # attr(x, "tma_contexts") <- structure(rep(list(x[0,]), length(unique_unit_labels)), names = unique_unit_labels);
-
   model$model$contexts <- structure(rep(list(raw_input[0,]), length(unique_unit_labels)), names = unique_unit_labels);
   model$model$unit.labels <- unique_unit_labels;
   
@@ -46,8 +42,8 @@ units <- function(x, by) {
 #' @return
 #' @export
 hoo <- function(x, ..., rule = NULL) {
-  units <- x$`_function.params`$units #attr(x, which = "tma_units");
-  unit_contexts <- x$model$contexts; #attr(x, which = "tma_contexts");
+  units <- x$`_function.params`$units;
+  unit_contexts <- x$model$contexts;
 
   hoo_args <- substitute(...);
   if( is.null(hoo_args) ) {
@@ -65,10 +61,8 @@ hoo <- function(x, ..., rule = NULL) {
 
     unit_contexts[[unit_label]] <<- new_context[!duplicated(new_context$ID),];
     data.table::setorder(unit_contexts[[unit_label]], "ID");
-    # }
   });
   
-  # attr(x, "tma_contexts") <- unit_contexts;
   x$model$contexts <- unit_contexts; 
   
   x
