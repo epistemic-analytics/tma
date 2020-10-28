@@ -439,11 +439,15 @@ accumulate_units = function(
     undirected.adjacency = structure(rep(0, ncol(blank.code.matrix)))
   )), length(names(f.contexts))), names = names(f.contexts))
   for( unit.index in seq(f.contexts)) { #nrow(units)) ) {
-    this.unit <- unique(units)[unit.index, ];
+    # browser( expr = { unit.index == 9} )
+    # browser()
+    # this.unit <- unique(units)[unit.index, ];
+    this.unit <- unique(units[which(apply(units, 1, paste, collapse = "::") == names(f.contexts)[unit.index]),]);
     unit.contexts <- f.contexts[[unit.index]];
     unit.undirected.adjacency.vectors = data.frame(matrix(0, nrow = 1, ncol = ncol(rENA::namesToAdjacencyKey(f.codes))))[0,]
     unit.directed.adjacency.vectors = data.frame(matrix(0, nrow = 1, ncol = length(f.codes)^2)[0,]);
     
+    unit.meta.data <- output.meta.data[0,]
     for ( context.index in seq(unit.contexts) ) { #f.contexts[[this.hoo]]$context) {\
       this.code.matrix = blank.code.matrix;
       this.context.rows <- unit.contexts[[context.index]];
@@ -466,12 +470,10 @@ accumulate_units = function(
       }
       
       bk <- data.table::copy(this.context)
-      # browser()
-      #setkeyv(x = bk, colnames(this.unit))
       
       this.unit.rows <- bk[this.unit, , on = names(this.unit), which = TRUE, nomatch = NULL];
       
-      output.meta.data = rbind(output.meta.data, unique(this.context[this.unit.rows, colnames(output.meta.data), with = FALSE]))
+      unit.meta.data = rbind(unit.meta.data, unique(this.context[this.unit.rows, colnames(unit.meta.data), with = FALSE]))
       lapply(this.unit.rows, function(ur) {
         response.time <- this.time[ur];
         ground <- which(this.time <= response.time)
@@ -575,8 +577,9 @@ accumulate_units = function(
       })
     }
     
-    directed.adjacency.vectors = rbind( directed.adjacency.vectors, colSums(unit.directed.adjacency.vectors) );
-    undirected.adjacency.vectors = rbind( undirected.adjacency.vectors, colSums(unit.undirected.adjacency.vectors) );
+    directed.adjacency.vectors <- rbind( directed.adjacency.vectors, colSums(unit.directed.adjacency.vectors) );
+    undirected.adjacency.vectors <- rbind( undirected.adjacency.vectors, colSums(unit.undirected.adjacency.vectors) );
+    output.meta.data <- rbind(output.meta.data, unique(unit.meta.data));
   }
   
   #### Construct ENA Sets ----
@@ -595,7 +598,8 @@ accumulate_units = function(
   );
   
   x$meta.data <- structure(
-    lapply(unique(output.meta.data), rENA::as.ena.metadata),
+    # lapply(unique(output.meta.data), rENA::as.ena.metadata),
+    lapply((output.meta.data), rENA::as.ena.metadata),
     class = c("ena.matrix", "data.table", "data.frame")
   )
   

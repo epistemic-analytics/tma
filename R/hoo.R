@@ -101,9 +101,10 @@ contexts <- function(x, hoo_rules, units = NULL, split_rules = NULL) {
   
   raw_input <- x$model$raw.input;
   split_rules_expr <- rlang::enexpr(split_rules);
+  # browser()
   if( !is.null(split_rules_expr) ) {
     unit_contexts <- x_$model$contexts;
-    units <- x_$`_function.params`$units;
+    model_units <- x_$`_function.params`$units;
 
     if( !inherits(x = split_rules_expr, what = "call") ) {
       for(i in seq(split_rules_expr)) {
@@ -117,17 +118,22 @@ contexts <- function(x, hoo_rules, units = NULL, split_rules = NULL) {
             unit_contexts <- lapply(unit_contexts, split, by = as.character(split_rules[[i]]))
           }
           else {
-            units_to_split <- units[eval(split_rules[[i]][[2]]), , which = TRUE]
+            units_to_split <- model_units[eval(split_rules[[i]][[2]]), , which = TRUE]
             unit_contexts[units_to_split] <- lapply(unit_contexts[units_to_split], split, by = names(split_rules[i]))
           }
         }
       }
       else {
-        unit_contexts_res <- apply(units, 1, function(u) {
+        # browser()
+        unique_units <- unique(model_units);
+        unit_contexts_res <- apply(unique_units, 1, function(u) {
+          # browser( expr = { u == "RhondaST" })
           unit_label <- paste(u, collapse = "::");
-          unit_label <- do.call(what = split_rules, args = list(unit = u, unit_contexts[[unit_label]]));
+          res <- do.call(what = split_rules, args = list(unit = u, unit_contexts[[unit_label]]));
+          res
         });
-        names(unit_contexts_res) <- names(unit_contexts);
+        # browser()
+        names(unit_contexts_res) <- apply(unique_units, 1, paste, collapse = "::"); #names(unit_contexts);
         unit_contexts <- unit_contexts_res;
       }
     }
