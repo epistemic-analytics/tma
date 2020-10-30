@@ -7,14 +7,14 @@
 hoo(x, ..., rule = NULL)
 }
 \arguments{
-\item{x}{}
+\item{x}{TBD}
 
-\item{...}{}
+\item{...}{TBD}
 
-\item{rule}{}
+\item{rule}{TBD}
 }
 \value{
-
+TBD
 }
 \description{
 Title

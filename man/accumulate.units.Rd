@@ -15,8 +15,7 @@ accumulate.units(
   weight.by = sqrt,
   meta.data = NA,
   return.dena.set = FALSE,
-  return.ena.set = TRUE,
-  conversations = NULL
+  return.ena.set = TRUE
 )
 }
 \arguments{

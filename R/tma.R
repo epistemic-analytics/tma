@@ -1,3 +1,11 @@
+#' @title tma accumulates data
+#' @description TMA is used to accumulate data for ENA models. and. A more complete description of the methods will be provided with the next release.
+#' @name tma
+#' @import rENA
+#' @importFrom rlang exprs
+#' @import data.table
+NULL
+
 #' TMA wrapper function
 #'
 #' @param data TBD
@@ -66,9 +74,9 @@ tma <- function(
     }
   
     accumulation = accumulate_units(
-      data = as.data.table(data),
-      context.object = hoos.TMA,
-      units = as.data.table(units),
+      x = data.table::as.data.table(data),
+      # context.object = hoos.TMA,
+      # units = data.table::as.data.table(units),
       codes = codes,
       time.column = time.column,
       decay.function = decay.function,
@@ -81,4 +89,56 @@ tma <- function(
     )
   }
   return(accumulation);
+}
+
+#' Title
+#'
+#' @param data TBD
+#' @param units.by TBD
+#' @param hoo.rules TBD
+#' @param code.cols TBD
+#' @param split.rules TBD
+#' @param time.column TBD
+#' @param weight.by TBD
+#' @param return.ena.set TBD
+#' @param decay.functions TBD
+#' @param mode.column TBD
+#' @param time.limit TBD
+#' @param meta.data TBD
+#'
+#' @return TBD
+#' @export
+tma2 <- function(
+  data,
+  units.by,
+  hoo.rules,
+  code.cols,
+  split.rules = NULL,
+  time.column = NULL,
+  weight.by = sqrt,
+  return.ena.set = TRUE,
+  decay.functions = list(),
+  mode.column = 'Context',
+  time.limit = NA,
+  meta.data = NULL
+) {
+  model <- units(x = data, by = units.by);
+  model <- contexts(
+    x = model,
+    hoo_rules = hoo.rules,
+    split_rules = eval(split.rules)
+  );
+  model <- accumulate_units(
+    x = model, 
+    codes = code.cols,
+    time.column = time.column,
+    weight.by = weight.by,
+    return.ena.set = return.ena.set,
+    decay.function = decay.functions,
+    mode.column = mode.column,
+    time.limit = time.limit,
+    meta.data = meta.data
+  );
+  
+  return(model);
 }

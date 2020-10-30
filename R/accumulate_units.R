@@ -25,8 +25,7 @@ accumulate.units = function(
   weight.by = sqrt,
   meta.data = NA,
   return.dena.set = FALSE,
-  return.ena.set = TRUE,
-  conversations = NULL
+  return.ena.set = TRUE
 ) {
   f.window.limit = time.limit
   f.contexts = context.object$contexts
@@ -249,7 +248,7 @@ accumulate.units = function(
           
       } #end of if statement -- the above is all skipped if there are no
         #non-zero rows to loop over for the unit
-      browser()
+      # browser()
       #for this unit...
      
       # Apply mask ------
@@ -365,10 +364,9 @@ accumulate.units = function(
 
 #' Accumulate Units
 #'
-#' @param context.object TBD
-#' @param time.column if no time column is given, use model with equal time = 1 between lines in a hoo
-#' @param units TBD
+#' @param x TBD
 #' @param codes TBD
+#' @param time.column if no time column is given, use model with equal time = 1 between lines in a hoo
 #' @param decay.function TBD
 #' @param mode.column TBD
 #' @param mask TBD
@@ -382,12 +380,10 @@ accumulate.units = function(
 #' @export
 accumulate_units = function(
   x,
-  # context.object, 
-  # units,
-  codes, 
+  codes,
   time.column = NULL,
-  decay.function = NULL, 
-  mode.column = NULL, 
+  decay.function = NULL,
+  mode.column = NULL,
   mask = NULL,
   time.limit = NULL,
   weight.by = sqrt,
@@ -395,6 +391,8 @@ accumulate_units = function(
   return.dena.set = FALSE,
   return.ena.set = TRUE
 ) {
+  binarize_window = function(x) {return(ifelse(x>0,1,0))}
+
   data <- x$model$raw.input;
   f.contexts <- x$model$contexts; #context.object #$contexts
   units <- x$`_function.params`$units; 
@@ -408,7 +406,7 @@ accumulate_units = function(
   f.meta.data = meta.data
   f.units = as.data.frame(names(f.contexts))
   f.raw <- data.table::copy(data);
-  f.raw[, QEID := .I]
+  f.raw$QEID <- seq(nrow(f.raw));
   
   use.modes = ifelse(any(is.null(f.mode)), FALSE, TRUE)
   use.meta = ifelse(any(is.null(f.meta.data)), FALSE, TRUE)
@@ -448,6 +446,9 @@ accumulate_units = function(
     unit.directed.adjacency.vectors = data.frame(matrix(0, nrow = 1, ncol = length(f.codes)^2)[0,]);
     
     unit.meta.data <- output.meta.data[0,]
+    if(is.data.frame(unit.contexts)) {
+      unit.contexts <- list( unit.contexts );
+    }
     for ( context.index in seq(unit.contexts) ) { #f.contexts[[this.hoo]]$context) {\
       this.code.matrix = blank.code.matrix;
       this.context.rows <- unit.contexts[[context.index]];
@@ -457,11 +458,12 @@ accumulate_units = function(
       else {
         this.context <- data.table::copy(this.context.rows);
       }
-      this.context[, CID := .I];
+      # this.context[, CID := .I];
+      this.context$CID <- seq(nrow(this.context));
       
       this.unit.data <- merge(this.context, this.unit, by = names(this.unit), sort = FALSE);
       if(use.window) {
-        f.time <- "ID"
+        f.time <- "QEID"
       }
       
       this.time <- this.context[[c(f.time)]];

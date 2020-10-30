@@ -7,12 +7,12 @@
 units(x, by)
 }
 \arguments{
-\item{x}{}
+\item{x}{TBD}
 
-\item{by}{}
+\item{by}{TBD}
 }
 \value{
-
+TBD
 }
 \description{
 Set units on an object

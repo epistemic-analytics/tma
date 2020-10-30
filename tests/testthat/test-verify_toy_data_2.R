@@ -1,3 +1,4 @@
+testthat::context("Test toy data 2")
 data("test_data", package = "tma")
 d = tma::test_data
 
@@ -24,7 +25,7 @@ accumulation_window_3 = tma(
   meta.data = c('Condition')
 )
 
-test_that("verify directed", {
+testthat::test_that("verify directed", {
   User1_directed = t(matrix(c(
     0,0,1,
     0,0,1,
@@ -57,7 +58,7 @@ test_that("verify directed", {
 })
 
 
-test_that("verify undirected", {
+testthat::test_that("verify undirected", {
   User1_undirected = t(matrix(c(
     0,0,1,
     NA,0,1,
@@ -65,7 +66,7 @@ test_that("verify undirected", {
   ),3,3))
   colnames(User1_undirected) = rownames(User1_undirected) = c('A','B','C')
   testthat::expect_equal(
-    User1_undirected, accumulation_window_3$model$contexts$`FirstGame::User1`$undirected.adjacancy
+    User1_undirected, accumulation_window_3$model$contexts$`FirstGame::User1`$undirected.adjacency
   )
   
   User2_undirected = t(matrix(c(
@@ -75,7 +76,7 @@ test_that("verify undirected", {
   ),3,3))
   colnames(User2_undirected) = rownames(User2_undirected) = c('A','B','C')
   testthat::expect_equal(
-    User2_undirected, accumulation_window_3$model$contexts$`FirstGame::User2`$undirected.adjacancy
+    User2_undirected, accumulation_window_3$model$contexts$`FirstGame::User2`$undirected.adjacency
   )
   
   User3_undirected = t(matrix(c(
@@ -85,6 +86,6 @@ test_that("verify undirected", {
   ),3,3))
   colnames(User3_undirected) = rownames(User3_undirected) = c('A','B','C')
   testthat::expect_equal(
-    User3_undirected, accumulation_window_3$model$contexts$`FirstGame::User3`$undirected.adjacancy
+    User3_undirected, accumulation_window_3$model$contexts$`FirstGame::User3`$undirected.adjacency
   )
 })

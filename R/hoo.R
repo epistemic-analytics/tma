@@ -1,9 +1,9 @@
 #' Set units on an object
 #'
-#' @param x 
-#' @param by 
+#' @param x TBD
+#' @param by TBD 
 #'
-#' @return
+#' @return TBD
 #' @export
 units <- function(x, by) {
   model <- x;
@@ -18,6 +18,7 @@ units <- function(x, by) {
     class(model) <- c("ena.set", class(model))
   }
   
+  model$model$raw.input$QEID <- seq(nrow(model$model$raw.input));
   raw_input <- model$model$raw.input;
   model$`_function.params`$units.by <- by;
   
@@ -35,11 +36,11 @@ units <- function(x, by) {
 
 #' Title
 #'
-#' @param x 
-#' @param ... 
-#' @param rule 
+#' @param x TBD
+#' @param ... TBD
+#' @param rule TBD
 #'
-#' @return
+#' @return TBD
 #' @export
 hoo <- function(x, ..., rule = NULL) {
   units <- x$`_function.params`$units;
@@ -59,8 +60,8 @@ hoo <- function(x, ..., rule = NULL) {
     this_context <- unit_contexts[[unit_label]];
     new_context <- rbind(this_context, raw_input[eval(hoo_args), ]);
 
-    unit_contexts[[unit_label]] <<- new_context[!duplicated(new_context$ID),];
-    data.table::setorder(unit_contexts[[unit_label]], "ID");
+    unit_contexts[[unit_label]] <<- new_context[!duplicated(new_context$QEID),];
+    data.table::setorder(unit_contexts[[unit_label]], "QEID");
   });
   
   x$model$contexts <- unit_contexts; 
@@ -70,9 +71,9 @@ hoo <- function(x, ..., rule = NULL) {
 
 #' Title
 #'
-#' @param ... 
+#' @param ... TBD
 #'
-#' @return
+#' @return TBD
 #' @export
 rules <- function(...) {
   rlang::exprs(...)
@@ -80,28 +81,28 @@ rules <- function(...) {
 
 #' Title
 #'
-#' @param x 
-#' @param units 
-#' @param hoo_rules 
-#' @param split_rules 
+#' @param x TBD
+#' @param units TBD
+#' @param hoo_rules TBD
+#' @param split_rules TBD
 #'
-#' @return
+#' @return TBD
 #' @export
 contexts <- function(x, hoo_rules, units = NULL, split_rules = NULL) {
   if(!is.null( units )) {
     x_ <- units(x, units);
   }
-  else { 
+  else {
     x_ <- x;
   }
   
   for(r in hoo_rules) {
     x_ <- hoo(x_, rule = r);
   }
-  
+
   raw_input <- x$model$raw.input;
   split_rules_expr <- rlang::enexpr(split_rules);
-  # browser()
+  
   if( !is.null(split_rules_expr) ) {
     unit_contexts <- x_$model$contexts;
     model_units <- x_$`_function.params`$units;

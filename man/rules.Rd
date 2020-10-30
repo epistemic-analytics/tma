@@ -7,10 +7,10 @@
 rules(...)
 }
 \arguments{
-\item{...}{}
+\item{...}{TBD}
 }
 \value{
-
+TBD
 }
 \description{
 Title

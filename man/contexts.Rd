@@ -4,19 +4,19 @@
 \alias{contexts}
 \title{Title}
 \usage{
-contexts(x, units, hoo_rules, split_rules = NULL)
+contexts(x, hoo_rules, units = NULL, split_rules = NULL)
 }
 \arguments{
-\item{x}{}
+\item{x}{TBD}
 
-\item{units}{}
+\item{hoo_rules}{TBD}
 
-\item{hoo_rules}{}
+\item{units}{TBD}
 
-\item{split_rules}{}
+\item{split_rules}{TBD}
 }
 \value{
-
+TBD
 }
 \description{
 Title

@@ -1,4 +1,5 @@
-library(testthat)
+testthat::context("Test toy data")
+
 data("test_data", package = "tma")
 d = tma::test_data
 
@@ -12,7 +13,6 @@ modal.decay.function = list(
   "Private" = step_function(window_size = 2),
   "Public" = step_function(window_size = 2)
 )
-
 accumulation_window_2 = tma::tma(
   data = d,
   units = my.units,
@@ -27,20 +27,21 @@ accumulation_window_2 = tma::tma(
   # mask = NA,
   meta.data = c('Condition')
 )
-accumulation_window_beta = tma::tma(
+accumulation_window_beta = tma::tma2(
   data = d,
-  units = my.units,
-  codes = codes,
-  hoo.rules = my.hoo.TMA,
+  units.by = colnames(my.units),
+  code.cols = codes,
+  hoo.rules = rules(
+    (GroupName %in% UNIT$GroupName) & (Condition == UNIT$Condition) & (Context == "Public"),
+    (Condition == UNIT$Condition) & (UserName == UNIT$UserName) & (Context == "Private")
+  ),
   weight.by = function(x) {return(x)},
   return.ena.set = TRUE,
   time.column = NA,
   decay.function = modal.decay.function,
   mode.column = 'Context',
   time.limit = NA,
-  # mask = NA,
-  meta.data = c('Condition'),
-  beta = TRUE
+  meta.data = c('Condition')
 )
 
 dimnames = list(LETTERS[1:3], LETTERS[1:3])
@@ -90,38 +91,30 @@ test_that("directed adjacency", {
   )
 })
 
-test_that("directed adjacency new get_context", {
-  testthat::expect_equal(
-    User1_directed, accumulation_window_beta$model$contexts$`FirstGame::User1`$directed.adjacency
-  )
-  testthat::expect_equal(
-    User2_directed, accumulation_window_beta$model$contexts$`FirstGame::User2`$directed.adjacency
-  )
-  testthat::expect_equal(
-    User3_directed, accumulation_window_beta$model$contexts$`FirstGame::User3`$directed.adjacency
-  )
-})
-
 test_that("undirected adjacency", {
   testthat::expect_equal(
-    User1_undirected, accumulation_window_2$model$contexts$`FirstGame::User1`$undirected.adjacancy
+    User1_undirected, accumulation_window_2$model$contexts$`FirstGame::User1`$undirected.adjacency
   )
   testthat::expect_equal(
-    User2_undirected, accumulation_window_2$model$contexts$`FirstGame::User2`$undirected.adjacancy
+    User2_undirected, accumulation_window_2$model$contexts$`FirstGame::User2`$undirected.adjacency
   )
   testthat::expect_equal(
-    User3_undirected, accumulation_window_2$model$contexts$`FirstGame::User3`$undirected.adjacancy
+    User3_undirected, accumulation_window_2$model$contexts$`FirstGame::User3`$undirected.adjacency
   )
 })
 
-test_that("undirected adjacency new get context", {
+test_that("verify contexts the same with new method", {
+  cols <- colnames(accumulation_window_2$model$contexts$`FirstGame::User1`$context);
   testthat::expect_equal(
-    User1_undirected, accumulation_window_beta$model$contexts$`FirstGame::User1`$undirected.adjacancy
+    as.data.table(accumulation_window_2$model$contexts$`FirstGame::User1`$context),
+    accumulation_window_beta$model$contexts$`FirstGame::User1`[, ..cols]
   )
   testthat::expect_equal(
-    User2_undirected, accumulation_window_beta$model$contexts$`FirstGame::User2`$undirected.adjacancy
+    as.data.table(accumulation_window_2$model$contexts$`FirstGame::User2`$context),
+    accumulation_window_beta$model$contexts$`FirstGame::User2`[, ..cols]
   )
   testthat::expect_equal(
-    User3_undirected, accumulation_window_beta$model$contexts$`FirstGame::User3`$undirected.adjacancy
+    as.data.table(accumulation_window_2$model$contexts$`FirstGame::User3`$context),
+    accumulation_window_beta$model$contexts$`FirstGame::User3`[, ..cols]
   )
 })

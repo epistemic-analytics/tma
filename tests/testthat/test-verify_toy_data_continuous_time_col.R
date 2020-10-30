@@ -1,3 +1,5 @@
+testthat::context("Test continuous data with time")
+
 data("test_data", package = "tma")
 d = tma::test_data
 
@@ -22,6 +24,23 @@ accumulation_with_time_column = tma(
   mode.column = 'Context',
   time.limit = 7,
   # mask = NA,
+  meta.data = c('Condition')
+)
+
+accum_with_time_col2 <- tma2(
+  data = d,
+  units.by = colnames(my.units),
+  code.cols = codes,
+  hoo.rules = rules(
+    (Condition == UNIT$Condition) & (GroupName %in% UNIT$GroupName) & (Context == "Public"),
+    (Condition == UNIT$Condition) & (UserName == UNIT$UserName) & (Context == "Private")
+  ),
+  time.column = 'time',
+  weight.by = function(x) {return(x*1)},
+  return.ena.set = TRUE,
+  decay.functions = modal.decay.function,
+  mode.column = 'Context',
+  time.limit = 7,
   meta.data = c('Condition')
 )
 
@@ -65,7 +84,7 @@ test_that("undirected_continuous_decay_use_time_column_test", {
   ),3,3))
   colnames(User1_undirected) = rownames(User1_undirected) = c('A','B','C')
   testthat::expect_equal(
-    User1_undirected, accumulation_with_time_column$model$contexts$`FirstGame::User1`$undirected.adjacancy
+    User1_undirected, accumulation_with_time_column$model$contexts$`FirstGame::User1`$undirected.adjacency
   )
   
   User2_undirected = t(matrix(c(
@@ -75,7 +94,7 @@ test_that("undirected_continuous_decay_use_time_column_test", {
   ),3,3))
   colnames(User2_undirected) = rownames(User2_undirected) = c('A','B','C')
   testthat::expect_equal(
-    User2_undirected, accumulation_with_time_column$model$contexts$`FirstGame::User2`$undirected.adjacancy
+    User2_undirected, accumulation_with_time_column$model$contexts$`FirstGame::User2`$undirected.adjacency
   )
   
   User3_undirected = t(matrix(c(
@@ -85,6 +104,13 @@ test_that("undirected_continuous_decay_use_time_column_test", {
   ),3,3))
   colnames(User3_undirected) = rownames(User3_undirected) = c('A','B','C')
   testthat::expect_equal(
-    User3_undirected, accumulation_with_time_column$model$contexts$`FirstGame::User3`$undirected.adjacancy
+    User3_undirected, accumulation_with_time_column$model$contexts$`FirstGame::User3`$undirected.adjacency
+  )
+})
+
+test_that("verify new approach", {
+  testthat::expect_equal(
+    as.matrix(accum_with_time_col2$connection.counts),
+    as.matrix(accumulation_with_time_column$connection.counts)
   )
 })

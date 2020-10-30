@@ -5,11 +5,9 @@
 \title{Accumulate Units}
 \usage{
 accumulate_units(
-  data,
-  context.object,
-  time.column = NULL,
-  units,
+  x,
   codes,
+  time.column = NULL,
   decay.function = NULL,
   mode.column = NULL,
   mask = NULL,
@@ -17,18 +15,15 @@ accumulate_units(
   weight.by = sqrt,
   meta.data = NULL,
   return.dena.set = FALSE,
-  return.ena.set = TRUE,
-  conversations = NULL
+  return.ena.set = TRUE
 )
 }
 \arguments{
-\item{context.object}{TBD}
-
-\item{time.column}{if no time column is given, use model with equal time = 1 between lines in a hoo}
-
-\item{units}{TBD}
+\item{x}{TBD}
 
 \item{codes}{TBD}
+
+\item{time.column}{if no time column is given, use model with equal time = 1 between lines in a hoo}
 
 \item{decay.function}{TBD}
 

@@ -1,6 +1,6 @@
 testthat::context("Test Conversation Parameter with Step Function")
 data(test_rsdata)
-RS.data <- as.data.table(test_rsdata)
+RS.data <- data.table::as.data.table(test_rsdata)
 RS.data$Context <- "Public"
 RS.data$ID <- seq(nrow(RS.data))
 

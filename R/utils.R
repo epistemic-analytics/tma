@@ -205,7 +205,7 @@ get.quoted.columns = function(x, as.one.line = FALSE){
 }
 
 ena.set.directed <- function(data, units, conversations, codes, ...) {
-  as.ena.directed.set(
+  directedENA::as.ena.directed.set(
     list(
       meta.data = NULL,
       model = list(
