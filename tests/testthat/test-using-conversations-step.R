@@ -23,7 +23,7 @@ rs_set <- contexts(
     (GroupName %in% UNIT$GroupName) & (Condition == UNIT$Condition)
   )
   ,split_rules = GroupName
-)
+);
 rs_set <- accumulate_units(
   x = rs_set,
   codes = codes,
@@ -34,8 +34,8 @@ rs_set <- accumulate_units(
   mode.column = 'Context',
   time.limit = NA,
   meta.data = units.by
-)
-rs_set <- rENA::ena.make.set(rs_set)
+);
+rs_set <- rENA::ena.make.set(rs_set);
 
 
 accum = rENA::ena.accumulate.data(
@@ -46,9 +46,10 @@ accum = rENA::ena.accumulate.data(
   window.size.back = test_window_size,
   weight.by = "product"
 );
-accum_set <- rENA::ena.make.set(accum)
-rs_set$connection.counts[1,]
-accum$connection.counts[1,]
+accum_set <- rENA::ena.make.set(accum);
+rs_set$connection.counts[1,];
+accum$connection.counts[1,];
+
 
 testthat::test_that("verify results", {
   testthat::expect_equal(as.matrix(rs_set$points), as.matrix(accum_set$points))

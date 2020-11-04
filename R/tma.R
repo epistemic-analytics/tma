@@ -120,13 +120,13 @@ tma2 <- function(
   decay.functions = list(),
   mode.column = 'Context',
   time.limit = NA,
-  meta.data = NULL
+  meta.data = units.by
 ) {
   model <- units(x = data, by = units.by);
   model <- contexts(
     x = model,
     hoo_rules = hoo.rules,
-    split_rules = eval(split.rules)
+    split_rules = split.rules
   );
   model <- accumulate_units(
     x = model, 
