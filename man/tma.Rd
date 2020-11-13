@@ -6,49 +6,43 @@
 \usage{
 tma(
   data,
-  units,
-  codes,
+  units.by,
   hoo.rules,
-  weight.by = sqrt,
+  code.cols,
+  split.rules = NULL,
+  time.column = NULL,
+  weight.by = function(x) {     x },
   return.ena.set = TRUE,
-  time.column = NA,
-  decay.function = NA,
-  mode.column = NA,
+  decay.functions = list(),
+  mode.column = "Context",
   time.limit = NA,
-  mask = NA,
-  meta.data = NA,
-  beta = FALSE,
-  indices.only = FALSE
+  meta.data = units.by
 )
 }
 \arguments{
 \item{data}{TBD}
 
-\item{units}{TBD}
-
-\item{codes}{TBD}
+\item{units.by}{TBD}
 
 \item{hoo.rules}{TBD}
+
+\item{code.cols}{TBD}
+
+\item{split.rules}{TBD}
+
+\item{time.column}{TBD}
 
 \item{weight.by}{TBD}
 
 \item{return.ena.set}{TBD}
 
-\item{time.column}{TBD}
-
-\item{decay.function}{TBD}
+\item{decay.functions}{TBD}
 
 \item{mode.column}{TBD}
 
 \item{time.limit}{TBD}
 
-\item{mask}{TBD}
-
 \item{meta.data}{TBD}
-
-\item{beta}{TBD}
-
-\item{indices.only}{TBD}
 }
 \value{
 TBD

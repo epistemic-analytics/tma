@@ -236,7 +236,49 @@ get.decay.modes = function(
   #heart of the call here is the decay.function[[modes[i]]]
   #this pulls the function from the list decay.function[[  ]] with the same name modes[i]
   #as the mode of the current event i
-  for (i in 1:length(x)) decays[i] = call_eq(x = x[i], eq = decay.function[[modes[i]]])
+  # for (i in 1:length(x)) decays[i] = call_eq(x = x[i], eq = decay.function[[modes[i]]])
+  call_eq2 <- call_eq2 <- Vectorize(call_eq, c("x", "eq"))
+  decays <- call_eq2(x, eq = decay.function[modes[seq(x)]])
+
+  #zero out negative results
+  #necessary because polynomial decay functions can go negative outside of scope
+  #(They can also get wildly positive, but I couldn't think how to trap that)
+  decays[decays<0] = 0
+  
+  return(decays)
+}
+
+get.decay.modes2 = function(
+  now,
+  decay.function,
+  event.time = 0,
+  modes = NA
+) {
+  browser()
+  #if modes not specified, assume a single decay function and call get.decay
+  if (any(is.na(modes))) {
+    return(get.decay(now = now, decay.function = decay.function, event.time = event.time))
+  }
+
+  #again, trap POSIX if that is how times are given
+  times = as.numeric(event.time)
+
+  #compute lag
+  x = as.numeric(now) - times
+
+  #initialize output
+  decays = rep(0, length(x))
+
+  #abort if negative values are given
+  if(any(x<0)) stop("negative values not permitted in decay times [get.decay.modes]")
+
+  #get decays based on function given in list with name from modes
+  #heart of the call here is the decay.function[[modes[i]]]
+  #this pulls the function from the list decay.function[[  ]] with the same name modes[i]
+  #as the mode of the current event i
+  # for (i in 1:length(x)) decays[i] = call_eq(x = x[i], eq = decay.function[[modes[i]]])
+  call_eq2 <- Vectorize(call_eq, c("x", "eq"))
+  decays <- call_eq2(x, eq = decay.function[modes[seq(x)]])
 
   #zero out negative results
   #necessary because polynomial decay functions can go negative outside of scope

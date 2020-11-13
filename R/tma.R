@@ -25,7 +25,7 @@ NULL
 #'
 #' @return TBD
 #' @export
-tma <- function(
+tma_orig <- function(
   data,
   units,
   codes,
@@ -108,27 +108,28 @@ tma <- function(
 #'
 #' @return TBD
 #' @export
-tma2 <- function(
+tma <- function(
   data,
   units.by,
   hoo.rules,
   code.cols,
   split.rules = NULL,
   time.column = NULL,
-  weight.by = sqrt,
+  weight.by = function(x) { x },
   return.ena.set = TRUE,
   decay.functions = list(),
   mode.column = 'Context',
-  time.limit = NA,
+  time.limit = NULL,
   meta.data = units.by
 ) {
-  model <- units(x = data, by = units.by);
+  #model <- units(x = data, by = units.by);
   model <- contexts(
-    x = model,
+    x = data,
+    units = units.by,
     hoo_rules = hoo.rules,
     split_rules = split.rules
   );
-  model <- accumulate_units(
+  model <- accumulate_contexts(
     x = model, 
     codes = code.cols,
     time.column = time.column,

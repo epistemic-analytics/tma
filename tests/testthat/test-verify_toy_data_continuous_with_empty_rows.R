@@ -14,7 +14,7 @@ testthat::test_that("directed_continuous_decay_remove_empty_rows_test", {
   modal.decay.function = list()
   modal.decay.function$Private = continuous.decay.function.over.ten.minutes;
   modal.decay.function$Public = continuous.decay.function.over.ten.minutes;
-  accumulation_with_time_column = tma(
+  accumulation_with_time_column = tma_orig(
     data = d,
     units = my.units,
     codes = codes,
@@ -25,7 +25,99 @@ testthat::test_that("directed_continuous_decay_remove_empty_rows_test", {
     decay.function = modal.decay.function,
     mode.column = 'Context',
     time.limit = 7,
-    # mask = NA,
+    meta.data = c('Condition')
+  )
+  
+  ## Expected results ----
+    User1_directed = t(matrix(c(
+      0,0,1,
+      0,0,.5,
+      0,0,.5
+    ),3,3))
+    colnames(User1_directed) = rownames(User1_directed) = c('A','B','C')
+    testthat::expect_equal(
+      User1_directed, accumulation_with_time_column$model$contexts$`FirstGame::User1`$directed.adjacency
+    )
+    
+    User2_directed = t(matrix(c(
+      0,.5,0,
+      0,0,0.5,
+      0,1.5,0
+    ),3,3))
+    colnames(User2_directed) = rownames(User2_directed) = c('A','B','C')
+    testthat::expect_equal(
+      User2_directed, accumulation_with_time_column$model$contexts$`FirstGame::User2`$directed.adjacency
+    )
+    
+    User3_directed = t(matrix(c(
+      0,0,0.5,
+      2,0,1,
+      2,0,.5
+    ),3,3))
+    colnames(User3_directed) = rownames(User3_directed) = c('A','B','C')
+    testthat::expect_equal(
+      User3_directed, accumulation_with_time_column$model$contexts$`FirstGame::User3`$directed.adjacency
+    )
+    
+    User1_undirected = t(matrix(c(
+      0,0,1,
+      NA,0,.5,
+      NA,NA,.5
+    ),3,3))
+    colnames(User1_undirected) = rownames(User1_undirected) = c('A','B','C')
+    testthat::expect_equal(
+      User1_undirected, accumulation_with_time_column$model$contexts$`FirstGame::User1`$undirected.adjacency
+    )
+    
+    User2_undirected = t(matrix(c(
+      0,.5,0,
+      NA,0,2,
+      NA,NA,0
+    ),3,3))
+    colnames(User2_undirected) = rownames(User2_undirected) = c('A','B','C')
+    testthat::expect_equal(
+      User2_undirected, accumulation_with_time_column$model$contexts$`FirstGame::User2`$undirected.adjacency
+    )
+    # This is coming up false -- I'm wondering; how should we be handling cotemporal connections using a continuous decay? if they occur in the same line, shouldn't they be .5? or should they be 1?
+    
+    User3_undirected = t(matrix(c(
+      0,2,2.5,
+      NA,0,1,
+      NA,NA,.5
+    ),3,3))
+    colnames(User3_undirected) = rownames(User3_undirected) = c('A','B','C')
+    testthat::expect_equal(
+      User3_undirected, accumulation_with_time_column$model$contexts$`FirstGame::User3`$undirected.adjacency
+    )
+})
+
+testthat::test_that("new directed_continuous_decay_remove_empty_rows_test", {
+  
+  data("test_data_empties", package = "tma")
+  d = tma::test_data_empties
+  d$time = convert.time( as.character(d$Timestamp), units = "minutes");
+  
+  my.hoo = rules(
+    (Condition == UNIT$Condition & GroupName == UNIT$GroupName & Context == "Public"),
+    (Condition == UNIT$Condition & UserName == UNIT$UserName)
+  )
+  my.units.by = c("Condition", "UserName")
+  codes = c('A','B','C')
+  modal.decay.function = list(
+    Private = continuous.decay.function.over.ten.minutes,
+    Public  = continuous.decay.function.over.ten.minutes
+  )
+  accumulation_with_time_column_beta = tma(
+    data = d,
+    units.by = my.units.by,
+    code.cols = codes,
+    hoo.rules = my.hoo,
+    weight.by = function(x) {return(x*1)},
+    return.ena.set = TRUE,
+    time.column = 'time',
+    decay.function = modal.decay.function,
+    mode.column = 'Context',
+    time.limit = 7,
     meta.data = c('Condition')
   )
   
@@ -35,9 +127,6 @@ testthat::test_that("directed_continuous_decay_remove_empty_rows_test", {
     0,0,.5
   ),3,3))
   colnames(User1_directed) = rownames(User1_directed) = c('A','B','C')
-  testthat::expect_equal(
-    User1_directed, accumulation_with_time_column$model$contexts$`FirstGame::User1`$directed.adjacency
-  )
   
   User2_directed = t(matrix(c(
     0,.5,0,
@@ -45,9 +134,6 @@ testthat::test_that("directed_continuous_decay_remove_empty_rows_test", {
     0,1.5,0
   ),3,3))
   colnames(User2_directed) = rownames(User2_directed) = c('A','B','C')
-  testthat::expect_equal(
-    User2_directed, accumulation_with_time_column$model$contexts$`FirstGame::User2`$directed.adjacency
-  )
   
   User3_directed = t(matrix(c(
     0,0,0.5,
@@ -55,9 +141,15 @@ testthat::test_that("directed_continuous_decay_remove_empty_rows_test", {
     2,0,.5
   ),3,3))
   colnames(User3_directed) = rownames(User3_directed) = c('A','B','C')
-  testthat::expect_equal(
-    User3_directed, accumulation_with_time_column$model$contexts$`FirstGame::User3`$directed.adjacency
-  )
+  # testthat::expect_equal(
+  #   User1_directed, accumulation_with_time_column_beta$model$contexts$`FirstGame::User1`$directed.adjacency
+  # )
+  # testthat::expect_equal(
+  #   User2_directed, accumulation_with_time_column$model$contexts$`FirstGame::User2`$directed.adjacency
+  # )
+  # testthat::expect_equal(
+  #   User3_directed, accumulation_with_time_column$model$contexts$`FirstGame::User3`$directed.adjacency
+  # )
   
   User1_undirected = t(matrix(c(
     0,0,1,
@@ -65,9 +157,6 @@ testthat::test_that("directed_continuous_decay_remove_empty_rows_test", {
     NA,NA,.5
   ),3,3))
   colnames(User1_undirected) = rownames(User1_undirected) = c('A','B','C')
-  testthat::expect_equal(
-    User1_undirected, accumulation_with_time_column$model$contexts$`FirstGame::User1`$undirected.adjacency
-  )
   
   User2_undirected = t(matrix(c(
     0,.5,0,
@@ -75,10 +164,6 @@ testthat::test_that("directed_continuous_decay_remove_empty_rows_test", {
     NA,NA,0
   ),3,3))
   colnames(User2_undirected) = rownames(User2_undirected) = c('A','B','C')
-  testthat::expect_equal(
-    User2_undirected, accumulation_with_time_column$model$contexts$`FirstGame::User2`$undirected.adjacency
-  )
-  # This is coming up false -- I'm wondering; how should we be handling cotemporal connections using a continuous decay? if they occur in the same line, shouldn't they be .5? or should they be 1?
   
   User3_undirected = t(matrix(c(
     0,2,2.5,
@@ -87,6 +172,15 @@ testthat::test_that("directed_continuous_decay_remove_empty_rows_test", {
   ),3,3))
   colnames(User3_undirected) = rownames(User3_undirected) = c('A','B','C')
   testthat::expect_equal(
-    User3_undirected, accumulation_with_time_column$model$contexts$`FirstGame::User3`$undirected.adjacency
+    tma:::as.undirected.vector(User1_undirected),
+    as.vector(as.matrix(accumulation_with_time_column_beta$model$row.connection.counts[UserName == "User1", ]))
+  )
+  testthat::expect_equal(
+    tma:::as.undirected.vector(User2_undirected),
+    as.vector(as.matrix(accumulation_with_time_column_beta$model$row.connection.counts[UserName == "User2", ]))
+  )
+  testthat::expect_equal(
+    tma:::as.undirected.vector(User3_undirected),
+    as.vector(as.matrix(accumulation_with_time_column_beta$model$row.connection.counts[UserName == "User3", ]))
   )
 })

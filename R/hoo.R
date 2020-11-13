@@ -19,17 +19,21 @@ units <- function(x, by) {
   }
   
   model$model$raw.input$QEID <- seq(nrow(model$model$raw.input));
-  raw_input <- model$model$raw.input;
+  data.table::setkeyv(x = model$model$raw.input, cols = c("QEID"));
+  
+  # raw_input <- model$model$raw.input;
   model$`_function.params`$units.by <- by;
   
-  all_units <- raw_input[, ..by];
+  all_units <- model$model$raw.input[, ..by];
   unique_units <- unique(all_units);
   model$`_function.params`$units <- all_units;
   
   unique_unit_labels <- apply(unique_units, 1, function(y) paste(y, collapse = "::"));
 
-  model$model$contexts <- structure(rep(list(raw_input[0,]), length(unique_unit_labels)), names = unique_unit_labels);
+  # model$model$contexts <- structure(rep(list(model$model$raw.input[0,]), length(unique_unit_labels)), names = unique_unit_labels);
+  model$model$contexts <- structure(rep(list(c()), length(unique_unit_labels)), names = unique_unit_labels);
   model$model$unit.labels <- unique_unit_labels;
+  model$model$raw.input$QEUNIT <- apply(all_units, 1, function(y) paste(y, collapse = "::"));
   
   return(model);
 }
@@ -52,19 +56,34 @@ hoo <- function(x, ..., rule = NULL) {
   }
 
   raw_input <- x$model$raw.input;
-  apply(units, 1, function(this_unit) {
+  # apply(unique(units), 1, function(this_unit) {
+  #   unit_label <- paste(this_unit, collapse = "::");
+  #   # this_unit_rows <- raw_input[as.list(this_unit), , on = names(this_unit)];
+  #   # UNIT <- sapply(this_unit_rows, unique);
+  #   UNIT <- raw_input[as.list(this_unit), , on = names(this_unit)];
+  # 
+  #   this_context <- unit_contexts[[unit_label]];
+  #   new_context <- unique(c(this_context, raw_input[eval(hoo_args), , which = TRUE]));
+  # 
+  #   unit_contexts[[unit_label]] <<- new_context; #@Q[!duplicated(new_context$QEID),];
+  #   # data.table::setorder(unit_contexts[[unit_label]], "QEID");
+  # });
+  
+  unique_units <- unique(units);
+  updated_contexts <- lapply(seq(nrow(unique_units)), function(i) {
+    this_unit <- unique_units[i,];
     unit_label <- paste(this_unit, collapse = "::");
-    this_unit_rows <- raw_input[as.list(this_unit), , on = names(this_unit)];
-    UNIT <- lapply(this_unit_rows, unique);
+    # UNIT <- raw_input[as.list(this_unit), , on = names(this_unit)];
+    UNIT <- mapply(raw_input[as.list(this_unit), , on = names(this_unit)], FUN = unique);
 
     this_context <- unit_contexts[[unit_label]];
-    new_context <- rbind(this_context, raw_input[eval(hoo_args), ]);
-
-    unit_contexts[[unit_label]] <<- new_context[!duplicated(new_context$QEID),];
-    data.table::setorder(unit_contexts[[unit_label]], "QEID");
+    ret <- sort(unique(c(this_context, raw_input[eval(hoo_args), , which = TRUE])));
+    attr(x = ret, which = "tma.unit") <- this_unit;
+    ret
   });
+  names(updated_contexts) <- names(unit_contexts)
   
-  x$model$contexts <- unit_contexts; 
+  x$model$contexts <- updated_contexts; #unit_contexts; 
   
   x
 }
@@ -101,45 +120,60 @@ contexts <- function(x, hoo_rules, units = NULL, split_rules = NULL) {
   }
 
   raw_input <- x$model$raw.input;
-  split_rules_expr <- rlang::enexpr(split_rules);
   
-  if( !is.null(split_rules_expr) ) {
-    unit_contexts <- x_$model$contexts;
-    model_units <- x_$`_function.params`$units;
-
-    if( !inherits(x = split_rules_expr, what = "call") ) {
-      for(i in seq(split_rules_expr)) {
-        unit_contexts <- lapply(unit_contexts, split, by = as.character(split_rules_expr))
-      }
-    }
-    else {
-      if(!is.function(split_rules)) {
-        for( i in seq(split_rules) ) {
-          if ( is.name(split_rules[[i]]) ){
-            unit_contexts <- lapply(unit_contexts, split, by = as.character(split_rules[[i]]))
-          }
-          else {
-            units_to_split <- model_units[eval(split_rules[[i]][[2]]), , which = TRUE]
-            unit_contexts[units_to_split] <- lapply(unit_contexts[units_to_split], split, by = names(split_rules[i]))
-          }
+  if(!is.null(split_rules)) {
+    split_rules_expr <- rlang::enexpr(split_rules);
+    
+    if( !is.null(split_rules_expr) ) {
+      unit_contexts <- x_$model$contexts;
+      model_units <- x_$`_function.params`$units;
+  
+      if( !inherits(x = split_rules_expr, what = "call") ) {
+        for(i in seq(split_rules_expr)) {
+          unit_contexts <- lapply(unit_contexts, function(uc) {
+            # split(x = raw_input[uc,], by = as.character(split_rules_expr))
+            ret <- lapply(split(x = raw_input[uc,], by = as.character(split_rules_expr)), function(x) {
+               ret2 <- x[["QEID"]]
+               attr(x = ret2, which = "tma.unit") <- attr(x = uc, "tma.unit");
+               ret2
+            })
+          })
         }
       }
       else {
-        # browser()
-        unique_units <- unique(model_units);
-        unit_contexts_res <- apply(unique_units, 1, function(u) {
-          # browser( expr = { u == "RhondaST" })
-          unit_label <- paste(u, collapse = "::");
-          res <- do.call(what = split_rules, args = list(unit = u, unit_contexts[[unit_label]]));
-          res
-        });
-        # browser()
-        names(unit_contexts_res) <- apply(unique_units, 1, paste, collapse = "::"); #names(unit_contexts);
-        unit_contexts <- unit_contexts_res;
+        if(!is.function(split_rules)) {
+          for( i in seq(split_rules) ) {
+            if ( is.name(split_rules[[i]]) ){
+              # unit_contexts <- lapply(unit_contexts, split, by = as.character(split_rules[[i]]))
+              unit_contexts <- lapply(unit_contexts, function(uc) {
+                split(x = raw_input[uc,], by = as.character(split_rules[[i]]))
+              })
+            }
+            else {
+              stop("THIS NEEDS UPDATING (1)")
+              units_to_split <- model_units[eval(split_rules[[i]][[2]]), , which = TRUE]
+              unit_contexts[units_to_split] <- lapply(unit_contexts[units_to_split], split, by = names(split_rules[i]))
+            }
+          }
+        }
+        else {
+          # browser()
+          stop("THIS NEEDS UPDATING (2)")
+          unique_units <- unique(model_units);
+          unit_contexts_res <- apply(unique_units, 1, function(u) {
+            # browser( expr = { u == "RhondaST" })
+            unit_label <- paste(u, collapse = "::");
+            res <- do.call(what = split_rules, args = list(unit = u, unit_contexts[[unit_label]]));
+            res
+          });
+          # browser()
+          names(unit_contexts_res) <- apply(unique_units, 1, paste, collapse = "::"); #names(unit_contexts);
+          unit_contexts <- unit_contexts_res;
+        }
       }
+      
+      x_$model$contexts <- unit_contexts;
     }
-    
-    x_$model$contexts <- unit_contexts;
   }
   
   return(x_);

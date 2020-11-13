@@ -3,7 +3,7 @@ testthat::context("Test continuous data")
 test_that("verify models", {
   data("test_data", package = "tma")
   d = tma::test_data
-  
+  d$ID <- seq(nrow(d))
   my.hoo.TMA = list()
   my.hoo.TMA[[1]] = list(Condition = "<UNIT>", GroupName = "<UNIT>", Context = "Public")  
   my.hoo.TMA[[2]] = list(Condition = "<UNIT>", UserName = "<UNIT>")
@@ -12,7 +12,7 @@ test_that("verify models", {
   modal.decay.function = list()
   modal.decay.function$Private = continuous_decay_function_window_3_approx;
   modal.decay.function$Public = continuous_decay_function_window_3_approx;
-  accumulation_window_3 = tma(
+  accumulation_window_3 = tma_orig(
     data = d,
     units = my.units,
     codes = codes,
@@ -26,7 +26,12 @@ test_that("verify models", {
     # mask = NA,
     meta.data = c('Condition')
   )
-  accumulation_window_beta = tma2(
+  
+  # hoo_rules = rules(
+  #   (UserName %in% UNIT$UserName) & (Mode %in% "View"),
+  #   (GroupName %in% UNIT$GroupName) & (Mode %in% "Chat")
+  # )
+  accumulation_window_beta = tma(
     data = d,
     units.by = colnames(my.units),
     code.cols = codes,
@@ -97,16 +102,16 @@ test_that("verify models", {
   )
   
   cols <- colnames(accumulation_window_3$model$contexts$`FirstGame::User1`$context);
-  testthat::expect_equal(
-    data.table::as.data.table(accumulation_window_3$model$contexts$`FirstGame::User1`$context),
-    accumulation_window_beta$model$contexts$`FirstGame::User1`[, cols, with = FALSE]
+  testthat::expect_equivalent(
+    accumulation_window_3$model$contexts$`FirstGame::User1`$context$ID,
+    accumulation_window_beta$model$contexts$`FirstGame::User1`
   )
-  testthat::expect_equal(
-    data.table::as.data.table(accumulation_window_3$model$contexts$`FirstGame::User2`$context),
-    accumulation_window_beta$model$contexts$`FirstGame::User2`[, cols, with = FALSE]
+  testthat::expect_equivalent(
+    accumulation_window_3$model$contexts$`FirstGame::User2`$context$ID,
+    accumulation_window_beta$model$contexts$`FirstGame::User2`
   )
-  testthat::expect_equal(
-    data.table::as.data.table(accumulation_window_3$model$contexts$`FirstGame::User3`$context),
-    accumulation_window_beta$model$contexts$`FirstGame::User3`[, cols, with = FALSE]
+  testthat::expect_equivalent(
+    accumulation_window_3$model$contexts$`FirstGame::User3`$context$ID,
+    accumulation_window_beta$model$contexts$`FirstGame::User3`
   )
 })

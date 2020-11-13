@@ -148,7 +148,6 @@ accumulate.units = function(
           
           response.time = this.time[response]
           ground = which(this.time <= response.time)
-      
           #if there is a limit on how far back in time to look, take only rows
           #that are after that limit
           if(!any(is.na(f.window.limit))) {
@@ -184,7 +183,7 @@ accumulate.units = function(
           #if there is only a single line of data, multiple by scalar
           if(length(my.decays) == 1) {
             ground.codes = ground.codes * my.decays 
-          } 
+          }
           
           #otherwise this is a bit of fancy math that multiplies each row of the matrix 
           #by a different scalar from a vector of scalars 
@@ -242,6 +241,7 @@ accumulate.units = function(
           }
           else {
             this.code.matrix = this.code.matrix + f.weighting.function(this.connection.matrix)
+            # print(this.code.matrix);
           }
           #go back to next row for this unit
         } #done looping over rows for this unit
@@ -280,7 +280,8 @@ accumulate.units = function(
         
         #add undirected matrix to context 
         f.contexts[[this.hoo]]$undirected.adjacency = f.contexts[[this.hoo]]$undirected.adjacency + (ut_matrix * mask);
-      
+        # print( (ut_matrix * mask) );
+        
         #create undirected vector
         unit.undirected.adjacency.vectors = rbind( unit.undirected.adjacency.vectors, ut_matrix[upper_tri_indices] );
     }
@@ -358,7 +359,6 @@ accumulate.units = function(
   # browser()
   
   return(output)
-
 }
 
 
@@ -435,31 +435,36 @@ accumulate_units = function(
   unit.code.matrices <- structure(rep(list(list(
     directed.adjacency = blank.code.matrix,
     undirected.adjacency = structure(rep(0, ncol(blank.code.matrix)))
+    
   )), length(names(f.contexts))), names = names(f.contexts))
-  for( unit.index in seq(f.contexts)) { #nrow(units)) ) {
-    # browser( expr = { unit.index == 9} )
-    # browser()
-    # this.unit <- unique(units)[unit.index, ];
+  for( unit.index in seq(f.contexts)) {
     this.unit <- unique(units[which(apply(units, 1, paste, collapse = "::") == names(f.contexts)[unit.index]),]);
     unit.contexts <- f.contexts[[unit.index]];
-    unit.undirected.adjacency.vectors = data.frame(matrix(0, nrow = 1, ncol = ncol(rENA::namesToAdjacencyKey(f.codes))))[0,]
-    unit.directed.adjacency.vectors = data.frame(matrix(0, nrow = 1, ncol = length(f.codes)^2)[0,]);
     
-    unit.meta.data <- output.meta.data[0,]
+    # Empty matrices for tracking unit vectors
+    unit.undirected.adjacency.vectors <- data.frame(matrix(0, nrow = 1, ncol = ncol(rENA::namesToAdjacencyKey(f.codes))))[0,]
+    unit.directed.adjacency.vectors <- data.frame(matrix(0, nrow = 1, ncol = length(f.codes)^2)[0,]);
+    unit.meta.data <- output.meta.data[0,];
+    
     if(is.data.frame(unit.contexts)) {
       unit.contexts <- list( unit.contexts );
     }
-    for ( context.index in seq(unit.contexts) ) { #f.contexts[[this.hoo]]$context) {\
-      this.code.matrix = blank.code.matrix;
+    
+    # print(this.unit)
+    
+    # Each unit's contexts
+    for ( context.index in seq(unit.contexts) ) {
+      this.code.matrix <- blank.code.matrix;
       this.context.rows <- unit.contexts[[context.index]];
+      # print(this.context.rows)
+
       if( is.vector(this.context.rows) ) {
-        this.context <- data.table::copy(f.raw[this.context.rows, ]);
+        this.context <- data.table::copy( f.raw[this.context.rows, ] );
       }
       else {
-        this.context <- data.table::copy(this.context.rows);
+        this.context <- data.table::copy( this.context.rows );
       }
-      # this.context[, CID := .I];
-      this.context$CID <- seq(nrow(this.context));
+      this.context$CID <- seq( nrow(this.context) );
       
       this.unit.data <- merge(this.context, this.unit, by = names(this.unit), sort = FALSE);
       if(use.window) {
@@ -476,35 +481,40 @@ accumulate_units = function(
       this.unit.rows <- bk[this.unit, , on = names(this.unit), which = TRUE, nomatch = NULL];
       
       unit.meta.data = rbind(unit.meta.data, unique(this.context[this.unit.rows, colnames(unit.meta.data), with = FALSE]))
-      lapply(this.unit.rows, function(ur) {
+    
+      for( ur in this.unit.rows ) {
         response.time <- this.time[ur];
         ground <- which(this.time <= response.time)
-        response.in.ground = which(ground == ur)
-        response.codes = as.matrix(this.context[ur, c(codes), with = FALSE])
-        ground.codes = as.matrix(this.context[ground, c(codes), with = FALSE])
-        ground.modes = NA
+        response.in.ground <- which(ground == ur);
+        ground.codes = this.context[ground, c(codes), with = FALSE]
+        response.codes <- ground.codes[.N, ];
+        ground.codes <- as.matrix(ground.codes);
+        response.codes <- as.matrix(response.codes);
+        
+        ground.modes <- NA;
         if(use.modes) {
-          ground.modes = these.modes[ground]
+          ground.modes <- these.modes[ground];
         }
         
-        my.decays = get.decay.modes(
+        my.decays <- get.decay.modes(
           now = response.time,
           event.time = this.time[ground],
           modes = ground.modes,
           decay.function = f.decay
         )
+        # print(my.decays);
         
-        if(length(my.decays) == 1) {
-          ground.codes = ground.codes * my.decays 
+        if( length(my.decays) == 1 ) {
+          ground.codes <- ground.codes * my.decays;
         } 
         
-        #otherwise this is a bit of fancy math that multiplies each row of the matrix 
-        #by a different scalar from a vector of scalars 
+        # otherwise this is a bit of fancy math that multiplies each row of the matrix 
+        # by a different scalar from a vector of scalars 
         else {            
-          ground.codes = t(t(ground.codes) %*% diag(my.decays))
+          ground.codes <- t(t(ground.codes) %*% diag(my.decays));
         }
         
-        #find the ground code corresponsing the the response line
+        #find the ground code corresponding to the response line
         #since the response line is in its own "window" for connections
         #and we can't assume that for its mode the decay at time_0 = 1
         this.response.in.ground = ground.codes[response.in.ground,]
@@ -515,6 +525,13 @@ accumulate_units = function(
         
         #compute connections
         this.connection.matrix = crossprod(only_ground_connections, response.codes)
+        
+        # print("Response codes: ");
+        # print(response.codes);
+        # print("This ground: ");
+        # print(this.ground);
+        # print("Only ground conns: ");
+        # print(only_ground_connections);
         
         #compute the connections from the response to itself
         response.matrix <- crossprod(response.codes)
@@ -527,21 +544,23 @@ accumulate_units = function(
         #due to multiplication of weighted code values
         #we do the same thing in weighted ENA
         
+        # print("Connection matrix: ");
+        # print(this.connection.matrix)
         if (class(f.weighting.function) != 'function' & return.ena.set){
           if (f.weighting.function == 'binary') {
-
+            
             # AJF HACK
             # In order to get TMA accumulation to agree w/ rENA accumulation, we would need to perform the weighting
             # on each window _after_ the undirected connections have been added up. This means that directed co-occurences
             # would be treated as a single connection, the same as code connections across utterances.
             # First, we need to apply the mask to the _window_'s connections
             if(use.mask) this.connection.matrix = this.connection.matrix * mask
-
+            
             # upper triangle is some of directed connections
             upper_tri_indices <- upper.tri(this.connection.matrix)
             diag(this.connection.matrix) = 0
             this.connection.matrix[upper_tri_indices] <- this.connection.matrix[upper_tri_indices] + t(this.connection.matrix)[upper_tri_indices]
-
+            
             #make matrix symmetrical
             this.connection.matrix[lower.tri(this.connection.matrix)] = 0
             this.code.matrix = this.code.matrix + binarize_window(this.connection.matrix);
@@ -551,15 +570,19 @@ accumulate_units = function(
           }
         }
         else {
-          this.code.matrix = this.code.matrix + f.weighting.function(this.connection.matrix)
+          this.code.matrix <- this.code.matrix + f.weighting.function(this.connection.matrix)
         }
+        
+        # print("Code matrix: ");
+        # print(this.code.matrix)
         
         # Directed Adjacency ------
           # add directed adjacency matrix to the context
-          unit.code.matrices[[names(f.contexts)[unit.index]]]$directed.adjacency <<- unit.code.matrices[[names(f.contexts)[unit.index]]]$directed.adjacency + (this.code.matrix * mask)
+          unit.code.matrices[[names(f.contexts)[unit.index]]]$directed.adjacency <- unit.code.matrices[[names(f.contexts)[unit.index]]]$directed.adjacency + (this.code.matrix * mask)
         
           #construct directed adjacency vector
-          unit.directed.adjacency.vectors <<- rbind(unit.directed.adjacency.vectors, as.vector(this.code.matrix * mask))
+          #unit.directed.adjacency.vectors <<- rbind(unit.directed.adjacency.vectors, as.vector(this.code.matrix * mask))
+          unit.directed.adjacency.vectors[nrow(unit.directed.adjacency.vectors) + 1, ] <- as.vector(this.code.matrix * mask)
       
         # Undirected Adjacency ------
           #upper triangle is some of directed connections
@@ -571,13 +594,22 @@ accumulate_units = function(
           ut_matrix[lower.tri(ut_matrix)] = NA
           
           #add undirected matrix to context 
-          unit.code.matrices[[names(f.contexts)[unit.index]]]$undirected.adjacency <<- 
+          unit.code.matrices[[names(f.contexts)[unit.index]]]$undirected.adjacency <- 
             unit.code.matrices[[names(f.contexts)[unit.index]]]$undirected.adjacency + (ut_matrix * mask);
         
           #create undirected vector
-          unit.undirected.adjacency.vectors <<- rbind( unit.undirected.adjacency.vectors, ut_matrix[upper_tri_indices] );
-      })
+          # unit.undirected.adjacency.vectors <<- rbind( unit.undirected.adjacency.vectors, ut_matrix[upper_tri_indices] );
+          # print("Ut vector: ");
+          # print(ut_matrix[upper_tri_indices]);
+          unit.undirected.adjacency.vectors[nrow(unit.undirected.adjacency.vectors) + 1, ] <- ut_matrix[upper_tri_indices];
+      # })
+      }
     }
+
+    # print("Unit dir adj vectors: ");
+    # print(unit.directed.adjacency.vectors);
+    # print("Unit undir adj vectors: ");
+    # print(unit.undirected.adjacency.vectors);
     
     directed.adjacency.vectors <- rbind( directed.adjacency.vectors, colSums(unit.directed.adjacency.vectors) );
     undirected.adjacency.vectors <- rbind( undirected.adjacency.vectors, colSums(unit.undirected.adjacency.vectors) );
@@ -604,6 +636,377 @@ accumulate_units = function(
     lapply((output.meta.data), rENA::as.ena.metadata),
     class = c("ena.matrix", "data.table", "data.frame")
   )
+  
+  # Standard ENA Set
+  if(return.ena.set) {
+    x$rotation = structure(list(
+      codes = f.codes,
+      adjacency.key = structure(
+        rENA::namesToAdjacencyKey(f.codes),
+        dimnames = list( NULL, names(undirected.adjacency.vectors))
+      )
+    ), class = c("ena.rotation.set", "list"));
+    
+    x$connection.counts <- data.table::copy(undirected.adjacency.vectors);
+    x$connection.counts <- structure(cbind(x$meta.data, x$connection.counts), class = class(undirected.adjacency.vectors));
+    
+    # TODO: This needs to be updated to reflect the accumulation for each row in the data
+    # enadata$accumulated.adjacency.vectors = data.table::as.data.table(undirected.adjacency.vectors)
+    x$model$row.connection.counts <- structure(
+      data.table::copy(x$connection.counts),
+      class = c("row.connections", "ena.matrix", "data.table", "data.frame")
+    );
+    
+    output = x; #rENA:::ena.set(enadata);
+  }
+  
+  # Directed ENA Set
+  else {
+    ENA_UNIT <- rENA::merge_columns_c(f.units, cols = colnames(f.units));
+    
+    dena_data = ena.set.directed(f.raw, f.units, NA, f.codes)
+    dena_data$meta.data <- data.table::as.data.table(cbind(ENA_UNIT, output.meta.data))
+    for( i in colnames(dena_data$meta.data) ) {
+      data.table::set(dena_data$meta.data, j = i, value = rENA::as.ena.metadata(dena_data$meta.data[[i]]))
+    }
+    code_length <- length(dena_data$rotation$codes);
+    dena_data$rotation$adjacency.key <- data.table::data.table(matrix(c(
+      rep(1:code_length, each = code_length),
+      rep(1:code_length, code_length)),
+      byrow = TRUE, nrow = 2
+    ))
+    dena_data$connection.counts <- data.table::as.data.table(cbind(dena_data$meta.data, directed.adjacency.vectors))
+    dena_data$connection.counts = rENA::as.ena.matrix(x = dena_data$connection.counts, "ena.connections")
+    dena_data$model$row.connection.counts = data.table::as.data.table(cbind(dena_data$meta.data, directed.adjacency.vectors))
+    dena_data$model$row.connection.counts <- rENA::as.ena.matrix(dena_data$model$row.connection.counts, "row.connections")
+    
+    output = dena_data;
+  }
+  
+  output$model$contexts <- f.contexts
+  
+  return(output)
+}
+
+#' Title
+#'
+#' @param x 
+#' @param codes 
+#' @param time.column 
+#' @param decay.function 
+#' @param mode.column 
+#' @param mask 
+#' @param time.limit 
+#' @param weight.by 
+#' @param meta.data 
+#' @param return.dena.set 
+#' @param return.ena.set 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+accumulate_contexts <- function(
+  x,
+  codes,
+  time.column = NULL,
+  decay.function = NULL,
+  mode.column = NULL,
+  mask = NULL,
+  time.limit = NULL,
+  weight.by = sqrt,
+  meta.data = NULL,
+  return.dena.set = FALSE,
+  return.ena.set = TRUE
+) {
+  data <- x$model$raw.input;
+  f.contexts <- x$model$contexts; #context.object #$contexts
+  units <- x$`_function.params`$units; 
+  
+  f.window.limit = time.limit
+  f.codes = codes
+  f.time = time.column
+  f.decay = decay.function
+  f.mode = mode.column
+  f.weighting.function = weight.by
+  f.meta.data = meta.data
+  f.units = as.data.frame(names(f.contexts))
+  f.raw <- data.table::copy(data);
+  f.raw$QEID <- seq(nrow(f.raw));
+  
+  use.modes = ifelse(any(is.null(f.mode)), FALSE, TRUE)
+  use.meta = ifelse(any(is.null(f.meta.data)), FALSE, TRUE)
+  use.mask = ifelse(is.matrix(mask), TRUE, FALSE)
+  use.window = ifelse(is.null(f.time) || is.na(f.time), TRUE, FALSE)
+  
+  meta_cols <- x$`_function.params`$units.by;
+  if(use.meta) {
+    meta_cols <- unique(meta_cols, c(f.meta.data[!is.na(f.meta.data)]));
+  }
+  output.meta.data <- f.raw[0, c(meta_cols), with = FALSE];
+  
+  # initialize adjacency vector matrices
+  undirected.adjacency.vectors = data.frame(matrix(0, nrow = 1, ncol = ncol(rENA::namesToAdjacencyKey(f.codes))))[0,]
+  directed.adjacency.vectors = data.frame(matrix(0, nrow = 1, ncol = length(f.codes)^2)[0,]);
+  
+  #create undirected mask if there are NAs in lower triangle of given mask
+  if( use.mask ) {
+    if ( any(is.na(mask[lower.tri(mask)])) ) {
+      mask[lower.tri(mask)] = mask[upper.tri(mask)]
+    }
+  }
+  else {
+    mask <- matrix(1, nrow = length(f.codes), ncol = length(f.codes));
+  }
+  
+  n = length(codes)
+  blank.code.matrix = matrix(0, nrow = n, ncol = n, dimnames = list(codes, codes))
+  unit.code.matrices <- structure(rep(list(list(
+    directed.adjacency = blank.code.matrix,
+    undirected.adjacency = structure(rep(0, ncol(blank.code.matrix)))
+    
+  )), length(names(f.contexts))), names = names(f.contexts))
+  for( unit.index in seq(f.contexts)) {
+    unit.contexts <- f.contexts[[unit.index]];
+    if(is.numeric(unit.contexts)) {
+      unit.contexts <- list(unit.contexts)
+    }
+    # this.unit <- unique(units[which(apply(units, 1, paste, collapse = "::") == names(f.contexts)[unit.index]),]);
+    this.unit <- attr(unit.contexts[[1]], "tma.unit");
+    unit.label <- paste(this.unit, collapse = "::");
+    # cat(unit.label, "\n")
+    # Empty matrices for tracking unit vectors
+    unit.directed.adjacency.vectors <- data.frame(matrix(0, nrow = 1, ncol = length(f.codes)^2)[0,]);
+    unit.undirected.adjacency.vectors <- data.frame(matrix(0, nrow = 1, ncol = ncol(rENA::namesToAdjacencyKey(f.codes))))[0,]
+    # unit.meta.data <- output.meta.data[0,];
+
+    if(is.data.frame(unit.contexts)) {
+      unit.contexts <- list( unit.contexts );
+    }
+    
+    # cat("UNIT: "); print(this.unit);
+    # Each unit's contexts
+    all_codes <- as.matrix(x$model$raw.input[, ..codes])
+    # all_codes <- Matrix(data = as.matrix(rs_set2$model$raw.input[, ..codes]), sparse = TRUE)
+    res_context <- lapply(seq(unit.contexts), function(context.index) {
+      this.code.matrix <- blank.code.matrix;
+      this.context.rows <- unit.contexts[[context.index]];
+
+      this.context <- x$model$raw.input[this.context.rows, ];
+      this.context$CID <- seq(nrow(this.context))
+      this_context_codes <- all_codes[this.context.rows,, drop = FALSE]
+      # this_context_codes <- all_codes[this.context.rows,, drop = FALSE]
+      this.unit.rows_tf <- this.context$QEUNIT == unit.label
+      this.unit.rows <- which(this.unit.rows_tf);
+      if(use.window) {
+        f.time <- "CID"
+      }
+      
+      this.time <- this.context[[c(f.time)]];
+      if(use.modes) {
+        these.modes <- as.factor(this.context[[c(f.mode)]]);
+      }
+      
+      if(length(this.unit.rows) > 0) {
+        response.times <- this.time[this.unit.rows];
+        
+        ## logical()
+        grounds <- lapply(response.times, `>=`, this.time)
+        
+        grounds <- lapply(response.times, function(rt) {
+          grnds <- rt >= this.time;
+          
+          if(!is.null(time.limit)) {
+            grnds <- this.time >= (rt - time.limit) & grnds
+          }
+          grnd_index <- (cumsum(grnds) * grnds)[this.time == rt]
+          attr(grnds, "tma.response.time") <- rt;
+          attr(grnds, "tma.ground.index") <- grnd_index
+          grnds
+        });
+        
+        # if(!is.null(time.limit)) {
+        #   grounds2 <- lapply(seq(grounds), function(x) {
+        #     grounds[[x]] & this.time >= (response.times[[x]] - time.limit)
+        #   })
+        # }
+        # cat("Grounds 2: \n"); 
+        # print(grounds2)
+        
+        # matrix()
+        grounds.codes.raw <- lapply(grounds, function(xx) this_context_codes[xx,, drop = FALSE]);
+        # grounds.codes.raw2 <- lapply(grounds2, function(xx) this_context_codes[xx,, drop = FALSE]);
+        
+        # numeric()
+        # responses.codes <- list_vec_apply(grounds.codes.raw, this.unit.rows, function(x,y) { as.numeric(x[y,,drop = FALSE]) });
+        this.unit.resp.idx <- sapply(grounds, attr, which = "tma.ground.index");
+        responses.codes <- list_vec_apply(grounds.codes.raw, this.unit.resp.idx, function(x,y) { as.numeric(x[y,,drop = FALSE]) });
+        
+        grounds.modes <- rep(NA, length(responses.codes))
+        if(use.modes) {
+          grounds.modes <- lapply(grounds, function(x) these.modes[x]);
+        }
+        ground.times <- lapply(grounds, function(x) this.time[x])
+        
+        # all.decays <- get.decay.modes.vec(now = response.times, event.time = ground.times, modes = grounds.modes, decay.function = f.decay);
+        all.decays <- sapply(seq(ground.times), function(x) {
+            subbed <- response.times[x] - ground.times[[x]]
+            # sapply(seq(length(subbed)), function(y) {
+            #     f.decay[[grounds.modes[[x]][y]]](subbed[y])
+            # })
+            # list_vec_apply_s(subbed, grounds.modes[[x]], function(xx, yy) {
+            #   f.decay[[yy]](xx)
+            # })
+            # mapply(subbed, grounds.modes[[x]], FUN = function(xx, yy) {
+            # })
+            if(is.function(f.decay)) {
+              f.decay(subbed)
+            }
+            else if (use.modes) {
+              mapply(subbed, grounds.modes[[x]], FUN = function(xx, yy) {
+                f.decay[[yy]](xx)
+              })
+            }
+        })
+        # grounds.codes <- list_vec_apply(grounds.codes.raw, all.decays, fn = function(x, y) {
+        #   if(length(y) == 1) {
+        #     x * y
+        #   }
+        # 
+        #   #otherwise this is a bit of fancy math that multiplies each row of the matrix
+        #   #by a different scalar from a vector of scalars
+        #   else {
+        #     t(t(x) %*% diag(y))
+        #   }
+        # });
+        grounds.codes = mapply(grounds.codes.raw, all.decays, FUN = function(x, y) {
+          if(length(y) == 1) {
+            x * y
+          }
+          
+          #otherwise this is a bit of fancy math that multiplies each row of the matrix
+          #by a different scalar from a vector of scalars
+          else {
+            # t(t(x) %*% diag(y))
+            sweep(x, MARGIN = 1, y, FUN = `*`)
+          }
+        });
+        
+        ## Sparse Matrices
+        # grounds.codes <- list_vec_apply(grounds.codes.raw, all.decays, fn = function(x, y) {
+        #   if(length(y) == 1) {
+        #     x * y
+        #   } 
+        #   
+        #   #otherwise this is a bit of fancy math that multiplies each row of the matrix 
+        #   #by a different scalar from a vector of scalars 
+        #   else {
+        #     # Matrix::t(Matrix::crossprod(x, Matrix::Diagonal(x =
+        #     Matrix::t(Matrix::t(x) %*% Matrix::Diagonal(x = y))
+        #   }
+        # })
+        
+        ## numeric()
+        # this.responses.in.grounds <- list_vec_apply(grounds.codes, this.unit.rows, function(x, g) { x[g, ] }) #, drop = FALSE] }) ## Sparse Matrices
+        this.responses.in.grounds <- list_vec_apply(grounds.codes, this.unit.resp.idx, function(x, g) { x[g, ] }) #, drop = FALSE] }) ## Sparse Matrices
+        
+        ## numeric()
+        these.grounds <- lapply(grounds.codes, function(x) Matrix::colSums(x) );
+        
+        ## numeric()
+        all_only_ground_connections <- list_vec_apply(
+          x = these.grounds,
+          y = this.responses.in.grounds,
+          fn = function(x, y) x - y
+        );
+        
+        ## Sparse Matrices
+        # all_connection_matrices_raw <- list_vec_apply(all_only_ground_connections, responses.codes, Matrix::crossprod);
+        # matrix
+        all_connection_matrices_raw <- list_vec_apply(all_only_ground_connections, responses.codes, function(x, y) crossprod(t(x), y));
+        
+        # response_matrices <- lapply(responses.codes, function(x) as.matrix(Matrix::crossprod(x)));
+        response_matrices <- lapply(responses.codes, function(x) tcrossprod(x) );
+        these_self_connections <- lapply(response_matrices, function(x) {
+          0.5 * (x - diag(diag(x)))
+        })
+        # all_connection_matrices <- list_vec_apply(all_connection_matrices_raw, these_self_connections, `+`);
+        all_connection_matrices <- lapply(seq(all_connection_matrices_raw), function(i) {
+          all_connection_matrices_raw[[i]] + these_self_connections[[i]]
+        })
+        # if (f.weighting.function == 'binary') {
+        #   stop ("Need to re-implement here")
+        # }
+        # else {
+        #   unit_directed_adjacency <- Reduce(function(x, i) {
+        #     x + (i * mask)
+        #   }, x = all_connection_matrices, init = blank.code.matrix);
+        #   print(unit_directed_adjacency)
+        # }
+
+        # dir_adj <- t(sapply(all_connection_matrices, function(x) as.vector(x) * mask)); 
+        # dir_adj <- as.vector(this.connection.matrix * mask)
+        # dir_mats <- Reduce(x = all_connection_matrices, f = `+`, init = blank.code.matrix, accumulate = TRUE)[-1];
+        dir_mats <- as.matrix(Reduce(x = all_connection_matrices, f = `+`, init = blank.code.matrix, accumulate = FALSE));
+        # print(dir_mats)
+        # dir_adj <- do.call(rbind, lapply(dir_mats, as.vector))
+        
+        # unit.directed.adjacency.vectors <<- rbind(unit.directed.adjacency.vectors, dir_adj);
+        # undir_adj <- as.undirected.vector(as.undirected.matrix(this.connection.matrix * mask))
+        # undir_adj <- do.call(rbind, lapply(lapply(dir_mats, as.undirected.matrix), as.undirected.vector));
+        # undirected.mat <- as.undirected.matrix(Reduce(f = function(x, i ) { x + (i * mask) }, x = all_connection_matrices, init = blank.code.matrix))
+        # unit.undirected.adjacency.vectors <<- rbind(unit.undirected.adjacency.vectors, undir_adj)
+        
+        # data.frame(dir_adj)
+        
+        dim(dir_mats) <- c(1, prod(dim(dir_mats) ))
+        data.frame(dir_mats)
+      }
+    })
+    
+    # browser()
+    unit.directed.adjacency.vectors <- data.table::rbindlist(res_context)
+    directed.adjacency.vectors  <- rbind( directed.adjacency.vectors,  colSums(unit.directed.adjacency.vectors) );
+
+    unit.undirected.adjacency.vectors <- unit.directed.adjacency.vectors[, {
+      as.list(as.undirected.vector(as.undirected.matrix(matrix(unlist(.SD), ncol = sqrt(length(.SD))))))
+    }, by = seq(nrow(unit.directed.adjacency.vectors))][, -1]
+    
+    undirected.adjacency.vectors <- rbind( undirected.adjacency.vectors, colSums(unit.undirected.adjacency.vectors) );
+    
+    # output.meta.data <- rbind(output.meta.data, unique(unit.meta.data));
+    # if(use.meta) {
+    # }
+    output.meta.data <- rbind(output.meta.data, as.list(this.unit[, c(meta_cols), with = FALSE]), use.names = FALSE)
+    
+    # dir_len <- nrow(directed.adjacency.vectors);
+    # undir_len <- nrow(undirected.adjacency.vectors);
+    # directed.adjacency.vectors[(dir_len + 1):(dir_len + nrow(unit.directed.adjacency.vectors)),] <- unit.directed.adjacency.vectors;
+    # undirected.adjacency.vectors[(undir_len + 1):(dir_len + nrow(unit.undirected.adjacency.vectors)),] <- unit.undirected.adjacency.vectors;
+  }
+  
+  #### Construct ENA Sets ----
+  
+  #add additional information for modeling
+  directed.adjacency.vectors <- structure(
+    lapply(directed.adjacency.vectors, rENA::as.ena.co.occurrence), 
+    class = c("ena.connections", "data.table", "data.frame"),
+    names = apply(t(apply(matrix(c(rep(seq(f.codes), times = length(f.codes)), rep(seq(f.codes), each = length(f.codes))), ncol = 2), 2, function(x) LETTERS[x])), 2, paste, collapse = " & ")
+  );
+  
+  undirected.adjacency.vectors <- structure(
+    lapply(undirected.adjacency.vectors, rENA::as.ena.co.occurrence), 
+    class = c("ena.connections", "data.table", "data.frame"),
+    names = apply(rENA::namesToAdjacencyKey(f.codes), 2, paste, collapse = " & ")
+  );
+  
+  # if(use.meta) {
+    x$meta.data <- structure(
+      # lapply(unique(output.meta.data), rENA::as.ena.metadata),
+      lapply((output.meta.data), rENA::as.ena.metadata),
+      class = c("ena.matrix", "data.table", "data.frame")
+    )
+  # }
   
   # Standard ENA Set
   if(return.ena.set) {

@@ -27,22 +27,22 @@ accumulation_window_2 = tma::tma(
   # mask = NA,
   meta.data = c('Condition')
 )
-accumulation_window_beta = tma::tma2(
-  data = d,
-  units.by = colnames(my.units),
-  code.cols = codes,
-  hoo.rules = rules(
-    (GroupName %in% UNIT$GroupName) & (Condition == UNIT$Condition) & (Context == "Public"),
-    (Condition == UNIT$Condition) & (UserName == UNIT$UserName) & (Context == "Private")
-  ),
-  weight.by = function(x) {return(x)},
-  return.ena.set = TRUE,
-  time.column = NA,
-  decay.function = modal.decay.function,
-  mode.column = 'Context',
-  time.limit = NA,
-  meta.data = c('Condition')
-)
+# accumulation_window_beta = tma::tma2(
+#   data = d,
+#   units.by = colnames(my.units),
+#   code.cols = codes,
+#   hoo.rules = rules(
+#     (GroupName %in% UNIT$GroupName) & (Condition == UNIT$Condition) & (Context == "Public"),
+#     (Condition == UNIT$Condition) & (UserName == UNIT$UserName) & (Context == "Private")
+#   ),
+#   weight.by = function(x) {return(x)},
+#   return.ena.set = TRUE,
+#   time.column = NA,
+#   decay.function = modal.decay.function,
+#   mode.column = 'Context',
+#   time.limit = NA,
+#   meta.data = c('Condition')
+# )
 
 dimnames = list(LETTERS[1:3], LETTERS[1:3])
 User1_directed = matrix(c(

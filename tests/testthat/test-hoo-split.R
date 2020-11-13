@@ -4,7 +4,7 @@ testthat::context("Test Updated TMA wrapper")
 # test.modes <- read.csv("./inst/extdata/test_data_2.csv", stringsAsFactors = FALSE);
 data("test_data_2")
 test.modes <- test_data_2; #read.csv(test.mode.path, stringsAsFactors = FALSE);
-test.modes$ID = seq(nrow(test.modes))
+# test.modes$ID = seq(nrow(test.modes))
 
 my.hoo.TMA = list(
   list(Condition = "<UNIT>", GroupName = "<UNIT>", Mode = "Chat"),
@@ -27,22 +27,21 @@ testthat::test_that("context methods equal", {
     x = test.modes,
     units = colnames(my.units),
     hoo_rules = rules(
-      (UserName == UNIT$UserName) & (Mode == "View"),
-      (GroupName %in% UNIT$GroupName) & (Mode == "Chat")
+      (UserName %in% UNIT$UserName) & (Mode   %in% "View"),
+      (GroupName %in% UNIT$GroupName) & (Mode %in% "Chat")
     )
   );
   
   testthat::expect_true(all(
-    data.table(contexts_orig$contexts$`FirstGame::User1`$context) == 
-    contexts_beta$model$contexts$`FirstGame::User1`[, colnames(contexts_orig$contexts$`FirstGame::User1`$context), with = FALSE]
+    contexts_orig$contexts$`FirstGame::User1`$context$ID ==
+    contexts_beta$model$contexts$`FirstGame::User1`
   ))
 })
 
 testthat::test_that("tma methods equal", {
   weight_func <- function(x) {return((x))}
   
-  #microbenchmark::microbenchmark(
-  tma_conv_orig = tma(
+  tma_conv_orig = tma_orig(
     data = test.modes,
     units = unique(my.units),
     codes = codes,
@@ -56,14 +55,14 @@ testthat::test_that("tma methods equal", {
     # mask = NA,
     meta.data = c('Condition')
     ,beta = FALSE
-  ) #,
-  tma_conv_beta = tma2(
+  );
+  tma_conv_beta = tma(
     data = test.modes,
     units = colnames(my.units),
     code.cols = codes,
     hoo.rules = rules(
-      (UserName == UNIT$UserName) & (Mode == "View"),
-      (GroupName %in% UNIT$GroupName) & (Mode == "Chat")
+      (UserName %in% UNIT$UserName) & (Mode %in% "View"),
+      (GroupName %in% UNIT$GroupName) & (Mode %in% "Chat")
     ),
     weight.by = weight_func,
     return.ena.set = TRUE,
@@ -72,12 +71,12 @@ testthat::test_that("tma methods equal", {
     mode.column = 'Context',
     time.limit = NA,
     meta.data = c('Condition')
-  )
-  #,times = 10)
+  );
   
   cols <- tma_conv_orig$model$contexts$`FirstGame::User1`$context;
-  testthat::expect_equal(
-    as.data.table(tma_conv_orig$model$contexts$`FirstGame::User1`$context),
-    tma_conv_beta$model$contexts$`FirstGame::User1`[, c(cols)]
+  testthat::expect_equivalent(
+    tma_conv_orig$model$contexts$`FirstGame::User1`$context$ID,
+    tma_conv_beta$model$contexts$`FirstGame::User1`
   )
+  testthat::expect_equivalent(tma_conv_beta$connection.counts, tma_conv_beta$connection.counts)
 })
