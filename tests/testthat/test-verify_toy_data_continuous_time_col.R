@@ -12,7 +12,7 @@ codes = c('A','B','C')
 modal.decay.function = list()
 modal.decay.function$Private = continuous.decay.function.over.ten.minutes;
 modal.decay.function$Public = continuous.decay.function.over.ten.minutes;
-accumulation_with_time_column = tma(
+accumulation_with_time_column = tma_orig(
   data = d,
   units = my.units,
   codes = codes,
@@ -27,7 +27,7 @@ accumulation_with_time_column = tma(
   meta.data = c('Condition')
 )
 
-accum_with_time_col2 <- tma2(
+accum_with_time_col2 <- tma(
   data = d,
   units.by = colnames(my.units),
   code.cols = codes,
@@ -44,7 +44,7 @@ accum_with_time_col2 <- tma2(
   meta.data = c('Condition')
 )
 
-test_that("directed_continuous_decay_use_time_column_test", {
+testthat::test_that("directed_continuous_decay_use_time_column_test", {
   User1_directed = t(matrix(c(
     0,0,1,
     0,0,.5,
@@ -76,7 +76,7 @@ test_that("directed_continuous_decay_use_time_column_test", {
   )
 })
 
-test_that("undirected_continuous_decay_use_time_column_test", {
+testthat::test_that("undirected_continuous_decay_use_time_column_test", {
   User1_undirected = t(matrix(c(
     0,0,1,
     NA,0,.5,
@@ -108,7 +108,7 @@ test_that("undirected_continuous_decay_use_time_column_test", {
   )
 })
 
-test_that("verify new approach", {
+testthat::test_that("verify new approach", {
   testthat::expect_equal(
     as.matrix(accum_with_time_col2$connection.counts),
     as.matrix(accumulation_with_time_column$connection.counts)

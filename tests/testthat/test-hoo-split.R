@@ -4,7 +4,7 @@ testthat::context("Test Updated TMA wrapper")
 # test.modes <- read.csv("./inst/extdata/test_data_2.csv", stringsAsFactors = FALSE);
 data("test_data_2")
 test.modes <- test_data_2; #read.csv(test.mode.path, stringsAsFactors = FALSE);
-# test.modes$ID = seq(nrow(test.modes))
+test.modes$ID = seq(nrow(test.modes))
 
 my.hoo.TMA = list(
   list(Condition = "<UNIT>", GroupName = "<UNIT>", Mode = "Chat"),
@@ -19,6 +19,7 @@ reg_decays = list(
   Private = step_function(test_window_size),
   Public = step_function(test_window_size)
 )
+simple_decay <- function(x) { (x - 3 <= 0) * 1 }
 
 testthat::test_that("context methods equal", {
   contexts_orig <- get.contexts(units = unique(my.units), data = test.modes, hoo.rules = my.hoo.TMA[1:2])
@@ -67,7 +68,7 @@ testthat::test_that("tma methods equal", {
     weight.by = weight_func,
     return.ena.set = TRUE,
     time.column = NA,
-    decay.function = reg_decays,
+    decay.function = simple_decay,
     mode.column = 'Context',
     time.limit = NA,
     meta.data = c('Condition')

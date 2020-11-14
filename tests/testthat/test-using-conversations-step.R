@@ -30,7 +30,7 @@ rs_set <- contexts(
   hoo_rules = rules(
     (GroupName %in% UNIT$GroupName) & (Condition %in% UNIT$Condition)
   )
-  # ,split_rules = ActivityNumber
+  ,split_rules = GroupName
 );
 rs_set <- accumulate_contexts(
   x = rs_set,
@@ -53,7 +53,8 @@ accum = rENA::ena.accumulate.data(
 accum_set <- rENA::ena.make.set(accum);
 
 testthat::test_that("verify results", {
-  testthat::expect_equal(as.matrix(rs_set4$points), as.matrix(accum_set$points))
-  testthat::expect_equal(as.matrix(rs_set4$line.weights), as.matrix(accum_set$line.weights))
-  testthat::expect_equal(as.matrix(rs_set4$rotation$nodes), as.matrix(accum_set$rotation$nodes))
+  testthat::expect_equal(as.matrix(rs_set$points), as.matrix(accum_set$points))
+  testthat::expect_equal(as.matrix(rs_set$line.weights), as.matrix(accum_set$line.weights))
+  testthat::expect_equal(as.matrix(rs_set$rotation$nodes), as.matrix(accum_set$rotation$nodes))
 })
+2

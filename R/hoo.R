@@ -120,8 +120,19 @@ contexts <- function(x, hoo_rules, units = NULL, split_rules = NULL) {
   }
 
   raw_input <- x$model$raw.input;
-  
-  if(!is.null(split_rules)) {
+  split_expr_valid <- TRUE;
+  err_found <- 0;
+  tryCatch(expr = is.null(split_rules), error = function(e) { 
+      err_found <<- 1;
+      print(e$message)
+  }, warning = function(w) { 
+      err_found <<- 2;
+  }, finally = {
+      if(err_found == 0) {
+        split_expr_valid <- FALSE;
+      }
+  })
+  if(split_expr_valid) {
     split_rules_expr <- rlang::enexpr(split_rules);
     
     if( !is.null(split_rules_expr) ) {

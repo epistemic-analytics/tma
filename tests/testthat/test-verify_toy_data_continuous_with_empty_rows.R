@@ -92,7 +92,6 @@ testthat::test_that("directed_continuous_decay_remove_empty_rows_test", {
 })
 
 testthat::test_that("new directed_continuous_decay_remove_empty_rows_test", {
-  
   data("test_data_empties", package = "tma")
   d = tma::test_data_empties
   d$time = convert.time( as.character(d$Timestamp), units = "minutes");
@@ -107,6 +106,22 @@ testthat::test_that("new directed_continuous_decay_remove_empty_rows_test", {
     Private = continuous.decay.function.over.ten.minutes,
     Public  = continuous.decay.function.over.ten.minutes
   )
+  # tma_test3_dir <- accumulate_contexts(
+  #     x = tma_test,
+  #     codes = LETTERS[1:3],
+  #     weight.by = function(x) { x },
+  #     return.ena.set = FALSE,
+  #     decay.function = reg_decays,
+  #     mode.column = 'Context'
+  # );
+  # tma_orig_dir <- accumulate_contexts(
+  #   x = tma_test,
+  #   codes = LETTERS[1:3],
+  #   mode.column = 'Context',
+  #   weight.by = function(x) {return((x))},
+  #   decay.function = simple_decay,
+  #   return.ena.set = FALSE
+  # )
   accumulation_with_time_column_beta = tma(
     data = d,
     units.by = my.units.by,
@@ -114,6 +129,19 @@ testthat::test_that("new directed_continuous_decay_remove_empty_rows_test", {
     hoo.rules = my.hoo,
     weight.by = function(x) {return(x*1)},
     return.ena.set = TRUE,
+    time.column = 'time',
+    decay.function = modal.decay.function,
+    mode.column = 'Context',
+    time.limit = 7,
+    meta.data = c('Condition')
+  )
+  accumulation_with_time_column_beta_dir = tma(
+    data = d,
+    units.by = my.units.by,
+    code.cols = codes,
+    hoo.rules = my.hoo,
+    weight.by = function(x) {return(x*1)},
+    return.ena.set = FALSE,
     time.column = 'time',
     decay.function = modal.decay.function,
     mode.column = 'Context',
@@ -141,9 +169,10 @@ testthat::test_that("new directed_continuous_decay_remove_empty_rows_test", {
     2,0,.5
   ),3,3))
   colnames(User3_directed) = rownames(User3_directed) = c('A','B','C')
-  # testthat::expect_equal(
-  #   User1_directed, accumulation_with_time_column_beta$model$contexts$`FirstGame::User1`$directed.adjacency
-  # )
+  testthat::expect_equal(
+    as.vector(User1_directed),
+    as.vector(as.matrix(accumulation_with_time_column_beta_dir$connection.counts$UserName$User1))
+  )
   # testthat::expect_equal(
   #   User2_directed, accumulation_with_time_column$model$contexts$`FirstGame::User2`$directed.adjacency
   # )
