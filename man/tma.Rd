@@ -2,7 +2,7 @@
 % Please edit documentation in R/tma.R, R/transmodal_analysis.R
 \name{tma}
 \alias{tma}
-\title{tma accumulates data}
+\title{Title}
 \usage{
 tma(
   data,
@@ -15,7 +15,7 @@ tma(
   return.ena.set = TRUE,
   decay.functions = list(),
   mode.column = "Context",
-  time.limit = NA,
+  time.limit = NULL,
   meta.data = units.by
 )
 }
@@ -48,7 +48,5 @@ tma(
 TBD
 }
 \description{
-TMA is used to accumulate data for ENA models. and. A more complete description of the methods will be provided with the next release.
-
 Transmodal Analysis for ENA. rENA is used to create and visualize network models of discourse and other phenomena from coded data using Epistemic Network Analysis (ENA).
 }

@@ -204,8 +204,17 @@ get.quoted.columns = function(x, as.one.line = FALSE){
   return(NULL)
 }
 
+as.ena.directed.set <- function(x) {
+  to <- c("ena.directed.set")
+  if(!inherits(x = x, what = "ena.set")) {
+    to <- c(to, "ena.set")
+  }
+  class(x) <- c(to, class(x));
+  return(x);
+}
+
 ena.set.directed <- function(data, units, conversations, codes, ...) {
-  directedENA::as.ena.directed.set(
+  as.ena.directed.set(
     list(
       meta.data = NULL,
       model = list(
@@ -224,4 +233,52 @@ ena.set.directed <- function(data, units, conversations, codes, ...) {
       )
     )
   )
+}
+
+#' Adjacency Key
+#'
+#' @param codes character vector
+#' @param upper logical, default, TRUE, returns the key for the upper triangle, FALSE - not implemented yet
+#'
+#' @return matrix
+#' @export
+adjacency_key <- function(codes, upper = TRUE) {
+  n <- length(codes);
+  if(upper == TRUE) {
+    matrix(c(
+      codes[sequence((1:n-1))],
+      codes[rep((2:n), times = (1:(n-1)))]
+    ), byrow = TRUE, nrow = 2)
+  }
+  else {
+    stop("Not implemented")
+  }
+}
+
+#' paste columns to together
+#'
+#' @param x coerced to data.frame prior to subseting cols
+#' @param cols character vector - default: colnames(x)
+#' @param sep character default "."
+#'
+#' @return character vector
+#' @export
+merge_columns <- function(x, cols = colnames(x), sep = ".") {
+  do.call(paste, c(as.data.frame(x)[, cols], sep = sep))
+}
+
+#' Reclass vector
+#'
+#' @param x vector
+#' @param cl character - new class
+#' @param stringsAsFactors logical, default: default.stringsAsFactors()
+#'
+#' @return vector with class: c(cl, class(x))
+#' @export
+reclass <- function(x, cl, stringsAsFactors = default.stringsAsFactors()) {
+  if(!stringsAsFactors && is.factor(x)) {
+    x <- as.character(x)
+  }
+  class(x) = c(cl, class(x))
+  x
 }

@@ -1,11 +1,3 @@
-#' @title tma accumulates data
-#' @description TMA is used to accumulate data for ENA models. and. A more complete description of the methods will be provided with the next release.
-#' @name tma
-#' @import rENA
-#' @importFrom rlang exprs
-#' @import data.table
-NULL
-
 #' TMA wrapper function
 #'
 #' @param data TBD
@@ -47,47 +39,21 @@ tma_orig <- function(
   #               for which context is being constructed
   #   ...any regex
   #generate contexts for this data: TMA
-  if(beta == FALSE) {
-    hoos.TMA = get.contexts(units = units, data = data, hoo.rules = hoo.rules);
+  hoos.TMA = get.contexts(units = units, data = data, hoo.rules = hoo.rules);
+
+  accumulation = accumulate.units(
+    context.object = hoos.TMA,
+    codes = codes,
+    time.column = time.column,
+    decay.function = decay.function,
+    mode.column = mode.column,
+    weight.by = weight.by,
+    time.limit = time.limit,
+    meta.data = meta.data,
+    mask = mask,
+    return.ena.set = return.ena.set
+  )
   
-    accumulation = accumulate.units(
-      context.object = hoos.TMA,
-      codes = codes,
-      time.column = time.column,
-      decay.function = decay.function,
-      mode.column = mode.column,
-      weight.by = weight.by,
-      time.limit = time.limit,
-      meta.data = meta.data,
-      mask = mask,
-      return.ena.set = return.ena.set
-    )
-  }
-  else {
-    # browser()
-    # hoos.TMA = get.contexts_dt(units = units, data = data, hoo.rules = hoo.rules);
-    if ( is.data.frame(units) ) {
-      hoos.TMA = get_contexts(x = data, units_by = colnames(units), rules = hoo.rules, indices.only = indices.only);
-    }
-    else {
-      hoos.TMA = get_contexts(x = data, units_by = units, rules = hoo.rules, indices.only = indices.only);
-    }
-  
-    accumulation = accumulate_units(
-      x = data.table::as.data.table(data),
-      # context.object = hoos.TMA,
-      # units = data.table::as.data.table(units),
-      codes = codes,
-      time.column = time.column,
-      decay.function = decay.function,
-      mode.column = mode.column,
-      weight.by = weight.by,
-      time.limit = time.limit,
-      meta.data = meta.data,
-      mask = mask,
-      return.ena.set = return.ena.set
-    )
-  }
   return(accumulation);
 }
 

@@ -1,7 +1,6 @@
 testthat::context("Test continuous data with empty rows")
 
 testthat::test_that("directed_continuous_decay_remove_empty_rows_test", {
-  
   data("test_data_empties", package = "tma")
   d = tma::test_data_empties
   d$time = convert.time( as.character(d$Timestamp), units = "minutes");

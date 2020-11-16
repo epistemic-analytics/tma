@@ -1,6 +1,7 @@
 testthat::context("Test continuous data")
 
-test_that("verify models", {
+simple_window <- function(x) { (x <= 3) * 1 }
+testthat::test_that("verify models", {
   data("test_data", package = "tma")
   d = tma::test_data
   d$ID <- seq(nrow(d))
@@ -42,7 +43,7 @@ test_that("verify models", {
     weight.by = function(x) {return(x)},
     return.ena.set = TRUE,
     time.column = NA,
-    decay.function = modal.decay.function,
+    decay.function = simple_window,
     mode.column = 'Context',
     time.limit = NA,
     meta.data = c('Condition')

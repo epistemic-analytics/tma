@@ -2,7 +2,7 @@
 % Please edit documentation in R/accumulate_units.R
 \name{accumulate_contexts}
 \alias{accumulate_contexts}
-\title{Title}
+\title{accumulate_contexts}
 \usage{
 accumulate_contexts(
   x,
@@ -19,31 +19,31 @@ accumulate_contexts(
 )
 }
 \arguments{
-\item{x}{}
+\item{x}{TBD}
 
-\item{codes}{}
+\item{codes}{TBD}
 
-\item{time.column}{}
+\item{time.column}{TBD}
 
-\item{decay.function}{}
+\item{decay.function}{TBD}
 
-\item{mode.column}{}
+\item{mode.column}{TBD}
 
-\item{mask}{}
+\item{mask}{TBD}
 
-\item{time.limit}{}
+\item{time.limit}{TBD}
 
-\item{weight.by}{}
+\item{weight.by}{TBD}
 
-\item{meta.data}{}
+\item{meta.data}{TBD}
 
-\item{return.dena.set}{}
+\item{return.dena.set}{TBD}
 
-\item{return.ena.set}{}
+\item{return.ena.set}{TBD}
 }
 \value{
-
+TBD
 }
 \description{
-Title
+accumulate_contexts
 }

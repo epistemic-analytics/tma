@@ -1,6 +1,7 @@
 testthat::context("Test toy data 2")
 data("test_data", package = "tma")
 d = tma::test_data
+d$ID = seq(nrow(d))
 
 my.hoo.TMA = list()
 my.hoo.TMA[[1]] = list(Condition = "<UNIT>", GroupName = "<UNIT>", Context = "Public")  
@@ -10,7 +11,7 @@ codes = c('A','B','C')
 modal.decay.function = list()
 modal.decay.function$Private = step_function(window_size = 3);
 modal.decay.function$Public = step_function(window_size = 3);
-accumulation_window_3 = tma(
+accumulation_window_3 = tma_orig(
   data = d,
   units = my.units,
   codes = codes,

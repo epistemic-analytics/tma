@@ -2,7 +2,6 @@ testthat::context("Test continuous data with time")
 
 data("test_data", package = "tma")
 d = tma::test_data
-
 d$time = convert.time( as.character(d$Timestamp), units = "minutes");
 my.hoo.TMA = list()
 my.hoo.TMA[[1]] = list(Condition = "<UNIT>", GroupName = "<UNIT>", Context = "Public")  
@@ -109,7 +108,7 @@ testthat::test_that("undirected_continuous_decay_use_time_column_test", {
 })
 
 testthat::test_that("verify new approach", {
-  testthat::expect_equal(
+  testthat::expect_equivalent(
     as.matrix(accum_with_time_col2$connection.counts),
     as.matrix(accumulation_with_time_column$connection.counts)
   )

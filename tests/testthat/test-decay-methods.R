@@ -1,5 +1,6 @@
-test.modes <- data.table::fread("./inst/extdata/test_data_2.csv", stringsAsFactors = FALSE);
-
+# test.modes <- data.table::fread("./inst/extdata/test_data_2.csv", stringsAsFactors = FALSE);
+data("test_data_2")
+test.modes <- test_data_2;
 tma_test <- units( x = test.modes, by = c("Condition", "UserName") );
 tma_test <- contexts(
   x = tma_test, 

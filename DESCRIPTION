@@ -13,12 +13,8 @@ Depends:
 License: GPL-3 | file LICENSE
 Imports:
     stats,
-    rENA,
     rlang
 Suggests:
     testthat (>= 2.1.0),
-    knitr,
-    directedENA,
-    rmarkdown
+    rENA
 RoxygenNote: 7.1.1
-VignetteBuilder: knitr
