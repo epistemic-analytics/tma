@@ -6,10 +6,10 @@ stages:
  - release
 
 variables:
-  VERSION: "0.0.1.0"
+  VERSION: "0.1.0.9000"
   PKG: "tma"
   PKGL: "tma"
-  REG_URL: "${CI_REGISTRY}/epistemic-analytics/qe-packages/tma"
+  REG_URL: "${CI_REGISTRY}/epistemic-analytics/qe-packages/${PKGL}"
 
 # Templates
 .build_definition: &build_template
@@ -23,25 +23,14 @@ variables:
     - export TZ=Europe/London
     - export _R_CHECK_LENGTH_1_CONDITION_="package:_R_CHECK_PACKAGE_NAME_,verbose"
     - mkdir -p archive/
-    #- rm -f ./R/RcppExports.R
-    #- mkdir -p ~/.R/
-    #- rm -f ~/.R/Makevars
-    #- cp demo/backup/Makevars ~/.R/
     - cat DESCRIPTION
-    #- Rscript -e 'Rcpp::compileAttributes()'
     - Rscript -e 'update(devtools::dev_package_deps("."))'
-    #- Rscript -e 'install.packages("knitr")'
-    #- Rscript -e 'install.packages("rmarkdown")'
-    #- Rscript -e 'install.packages("testthat")'
-    #- Rscript -e 'devtools::build_vignettes()'
     - cd ..; R CMD build --resave-data --no-manual --log $PKG
 
 test:
   stage: test
   image: $REG_URL/release-test:latest
   script:
-    #- rm -rf src/RcppExports*
-    #- rm -rf R/RcppExports*
     - "sed -i -e \"s/Version: \\(.*\\)/Version: ${VERSION}/\" DESCRIPTION"
     - Rscript -e 'update(devtools::dev_package_deps("."))'
     - |
@@ -120,6 +109,8 @@ check:r-hub-macos-highsierra-release-cran:
   variables:
     RHUB_PLATFORM: "macos-highsierra-release-cran"
   <<: *rhub_definition
+  
+# Unused ---
 #check:r-hub-ubuntu-gcc-release:
 #  variables:
 #    RHUB_PLATFORM: "ubuntu-gcc-release"
@@ -207,6 +198,22 @@ pages:
       - tags
     variables:
       - $CI_COMMIT_MESSAGE =~ /.*\[skip pages\].*/
+
+drat:
+  stage: release
+  image: $REG_URL/release-test:latest
+  <<: *build_template
+  artifacts:
+    paths:
+      - archive/
+    expire_in: 1 week
+  only:
+    refs:
+      - master
+  script:
+    - mv ./${PKG}_${VERSION}.tar.gz $PKG/archive/
+    - curl --request POST --form "token=$CI_JOB_TOKEN" --form "variables[QE_PROJECT_ID]=${CI_PROJECT_ID}" --form ref=master https://gitlab.com/api/v4/projects/22522458/trigger/pipeline
+
 
 # Docker Image steps
 .docker_variables: &docker_variables
