@@ -218,6 +218,7 @@ release:cranqe:
     - Rscript -e 'update(devtools::dev_package_deps("."))'
     - cd ..; R CMD build --resave-data --no-manual --log $PKG
     - ls -al
+    - mkdir -p archive/
     - mv ./${PKG}_${VERSION}-${VERSION_TIMESTAMP}.tar.gz $PKG/archive/
     - curl --request POST --form "token=$CI_JOB_TOKEN" --form "variables[QE_PROJECT_ID]=${CI_PROJECT_ID}" --form ref=master https://gitlab.com/api/v4/projects/22522458/trigger/pipeline
 
