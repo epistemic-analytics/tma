@@ -85,12 +85,12 @@ call_eq <- function(x = 1, eq = "x^3 + 2*x^2 + x - 7") {
   }
   
   else {
-    if(is.name(eq_sub)) {
-      # I'm not clear what this is doing, as it doesn't return and the next line isn't a part of an 
-      # else {}, so the next line will always execute and be what is returned, likely producing
-      # unexpected results. (clm)
-      # eval(substitute(eval(eq_sub)))
-    }
+    # I'm not clear what this was doing, as it didn't return and the next line isn't a part of an 
+    # else {}, so the next line will always execute and be what is returned, likely producing
+    # unexpected results. (clm)
+    # if(is.name(eq_sub)) {
+    #   eval(substitute(eval(eq_sub)))
+    # }
     
     env <- new.env();
     res <- eval(parse(text = eq), envir = env);
@@ -105,8 +105,7 @@ call_eq <- function(x = 1, eq = "x^3 + 2*x^2 + x - 7") {
   }
 }
 
-
-#' Merge dataframes
+#' Merge using data.tables
 #' 
 #' @description function to merge and reordeer based on column of row numbers that needs to be specified
 #' @param x TBD
@@ -115,19 +114,26 @@ call_eq <- function(x = 1, eq = "x^3 + 2*x^2 + x - 7") {
 #'
 #' @return merged data.frame
 #' @export
-merge.on = function(x, y, order.column = NA) {
-  if(any(names(x) != names(y))) stop("Objects x and y must have the same column names")
-  #get rows that are only in x
-  unique.x = anti_join(x,y, by = names(x))
-  #add rows only inb x to all of y (since y+x will now have all of x and all of y without repeats)
-  output = rbind(unique.x,y)
-  #if row number column is not specified, try to use the first column
-  if (is.na(order.column)) order.column = names(x)[1]
-  if (length(order.column) > 1) stop(
-    "Can only sort on one column (order.column must be a single column name or number)")
-  #order and return
-  output = output[order(output[,order.column]), ]
-  return(output)
+merge_on = function(x, y, order.column = NA) {
+  if(any(names(x) != names(y))) {
+    stop("Objects x and y must have the same column names")
+  }
+  
+  # if row number column is not specified, try to use the first column
+  # NOTE: This seems dangerous to me, at the very least we could search for an ID column (column)
+  #       with a unique value in each row (clm)
+  if (is.na(order.column)) {
+    order.column = names(x)[1]
+  }
+  if (length(order.column) > 1) {
+    stop("Can only sort on one column (order.column must be a single column name or number)")
+  }
+  
+  output <- rbind(x, y);;
+  output <- output[!duplicated(output),];
+  output <- output[order(output[[order.column]]), ];
+  
+  return(output);
 }
 
 
@@ -140,12 +146,12 @@ merge.on = function(x, y, order.column = NA) {
 #'
 #' @return TBD
 #' @export
-get.unique.col.values = function(df){
-  output = data.frame(matrix(NA, nrow = 1, ncol = ncol(df)))
+get.unique.col.values = function(df) {
+  output = data.frame(matrix(NA, nrow = 1, ncol = ncol(df)), stringsAsFactors = FALSE)
   names(output) = names(df)
   for (this.col in names(df)) {
-      this.value = unique(df[,this.col])
-      if(length(this.value) == 1) output[1,this.col] = this.value
+      this.value = as.vector(unique(df[, this.col]));
+      if(length(this.value) == 1) output[1, this.col] = this.value;
   } 
   return(output)
 }
@@ -196,4 +202,83 @@ get.quoted.columns = function(x, as.one.line = FALSE){
 #  for (i in n) cat('"', i,'"', ifelse(as.one.line, "' ", ",\n"))
   for (i in n) cat("'", i, "'", ifelse(as.one.line, ", ", ",\n"), sep = "")
   return(NULL)
+}
+
+as.ena.directed.set <- function(x) {
+  to <- c("ena.directed.set")
+  if(!inherits(x = x, what = "ena.set")) {
+    to <- c(to, "ena.set")
+  }
+  class(x) <- c(to, class(x));
+  return(x);
+}
+
+ena.set.directed <- function(data, units, conversations, codes, ...) {
+  as.ena.directed.set(
+    list(
+      meta.data = NULL,
+      model = list(
+        model.type = "Directed",
+        raw.input = data.table::as.data.table(data)
+      ),
+      rotation = list (
+        codes = codes,
+        nodes = NULL
+      ),
+      plots = list(),
+      "_function.params" = list(
+        units = units,
+        conversations = conversations,
+        codes = codes
+      )
+    )
+  )
+}
+
+#' Adjacency Key
+#'
+#' @param codes character vector
+#' @param upper logical, default, TRUE, returns the key for the upper triangle, FALSE - not implemented yet
+#'
+#' @return matrix
+#' @export
+adjacency_key <- function(codes, upper = TRUE) {
+  n <- length(codes);
+  if(upper == TRUE) {
+    matrix(c(
+      codes[sequence((1:n-1))],
+      codes[rep((2:n), times = (1:(n-1)))]
+    ), byrow = TRUE, nrow = 2)
+  }
+  else {
+    stop("Not implemented")
+  }
+}
+
+#' paste columns to together
+#'
+#' @param x coerced to data.frame prior to subseting cols
+#' @param cols character vector - default: colnames(x)
+#' @param sep character default "."
+#'
+#' @return character vector
+#' @export
+merge_columns <- function(x, cols = colnames(x), sep = ".") {
+  do.call(paste, c(as.data.frame(x)[, cols], sep = sep))
+}
+
+#' Reclass vector
+#'
+#' @param x vector
+#' @param cl character - new class
+#' @param stringsAsFactors logical, default: default.stringsAsFactors()
+#'
+#' @return vector with class: c(cl, class(x))
+#' @export
+reclass <- function(x, cl, stringsAsFactors = default.stringsAsFactors()) {
+  if(!stringsAsFactors && is.factor(x)) {
+    x <- as.character(x)
+  }
+  class(x) = c(cl, class(x))
+  x
 }

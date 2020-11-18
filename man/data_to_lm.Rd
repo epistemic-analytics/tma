@@ -14,8 +14,6 @@ data_to_lm(data, x, y, degree = 4)
 \item{y}{column 2}
 
 \item{degree}{number of degrees}
-
-\item{raw}{logical}
 }
 \value{
 result of lm(x ~ y + I(y ^ 1) + ... + I(y ^ N)) where N == degree

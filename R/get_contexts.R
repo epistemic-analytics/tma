@@ -1,11 +1,11 @@
 #' get contexts
 #'
 #' @description get contexts for each unit, by hoo.rules plus metadata that ena will need
-#' @param units 
-#' @param data 
-#' @param hoo.rules 
+#' @param units TBD
+#' @param data TBD
+#' @param hoo.rules TBD
 #'
-#' @returna list of dataframes (one for each context) in $contexts
+#' @return list of dataframes (one for each context) in $contexts
 #' @export
 get.contexts = function(units, data, hoo.rules) {
     #This is a hack I use to create functions. When I start, I assign these
@@ -94,7 +94,10 @@ get.contexts = function(units, data, hoo.rules) {
         #otherwise, merge new temporary output into existing
         #This merge function removes duplicate rows and keeps output in the order
         #of column "Rows"
-        else hoos[[i]][["context"]] = merge.on(hoos[[i]][["context"]], this.output, "Rows")
+        else {
+          # browser()
+          hoos[[i]][["context"]] = merge_on(hoos[[i]][["context"]], this.output, "Rows")
+        }
     
               
       }
@@ -102,7 +105,6 @@ get.contexts = function(units, data, hoo.rules) {
     
       #remove row numbers
       hoos[[i]][["context"]] = hoos[[i]][["context"]][, -1]
-    
     }
     #finished with unit  
   
@@ -126,4 +128,251 @@ get.contexts = function(units, data, hoo.rules) {
 
   return(output)
 
-}#end of function
+}
+
+#' get contexts
+#'
+#' @description get contexts for each unit, by hoo.rules plus metadata that ena will need
+#' @param units TBD
+#' @param data TBD
+#' @param hoo.rules TBD
+#'
+#' @return list of dataframes (one for each context) in $contexts
+#' @export
+get.contexts_dt = function(units, data, hoo.rules) {
+    #This is a hack I use to create functions. When I start, I assign these
+    #temporary names to variables. I can assign values and step through the function
+    #while I am writing/deebugging. Then when the function works, I can create the function
+    #call and pass the parameters to these termporary variables.
+    f.data = data
+    f.units = as.data.table(units, key = names(units))
+    f.hoo = hoo.rules
+    
+
+    #add row numbeers to the data (needed to keep data sorted)
+    # Rows = 1:nrow(f.data)
+    # f.data.augmented = cbind(Rows, f.data)
+    f.data.augmented <- as.data.table(cbind(Rows = 1:nrow(f.data), f.data), key = names(units))
+    
+    #initialize output list for contexts
+    hoos = list()
+    
+    #loop over units
+    for(i in 1:nrow(f.units)){
+      this.unit = f.units[i,]
+    
+      #initialize this hoo
+      hoos[[i]] = list()
+      hoos[[i]][["context"]] = f.data.augmented[0,] #quick hack to create a blank copy of an existing data.table
+      
+      #get this unit data -- semi join takes thing from the left variable that match
+      #things from the right variable in the columns in BY
+      # this.unit.data = dplyr::semi_join(f.data.augmented, this.unit, by = names(this.unit))
+      
+      ## I'm not sure if the column ordering the reason behind using dplyr here, so I've added an additional [,] after
+      ## merge so the results are identical to the call to `semi_join`, if not, then we should just use the option here.
+      # this.unit.data <- merge(f.data.augmented, this.unit, by = names(this.unit))
+      # this.unit.data <- merge(f.data.augmented, this.unit, by = names(this.unit))[, names(f.data.augmented)]
+      # this.unit.data <- f.data.augmented[this.unit, names(f.data.augmented), with = FALSE];
+      this.unit.data <- f.data.augmented[this.unit, names(f.data.augmented), on = names(this.unit), with = FALSE]
+      
+      #assign meta data for unit
+      #create a list of named list with names equal to unit columns
+      # for(j in names(this.unit)) {
+      #   hoos[[i]][["unit"]][j] = this.unit[,j, with = FALSE]
+      # }
+      # 
+      # #put in values for this unit
+      # hoos[[i]][["unit"]] =  as.data.frame(
+      #   t(hoos[[i]][["unit"]]), 
+      #   col.names = names(hoos[[i]][["unit"]]),
+      #   stringsAsFactors = FALSE
+      # )
+      hoos[[i]]$unit <- as.data.frame(this.unit)
+      # browser(expr = {this.unit$UserName == "User3"})
+ 
+      # for this unit, process each context rule 
+      for(this.rule in f.hoo) {
+        #initialize context with all data
+        #we will remove things that don't fit
+        this.output = f.data.augmented
+        
+        #loop over conditions in each rule to extract data
+        # browser()
+        
+        # for(k in 1:length(this.rule)) {
+        #   
+        #   this.condition = this.rule[[k]]
+        #   #get the column name this condition applies to
+        #   this.col = names(this.rule[k])
+        #   
+        #   #replace <UNIT> with data from this unit and filter by those values
+        #   if(this.condition == "<UNIT>") {
+        #     #get values for column for this unit
+        #     this.values = unique(this.unit.data[, ..this.col])
+        #     # names(this.values) = this.col
+        #     #select rows with these values in the column
+        #     # this.output = merge(this.output, this.values, by = this.col)
+        #     
+        #     ## See comment above re: semi_join and column ordering
+        #     # this.output <- merge(this.output, this.values, by = this.col)[, colnames(this.output)]
+        #     # this.output <- this.output[this.values, colnames(this.output), on = this.col, with = FALSE]
+        #     this.output <- this.output[this.values, , on = this.col]
+        #   }
+        #   
+        #   #or, select rows that match the given regex
+        #   else{
+        #     this.output = subset(
+        #       this.output, grepl(this.condition, this.output[,this.col])
+        #     )
+        #   }
+        # }
+        #finished with all conditions for this rule
+      
+        this.values <- this.unit.data[, {
+          rule_matches <- sapply(names(.SD), function(n) {
+            grepl(.SD[[n]], pattern = this.rule[[n]])
+          })
+          unique(.SD[rowSums(rule_matches) == ncol(.SD), ])
+        }, .SDcols = names(this.rule)]
+        this.output <- this.output[this.values, names(this.output), on = names(this.values), with = FALSE];
+        
+        #if this is the first rule (or otherwise the list is empty), store temporary output
+        if (nrow(hoos[[i]][["context"]]) == 0) {
+          hoos[[i]][["context"]] = this.output
+        }
+        
+        #otherwise, merge new temporary output into existing
+        #This merge function removes duplicate rows and keeps output in the order
+        #of column "Rows"
+        else {
+          hoos[[i]][["context"]] = merge_on(hoos[[i]][["context"]], this.output, "Rows")
+        }     
+      }
+      # finished with rules
+    
+      #remove row numbers
+      hoos[[i]][["context"]] = as.data.frame(hoos[[i]][["context"]])[, -1]
+    }
+    #finished with unit  
+  
+  #add unit names to context lists
+  # output.names = c()
+  # for (this.hoo in 1:length(hoos)) {
+  #   output.names = c(output.names, paste(hoos[[this.hoo]]$unit, collapse = "::"))
+  # }
+  output.names <- sapply(lapply(hoos, `[[`, "unit"), paste, collapse = "::");
+  names(hoos) = output.names
+  
+  #begin constructing output
+
+  output = list()             #initialize output list
+  output$contexts = hoos      #store named contexts
+  output$hoo.rules = f.hoo    #add rules used
+  
+  #add information ENA needs
+  # - keeping as data.frame versions for now (clm)
+  output$units = as.data.frame(f.units)      #units  
+  output$raw.data = as.data.frame(f.data)    #raw data
+
+  return(output)
+}
+
+#' Get Contexts for each unit in x
+#'
+#' @param x data.frame or data.table
+#' @param units_by character vector
+#' @param rules list
+#' @param indices.only boolean If TRUE, default, returns row indices for each unit, otherwise will return subset tables
+#'
+#' @return List, named by each unique unit, containing either row indices (indicies.only = TRUE) 
+#' or subset data.tables of x (indices.only = FALSE)
+#' @export
+get_contexts <- function(x, units_by, rules, indices.only = TRUE) {
+  # Convert to data.table if needed
+  if(!inherits(x, "data.table")) {
+    x <- data.table(x, stringsAsFactors = FALSE)
+  }
+  
+  # Find the unique units in the set
+  unique_units <- unique(x[, ..units_by]);
+  
+  # Match the contexts
+  conversations <- NULL;
+  context_rows <- sapply(seq(nrow(unique_units)), function(.GRP) {
+    
+    # Rows in context b/c of the unit matched  
+    unit_rows <- rowSums(sapply(units_by, function(u) {
+      x[[u]] %chin% unique_units[[u]][.GRP]
+    })) == length(units_by)
+    
+    # Find rows that fit Horizon of Observation rules
+    hoo_rows <- rowSums(sapply(rules, function(rule) {
+      
+      # Apply each part of the rule
+      if( length(rule) == 1 && names(rule) == "Split.on" ) {
+        conversations <<- rule[["Split.on"]]
+        rep(FALSE, nrow(x))
+      }
+      else {
+        rules_matched <- sapply(names(rule), function(u) {
+          if( 
+            (is.logical(rule[[u]]) && rule[[u]] == TRUE) || 
+            (rule[[u]] == "<UNIT>")
+          ) {
+            x[[u]] %chin% unique(x[[u]][unit_rows])
+          }
+          else {
+            x[[u]] %chin% rule[[u]]
+          } 
+        })
+        rowSums(rules_matched) == length(names(rule))
+      }
+    }))
+    
+    # Rows that either that of the unit or in the HoO
+    # converted to row indices
+    # passed_rows <- which(unit_rows | hoo_rows)
+    passed_rows <- which(hoo_rows > 0)
+    
+    # Don't worry about rows after the unit's last row
+    passed_rows #[passed_rows <= max(which(unit_rows))]
+  }, simplify = FALSE);
+  names(context_rows) <- apply(unique_units, 1, paste, collapse = "::");
+  
+  if(indices.only) {
+    if(!is.null(conversations)) {
+      lapply(context_rows, function(context) {
+          split(context, unlist(x[context, ..conversations]))
+      })
+    }
+    else {
+      # context_rows
+      sapply(names(context_rows), function(x) list(context_rows[x]))
+      # context_rows_new <- lapply(seq(context_rows), function(x) list(context_rows[[x]]))
+      # names(context_rows_new) <- names(context_rows)
+      # context_rows_new
+    }
+  }
+  else {
+    unit_contexts <- apply(unique_units, 1, function(u) {
+      to_ret <- list(
+        "context" = x[context_rows[[paste(u, collapse = "::")]], ],
+        "unit" = data.frame(as.list(u))
+      )
+      if(!is.null(conversations)) {
+        to_ret[["context"]] <- split(x = to_ret[["context"]], by = conversations)
+      }
+      else {
+        to_ret[["context"]] <- list(to_ret[["context"]])
+      }
+      to_ret
+    });
+    names(unit_contexts) <- names(context_rows);
+    list(
+      "contexts" = unit_contexts,
+      "units" = unique_units,
+      "raw.data" = x
+    )
+  }
+}

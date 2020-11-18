@@ -1,5 +1,7 @@
-d = read.csv(system.file(package = "tma", 'extdata/test_data.csv'), stringsAsFactors = FALSE);
+testthat::context("Test continuous data with time")
 
+data("test_data", package = "tma")
+d = tma::test_data
 d$time = convert.time( as.character(d$Timestamp), units = "minutes");
 my.hoo.TMA = list()
 my.hoo.TMA[[1]] = list(Condition = "<UNIT>", GroupName = "<UNIT>", Context = "Public")  
@@ -9,7 +11,7 @@ codes = c('A','B','C')
 modal.decay.function = list()
 modal.decay.function$Private = continuous.decay.function.over.ten.minutes;
 modal.decay.function$Public = continuous.decay.function.over.ten.minutes;
-accumulation_with_time_column = tma(
+accumulation_with_time_column = tma_orig(
   data = d,
   units = my.units,
   codes = codes,
@@ -24,7 +26,24 @@ accumulation_with_time_column = tma(
   meta.data = c('Condition')
 )
 
-test_that("directed_continuous_decay_use_time_column_test", {
+accum_with_time_col2 <- tma(
+  data = d,
+  units.by = colnames(my.units),
+  code.cols = codes,
+  hoo.rules = rules(
+    (Condition == UNIT$Condition) & (GroupName %in% UNIT$GroupName) & (Context == "Public"),
+    (Condition == UNIT$Condition) & (UserName == UNIT$UserName) & (Context == "Private")
+  ),
+  time.column = 'time',
+  weight.by = function(x) {return(x*1)},
+  return.ena.set = TRUE,
+  decay.functions = modal.decay.function,
+  mode.column = 'Context',
+  time.limit = 7,
+  meta.data = c('Condition')
+)
+
+testthat::test_that("directed_continuous_decay_use_time_column_test", {
   User1_directed = t(matrix(c(
     0,0,1,
     0,0,.5,
@@ -56,7 +75,7 @@ test_that("directed_continuous_decay_use_time_column_test", {
   )
 })
 
-test_that("undirected_continuous_decay_use_time_column_test", {
+testthat::test_that("undirected_continuous_decay_use_time_column_test", {
   User1_undirected = t(matrix(c(
     0,0,1,
     NA,0,.5,
@@ -64,7 +83,7 @@ test_that("undirected_continuous_decay_use_time_column_test", {
   ),3,3))
   colnames(User1_undirected) = rownames(User1_undirected) = c('A','B','C')
   testthat::expect_equal(
-    User1_undirected, accumulation_with_time_column$model$contexts$`FirstGame::User1`$undirected.adjacancy
+    User1_undirected, accumulation_with_time_column$model$contexts$`FirstGame::User1`$undirected.adjacency
   )
   
   User2_undirected = t(matrix(c(
@@ -74,7 +93,7 @@ test_that("undirected_continuous_decay_use_time_column_test", {
   ),3,3))
   colnames(User2_undirected) = rownames(User2_undirected) = c('A','B','C')
   testthat::expect_equal(
-    User2_undirected, accumulation_with_time_column$model$contexts$`FirstGame::User2`$undirected.adjacancy
+    User2_undirected, accumulation_with_time_column$model$contexts$`FirstGame::User2`$undirected.adjacency
   )
   
   User3_undirected = t(matrix(c(
@@ -84,6 +103,13 @@ test_that("undirected_continuous_decay_use_time_column_test", {
   ),3,3))
   colnames(User3_undirected) = rownames(User3_undirected) = c('A','B','C')
   testthat::expect_equal(
-    User3_undirected, accumulation_with_time_column$model$contexts$`FirstGame::User3`$undirected.adjacancy
+    User3_undirected, accumulation_with_time_column$model$contexts$`FirstGame::User3`$undirected.adjacency
+  )
+})
+
+testthat::test_that("verify new approach", {
+  testthat::expect_equivalent(
+    as.matrix(accum_with_time_col2$connection.counts),
+    as.matrix(accumulation_with_time_column$connection.counts)
   )
 })

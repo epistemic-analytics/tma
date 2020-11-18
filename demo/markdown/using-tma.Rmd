@@ -1,0 +1,99 @@
+---
+title: "Using TMA"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Using TMA}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# Simple Stanza Window Model
+
+Let's start be replicating the usual stanza window model example that is shown
+in rENA.  The configuration is something like this:
+
+```
+  |-------------|---------------------------------|-------------|
+  | Data        | RS.data                         | chat data   |
+  |-------------|---------------------------------|-------------|
+  | Units       | Condition                       | Individuals |
+  |             | UserName                        |  by site    |
+  |-------------|---------------------------------|-------------|
+  | Conversation| Condition                       | Chats within|
+  |             | GroupName                       |  groups     |
+  |-------------|---------------------------------|-------------|
+  | Codes       | Data                            |             |
+  |             | Technical.Constraints           |             |
+  |             | Performance.Parameters          |             |
+  |             | Client.and.Consultant.Requests  |             |
+  |             | Design.Reasoning                |             |
+  |             | Collaboration                   |             |
+  |-------------|---------------------------------|-------------|
+```
+
+```{r setup, echo=TRUE, warning=FALSE, message=FALSE}
+library(tma)
+library(rENA)
+library(magrittr)
+```
+  
+If you're unfamiliar with the standard accumulation using rENA, please 
+reference the [Getting Start vignette](https://cran.r-project.org/web/packages/rENA/vignettes/getting-started.html),
+but here is a an exmaple model as shown there.
+
+```{r echo=TRUE}
+data(RS.data, package = "rENA");
+rs_units <- c("Condition","UserName");
+rs_conversations <- c("Condition","GroupName");
+rs_codes <- c(
+  'Data','Technical.Constraints','Performance.Parameters',
+  'Client.and.Consultant.Requests','Design.Reasoning','Collaboration'
+);
+rs_window_size = 4;
+
+model <- rENA::ena(
+  data = RS.data,
+  units = rs_units,
+  conversation = rs_conversations,
+  codes = rs_codes,
+  window.size.back = rs_window_size,
+  weight.by = "product"
+)
+
+# print(model$plots[[1]])
+```
+  
+# Same model using TMA
+
+```{r}
+RS.data$Context <- "Public"
+RS.data$ID <- seq(nrow(RS.data))
+rs_set <- RS.data %>% 
+  units(rs_units) %>%
+  contexts(
+    hoo_rules = rules(
+      (GroupName %in% UNIT$GroupName) & (Condition == UNIT$Condition)
+    ),
+    split_rules = ActivityNumber
+  ) %>%
+  accumulate_units(
+    codes = rs_codes,
+    time.column = "ID",
+    mode.column = "Context",
+    weight.by = function(x) { x },
+    decay.function = list(
+      Public = step_function(rs_window_size)
+    )
+  ) %>%
+  ena.make.set()
+
+
+# rs_plot <- plot(rs_set) %>% add_network()
+```

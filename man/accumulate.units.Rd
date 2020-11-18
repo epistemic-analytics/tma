@@ -8,12 +8,13 @@ accumulate.units(
   context.object,
   time.column = NA,
   codes,
-  decay.function = default.decay.function,
+  decay.function = NA,
   mode.column = NA,
   mask = NA,
   time.limit = NA,
   weight.by = sqrt,
   meta.data = NA,
+  return.dena.set = FALSE,
   return.ena.set = TRUE
 )
 }
@@ -35,6 +36,8 @@ accumulate.units(
 \item{weight.by}{TBD}
 
 \item{meta.data}{TBD}
+
+\item{return.dena.set}{TBD}
 
 \item{return.ena.set}{TBD}
 }

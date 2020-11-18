@@ -25,9 +25,6 @@ cran-comments.md
 ^doc$
 ^Meta$
 
-src/*.o
-src/*.so
-
 .bash_history
 
-^.*.png
+^data-raw$

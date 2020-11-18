@@ -4,7 +4,6 @@
 #' @param x column 1
 #' @param y column 2
 #' @param degree number of degrees
-#' @param raw logical
 #'
 #' @return result of lm(x ~ y + I(y ^ 1) + ... + I(y ^ N)) where N == degree
 #' @export
@@ -18,6 +17,7 @@ data_to_lm <- function(data, x, y, degree = 4) {
 #' @param x results of lm()
 #' @param with_assignment logical, default is FALSE, if TRUE (or character string) will return a `y = ` to the left-hand
 #' side of the equation
+#' @param digits NULL (default) performs no reduction in precision, if an integer, rounds to that decimal place
 #'
 #' @return character string representing equation
 #' @export

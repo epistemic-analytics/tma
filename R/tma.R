@@ -12,10 +12,12 @@
 #' @param time.limit TBD
 #' @param mask TBD
 #' @param meta.data TBD
+#' @param beta TBD
+#' @param indices.only TBD
 #'
-#' @return
+#' @return TBD
 #' @export
-tma <- function(
+tma_orig <- function(
   data,
   units,
   codes,
@@ -28,7 +30,8 @@ tma <- function(
   time.limit = NA,
   mask = NA,
   meta.data = NA,
-  conversations = NULL
+  beta = FALSE,
+  indices.only = FALSE
 ) {
   # hoo rules must be list of lists
   #note that options here are...
@@ -37,7 +40,7 @@ tma <- function(
   #   ...any regex
   #generate contexts for this data: TMA
   hoos.TMA = get.contexts(units = units, data = data, hoo.rules = hoo.rules);
-  # browser()
+
   accumulation = accumulate.units(
     context.object = hoos.TMA,
     codes = codes,
@@ -48,8 +51,61 @@ tma <- function(
     time.limit = time.limit,
     meta.data = meta.data,
     mask = mask,
-    return.ena.set = return.ena.set,
-    conversations = conversations
+    return.ena.set = return.ena.set
   )
+  
   return(accumulation);
+}
+
+#' Title
+#'
+#' @param data TBD
+#' @param units.by TBD
+#' @param hoo.rules TBD
+#' @param code.cols TBD
+#' @param split.rules TBD
+#' @param time.column TBD
+#' @param weight.by TBD
+#' @param return.ena.set TBD
+#' @param decay.functions TBD
+#' @param mode.column TBD
+#' @param time.limit TBD
+#' @param meta.data TBD
+#'
+#' @return TBD
+#' @export
+tma <- function(
+  data,
+  units.by,
+  hoo.rules,
+  code.cols,
+  split.rules = NULL,
+  time.column = NULL,
+  weight.by = function(x) { x },
+  return.ena.set = TRUE,
+  decay.functions = list(),
+  mode.column = 'Context',
+  time.limit = NULL,
+  meta.data = units.by
+) {
+  #model <- units(x = data, by = units.by);
+  model <- contexts(
+    x = data,
+    units = units.by,
+    hoo_rules = hoo.rules,
+    split_rules = split.rules
+  );
+  model <- accumulate_contexts(
+    x = model, 
+    codes = code.cols,
+    time.column = time.column,
+    weight.by = weight.by,
+    return.ena.set = return.ena.set,
+    decay.function = decay.functions,
+    mode.column = mode.column,
+    time.limit = time.limit,
+    meta.data = meta.data
+  );
+  
+  return(model);
 }
