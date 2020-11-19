@@ -200,27 +200,31 @@ pages:
 
 release:cranqe:
   stage: release
-  image: $REG_URL/release-test:latest
-  #<<: *build_template
+  image: rocker/tidyverse:4.0.3
   artifacts:
     paths:
       - archive/
+      - ${PKGL}/
     expire_in: 1 week
   only:
     refs:
       - master
   script:
+    - R --version
     - export VERSION_TIMESTAMP=$(date +%y%m%d%H%M)
     - echo $VERSION_TIMESTAMP
     - cat DESCRIPTION
     - "sed -i -e \"s/Version: \\(.*\\)/Version: ${VERSION}.${VERSION_TIMESTAMP}/\" DESCRIPTION"
     - cat DESCRIPTION
+    - Rscript -e 'install.packages("pkgdown")'
     - Rscript -e 'update(devtools::dev_package_deps("."))'
     - mkdir -p archive/
     - ls -al
     - cd ..; R CMD build --resave-data --no-manual --log $PKG
     - ls -al
     - mv ./${PKG}_${VERSION}.${VERSION_TIMESTAMP}.tar.gz $PKG/archive/
+    - cd $PKG/
+    - Rscript -e 'pkgdown::build_site()'
     - curl --request POST --form "token=$CI_JOB_TOKEN" --form "variables[QE_PROJECT_NAME]=${CI_PROJECT_NAME}" --form "variables[QE_PROJECT_ID]=${CI_PROJECT_ID}" --form ref=master https://gitlab.com/api/v4/projects/22522458/trigger/pipeline
 
 # Docker Image steps --------

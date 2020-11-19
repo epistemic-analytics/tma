@@ -12,4 +12,3 @@ TODO:
 - [ ] Test on real multimodal dataset
 
 ![](man/figures/analysis_plan.png)
-
