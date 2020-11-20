@@ -574,14 +574,15 @@ accumulate_contexts <- function(
         # });
         grounds.codes = mapply(grounds.codes.raw, all.decays, FUN = function(x, y) {
           if(length(y) == 1) {
-            x * y
+            # browser()
+            x * y[[1]]
           }
           
           #otherwise this is a bit of fancy math that multiplies each row of the matrix
           #by a different scalar from a vector of scalars
           else {
             # t(t(x) %*% diag(y))
-            sweep(x, MARGIN = 1, y, FUN = `*`)
+            sweep(x, MARGIN = 1, as.numeric(y), FUN = `*`)
           }
         }, SIMPLIFY = FALSE);
         
