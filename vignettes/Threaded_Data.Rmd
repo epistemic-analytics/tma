@@ -122,7 +122,6 @@ reddit_model2 <- tma(
   mode.column = 'Context',
   meta.data = c('user')
 )
-reddit_model2 <- rENA::ena.make.set(reddit_model2)
 ```
 
 The output from `tma()` is the same above, in Model 1, so creating the ENA model is the same:
