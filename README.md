@@ -6,7 +6,7 @@
 Coming Soon
 ```
 
-## Install Development
+## Install Development Version
 
 ```
 install.packages("tma", repos = "cran.qe-libs.org")
