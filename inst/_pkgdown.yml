@@ -7,8 +7,8 @@ navbar:
       href: index.html
     - text: "Reference"
       href: "reference/index.html"
-    - text: "Coverage"
-      href: "coverage/index.html"
+    - text: "Articles"
+      href: "articles/index.html"
   right:
     - icon: fa-gitlab
       href: https://gitlab.com/epistemic-analytics/qe-packages/tma/

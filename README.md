@@ -1,14 +1,13 @@
 # Transmodal Analysis
 
-## Analysis Plan
+## Install CRAN
 
-TODO:
-- [X] Generate toy/dummy dataset (`test_data.csv`)
-- [ ] Generate continuous decay function
-- [ ] Replicate unimodal findings using ENA using TMA
-    - [X] using toy dataset
-    - [ ] using TADMUS
-    - [ ] using Heads and Hands dataset
-- [ ] Test on real multimodal dataset
+```
+Coming Soon
+```
 
-![](man/figures/analysis_plan.png)
+## Install Development
+
+```
+install.packages("tma", repos = "cran.qe-libs.org")
+```
