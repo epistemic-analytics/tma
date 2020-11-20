@@ -227,6 +227,8 @@ release:cranqe:
     - mv ./${PKG}_${VERSION}.${VERSION_TIMESTAMP}.tar.gz $PKG/archive/
     - cd $PKG/
     - Rscript -e 'pkgdown::build_site()'
+    - mkdir -p $PKGL
+    - mv public/* $PKGL/
     - curl --request POST --form "token=$CI_JOB_TOKEN" --form "variables[QE_PROJECT_NAME]=${CI_PROJECT_NAME}" --form "variables[QE_PROJECT_ID]=${CI_PROJECT_ID}" --form ref=master https://gitlab.com/api/v4/projects/22522458/trigger/pipeline
 
 # Docker Image steps --------
