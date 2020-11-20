@@ -16,5 +16,8 @@ Imports:
     rlang
 Suggests:
     testthat (>= 2.1.0),
-    rENA
+    rENA,
+    knitr,
+    rmarkdown
 RoxygenNote: 7.1.1
+VignetteBuilder: knitr
