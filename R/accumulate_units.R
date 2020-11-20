@@ -558,9 +558,9 @@ accumulate_contexts <- function(
             else if (use.modes) {
               mapply(subbed, grounds.modes[[x]], FUN = function(xx, yy) {
                 f.decay[[yy]](xx)
-              })
+              }, SIMPLIFY = FALSE)
             }
-        })
+        }, simplify = FALSE)
         # grounds.codes <- list_vec_apply(grounds.codes.raw, all.decays, fn = function(x, y) {
         #   if(length(y) == 1) {
         #     x * y
@@ -583,7 +583,7 @@ accumulate_contexts <- function(
             # t(t(x) %*% diag(y))
             sweep(x, MARGIN = 1, y, FUN = `*`)
           }
-        });
+        }, SIMPLIFY = FALSE);
         
         ## Sparse Matrices
         # grounds.codes <- list_vec_apply(grounds.codes.raw, all.decays, fn = function(x, y) {
