@@ -12,3 +12,8 @@
 #'
 #' A dataset containing sample data with empty rows
 "test_data_empties"
+
+#' Sample Data
+#'
+#' A dataset containing threads
+"test_reddit"

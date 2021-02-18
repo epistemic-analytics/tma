@@ -6,11 +6,18 @@
 \title{Coded Rescushell Chat Data}
 \format{
 An object of class \code{data.frame} with 3824 rows and 20 columns.
+
+An object of class \code{data.frame} with 3824 rows and 20 columns.
 }
 \usage{
 test_rsdata
+
+test_rsdata
 }
 \description{
+A dataset containing sample chat data from the Rescushell Virtual
+Internship
+
 A dataset containing sample chat data from the Rescushell Virtual
 Internship
 }
