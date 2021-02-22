@@ -1,4 +1,4 @@
-destination: public/
+destination: tma/
 navbar:
   title: "TMA"
   type: inverse
