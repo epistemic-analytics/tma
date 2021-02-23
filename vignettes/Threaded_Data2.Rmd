@@ -18,6 +18,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(tma)
+library(rENA)
 library(magrittr)
 
 data("test_reddit2", package = "tma")
