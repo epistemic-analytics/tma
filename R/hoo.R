@@ -4,7 +4,6 @@
 #' @param by TBD 
 #'
 #' @return TBD
-#' @export
 units <- function(x, by) {
   model <- x;
   if ( is.data.frame(x) ) {
@@ -45,7 +44,6 @@ units <- function(x, by) {
 #' @param rule TBD
 #'
 #' @return TBD
-#' @export
 hoo <- function(x, ..., rule = NULL) {
   units <- x$`_function.params`$units;
   unit_contexts <- x$model$contexts;
@@ -93,8 +91,17 @@ hoo <- function(x, ..., rule = NULL) {
 #' @param ... TBD
 #'
 #' @return TBD
-#' @export
 rules <- function(...) {
+  rlang::exprs(...)
+}
+
+#' Title
+#'
+#' @param ... TBD
+#'
+#' @return TBD
+#' @export
+conversation_rules <- function(...) {
   rlang::exprs(...)
 }
 
@@ -106,7 +113,6 @@ rules <- function(...) {
 #' @param split_rules TBD
 #'
 #' @return TBD
-#' @export
 contexts <- function(x, hoo_rules, units = NULL, split_rules = NULL) {
   if(!is.null( units )) {
     x_ <- units(x, units);

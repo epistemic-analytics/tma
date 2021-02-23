@@ -1,5 +1,5 @@
-#' @title Transmodal Analysis for ENA
-#' @description Transmodal Analysis for ENA. rENA is used to create and visualize network models of discourse and other phenomena from coded data using Epistemic Network Analysis (ENA).
+#' @title TMA for ENA
+#' @description TMA for ENA. rENA is used to create and visualize network models of discourse and other phenomena from coded data using Epistemic Network Analysis (ENA).
 #' @name tma
 #' 
 #' @import stats
