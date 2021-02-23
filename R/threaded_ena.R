@@ -1,11 +1,17 @@
-#' Title
+#' accumulate_threads
 #'
-#' @param x TBD
-#' @param ... TBD
+#' @param data TBD
+#' @param units_by TBD
+#' @param conversation_rules TBD
+#' @param code_cols TBD
+#' @param conversation_splits TBD
+#' @param as_directed TBD
+#' @param window_size TBD
+#' @param meta_data TBD
 #'
 #' @return TBD
 #' @export
-threaded_ena <- function(
+accumulate_threads <- function(
   data,
   units_by,
   conversation_rules,
@@ -25,7 +31,7 @@ threaded_ena <- function(
     hoo_rules = conversation_rules,
     split_rules = conversation_splits
   );
-  model <- accumulate_threads(
+  model <- accumulate_context_threads(
     x = model, 
     codes = code_cols,
     as_directed = as_directed,

@@ -42,7 +42,7 @@ accumulate_contexts(
 \item{return.ena.set}{TBD}
 }
 \value{
-TBD
+ENA set
 }
 \description{
 accumulate_contexts

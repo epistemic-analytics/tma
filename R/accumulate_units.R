@@ -1,9 +1,9 @@
-#' Title
+#' Accumulated threaded data
 #'
-#' @param ... TBD
+#' @param ... passed along
 #'
-#' @return
-accumulate_threads <- function(...) {
+#' @return ENA set
+accumulate_context_threads <- function(...) {
   args <- list(...);
   
   simple_window <- function(x) { (x < args$window_size) * 1 }
@@ -39,7 +39,7 @@ accumulate_threads <- function(...) {
 #' @param return.dena.set TBD
 #' @param return.ena.set TBD 
 #'
-#' @return TBD
+#' @return ENA set
 accumulate_contexts <- function(
   x,
   codes,

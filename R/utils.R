@@ -38,6 +38,36 @@ as.undirected.vector <- function(x, diag = FALSE) {
 }
 
 
+as.ena.directed.set <- function(x) {
+  to <- c("ena.directed.set")
+  if(!inherits(x = x, what = "ena.set")) {
+    to <- c(to, "ena.set")
+  }
+  class(x) <- c(to, class(x));
+  return(x);
+}
+ena.set.directed <- function(data, units, conversations, codes, ...) {
+  as.ena.directed.set(
+    list(
+      meta.data = NULL,
+      model = list(
+        model.type = "Directed",
+        raw.input = data.table::as.data.table(data)
+      ),
+      rotation = list (
+        codes = codes,
+        nodes = NULL
+      ),
+      plots = list(),
+      "_function.params" = list(
+        units = units,
+        conversations = conversations,
+        codes = codes
+      )
+    )
+  )
+}
+
 #' Reclass vector
 #'
 #' @param x vector
@@ -51,4 +81,15 @@ reclass <- function(x, cl, stringsAsFactors = default.stringsAsFactors()) {
   }
   class(x) = c(cl, class(x))
   x
+}
+
+#' paste columns to together
+#'
+#' @param x coerced to data.frame prior to subseting cols
+#' @param cols character vector - default: colnames(x)
+#' @param sep character default "."
+#'
+#' @return character vector
+merge_columns <- function(x, cols = colnames(x), sep = ".") {
+  do.call(paste, c(as.data.frame(x)[, cols], sep = sep))
 }

@@ -2,7 +2,12 @@
 title: "Threaded Data 2"
 author: "Cody L Marquart"
 date: "2/22/2021"
-output: html_document
+# output: html_document
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Threaded Data 2}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\usepackage[utf8]{inputenc}
 ---
 
 ```{r setup, include=FALSE}
@@ -12,9 +17,11 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Threaded Example
 
 ```{r}
+library(tma)
 library(magrittr)
 
-reddit_data <- as.data.table(test_reddit2)
+data("test_reddit2", package = "tma")
+reddit_data <- data.table::as.data.table(test_reddit2)
 for(i in 1:nrow(reddit_data)) {
   parent <- reddit_data[i, ]$ParentID
   
@@ -51,7 +58,7 @@ reddit_split_fun <- function(unit, unit_context) {
   by = "TMA_GROUP")
 }
 
-threaded_accum <- tma::threaded_ena(
+threaded_accum <- tma::accumulate_threads(
   data = reddit_data,
   units_by = reddit_units_by,
   code_cols = reddit_code_cols,
