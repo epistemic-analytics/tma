@@ -6,9 +6,20 @@ navbar:
     - text: "Home"
       href: index.html
     - text: "Reference"
-      href: "reference/index.html"
+      href: "reference/"
+    - text: "Changelog"
+      href: "news/"
+    - text: "Coverage"
+      href: "coverage/"
     - text: "Articles"
-      href: "articles/index.html"
+      href: "articles/"
   right:
     - icon: fa-gitlab
       href: https://gitlab.com/epistemic-analytics/qe-packages/tma/
+reference:
+  - title: "Creating Threaded Accumulations"
+    desc: >
+      Functions for the accumulation of threaded data for ENA models.
+    contents:
+      - conversation_rules
+      - accumulate_threads
