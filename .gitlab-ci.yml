@@ -7,7 +7,7 @@ stages:
   - release
 
 variables:
-  VERSION: "0.1.0.9000"
+  VERSION: "0.1.0"
   PKG: "tma"
   PKGL: "tma"
   REG_URL: "${CI_REGISTRY}/epistemic-analytics/qe-packages/${PKGL}"
