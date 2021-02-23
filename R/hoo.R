@@ -1,9 +1,9 @@
-#' Set units on an object
-#'
-#' @param x TBD
-#' @param by TBD 
-#'
-#' @return TBD
+# Set units on an object
+#
+# @param x TBD
+# @param by TBD 
+#
+# @return TBD
 units <- function(x, by) {
   model <- x;
   if ( is.data.frame(x) ) {
@@ -37,13 +37,13 @@ units <- function(x, by) {
   return(model);
 }
 
-#' Title
-#'
-#' @param x TBD
-#' @param ... TBD
-#' @param rule TBD
-#'
-#' @return TBD
+# Title
+#
+# @param x TBD
+# @param ... TBD
+# @param rule TBD
+#
+# @return TBD
 hoo <- function(x, ..., rule = NULL) {
   units <- x$`_function.params`$units;
   unit_contexts <- x$model$contexts;
@@ -86,33 +86,33 @@ hoo <- function(x, ..., rule = NULL) {
   x
 }
 
-#' Title
-#'
-#' @param ... TBD
-#'
-#' @return TBD
+# Title
+#
+# @param ... TBD
+#
+# @return TBD
 rules <- function(...) {
   rlang::exprs(...)
 }
 
-#' Title
+#' Conversation rules
 #'
-#' @param ... TBD
+#' @param ... list of rules
 #'
-#' @return TBD
+#' @return callable expressions, see `rlang::exprs`
 #' @export
 conversation_rules <- function(...) {
   rlang::exprs(...)
 }
 
-#' Title
-#'
-#' @param x TBD
-#' @param units TBD
-#' @param hoo_rules TBD
-#' @param split_rules TBD
-#'
-#' @return TBD
+# Title
+#
+# @param x TBD
+# @param units TBD
+# @param hoo_rules TBD
+# @param split_rules TBD
+#
+# @return TBD
 contexts <- function(x, hoo_rules, units = NULL, split_rules = NULL) {
   if(!is.null( units )) {
     x_ <- units(x, units);

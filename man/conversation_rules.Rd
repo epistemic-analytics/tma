@@ -2,16 +2,16 @@
 % Please edit documentation in R/hoo.R
 \name{conversation_rules}
 \alias{conversation_rules}
-\title{Title}
+\title{Conversation rules}
 \usage{
 conversation_rules(...)
 }
 \arguments{
-\item{...}{TBD}
+\item{...}{list of rules}
 }
 \value{
-TBD
+callable expressions, see `rlang::exprs`
 }
 \description{
-Title
+Conversation rules
 }

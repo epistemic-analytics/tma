@@ -1,12 +1,12 @@
-#' Get Contexts for each unit in x
-#'
-#' @param x data.frame or data.table
-#' @param units_by character vector
-#' @param rules list
-#' @param indices.only boolean If TRUE, default, returns row indices for each unit, otherwise will return subset tables
-#'
-#' @return List, named by each unique unit, containing either row indices (indicies.only = TRUE) 
-#' or subset data.tables of x (indices.only = FALSE)
+# Get Contexts for each unit in x
+#
+# @param x data.frame or data.table
+# @param units_by character vector
+# @param rules list
+# @param indices.only boolean If TRUE, default, returns row indices for each unit, otherwise will return subset tables
+#
+# @return List, named by each unique unit, containing either row indices (indicies.only = TRUE) 
+# or subset data.tables of x (indices.only = FALSE)
 get_contexts <- function(x, units_by, rules, indices.only = TRUE) {
   # Convert to data.table if needed
   if(!inherits(x, "data.table")) {

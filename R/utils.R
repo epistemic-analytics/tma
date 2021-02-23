@@ -1,9 +1,9 @@
-#' Adjacency Key
-#'
-#' @param codes character vector
-#' @param upper logical, default, TRUE, returns the key for the upper triangle, FALSE - not implemented yet
-#'
-#' @return matrix
+# Adjacency Key
+#
+# @param codes character vector
+# @param upper logical, default, TRUE, returns the key for the upper triangle, FALSE - not implemented yet
+#
+# @return matrix
 adjacency_key <- function(codes, upper = TRUE) {
   n <- length(codes);
   if(upper == TRUE) {
@@ -68,13 +68,13 @@ ena.set.directed <- function(data, units, conversations, codes, ...) {
   )
 }
 
-#' Reclass vector
-#'
-#' @param x vector
-#' @param cl character - new class
-#' @param stringsAsFactors logical, default: default.stringsAsFactors()
-#'
-#' @return vector with class: c(cl, class(x))
+# Reclass vector
+#
+# @param x vector
+# @param cl character - new class
+# @param stringsAsFactors logical, default: default.stringsAsFactors()
+#
+# @return vector with class: c(cl, class(x))
 reclass <- function(x, cl, stringsAsFactors = default.stringsAsFactors()) {
   if(!stringsAsFactors && is.factor(x)) {
     x <- as.character(x)
@@ -83,13 +83,13 @@ reclass <- function(x, cl, stringsAsFactors = default.stringsAsFactors()) {
   x
 }
 
-#' paste columns to together
-#'
-#' @param x coerced to data.frame prior to subseting cols
-#' @param cols character vector - default: colnames(x)
-#' @param sep character default "."
-#'
-#' @return character vector
+# paste columns to together
+#
+# @param x coerced to data.frame prior to subseting cols
+# @param cols character vector - default: colnames(x)
+# @param sep character default "."
+#
+# @return character vector
 merge_columns <- function(x, cols = colnames(x), sep = ".") {
   do.call(paste, c(as.data.frame(x)[, cols], sep = sep))
 }

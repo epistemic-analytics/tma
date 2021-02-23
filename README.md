@@ -1,4 +1,4 @@
-# Transmodal Analysis
+# TMA for ENA
 
 ## Install CRAN
 

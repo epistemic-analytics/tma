@@ -1,8 +1,8 @@
-#' Accumulated threaded data
-#'
-#' @param ... passed along
-#'
-#' @return ENA set
+# Accumulated threaded data
+#
+# @param ... passed along
+#
+# @return ENA set
 accumulate_context_threads <- function(...) {
   args <- list(...);
   
@@ -25,21 +25,21 @@ accumulate_context_threads <- function(...) {
   )
 }
 
-#' accumulate_contexts
-#'
-#' @param x TBD
-#' @param codes TBD
-#' @param time.column TBD
-#' @param decay.function TBD
-#' @param mode.column TBD
-#' @param mask TBD
-#' @param time.limit TBD
-#' @param weight.by TBD
-#' @param meta.data TBD
-#' @param return.dena.set TBD
-#' @param return.ena.set TBD 
-#'
-#' @return ENA set
+# accumulate_contexts
+#
+# @param x TBD
+# @param codes TBD
+# @param time.column TBD
+# @param decay.function TBD
+# @param mode.column TBD
+# @param mask TBD
+# @param time.limit TBD
+# @param weight.by TBD
+# @param meta.data TBD
+# @param return.dena.set TBD
+# @param return.ena.set TBD 
+#
+# @return ENA set
 accumulate_contexts <- function(
   x,
   codes,
