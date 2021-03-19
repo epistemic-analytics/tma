@@ -10,6 +10,7 @@
 #' @param window_size TBD
 #' @param meta_data TBD
 #'
+#'
 #' @return TBD
 #' @export
 accumulate_threads <- function(
