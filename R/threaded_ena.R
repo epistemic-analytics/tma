@@ -16,6 +16,7 @@ accumulate_threads <- function(
   units_by,
   conversation_rules,
   code_cols,
+  ...,
   conversation_splits = NULL,
   as_directed = FALSE,
   window_size = 4,
@@ -36,7 +37,8 @@ accumulate_threads <- function(
     codes = code_cols,
     as_directed = as_directed,
     window_size = window_size,
-    meta.data = meta_data
+    meta.data = meta_data,
+    ...
   );
   
   return(model);

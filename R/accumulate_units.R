@@ -7,6 +7,9 @@ accumulate_context_threads <- function(...) {
   args <- list(...);
   
   simple_window <- function(x) { (x < args$window_size) * 1 }
+  if(!is.null(args$decay_function) && is.function(args$decay_function)) {
+    simple_window <- args$decay_function;
+  }
   no_weight <- function(x) { x };
   accumulate_contexts(
     x = args$x,
@@ -107,7 +110,7 @@ accumulate_contexts <- function(
     }
     # this.unit <- unique(units[which(apply(units, 1, paste, collapse = "::") == names(f.contexts)[unit.index]),]);
     this.unit <- attr(unit.contexts[[1]], "tma.unit");
-    unit.label <- paste(this.unit, collapse = "::");
+    unit.label <- paste(as.character(this.unit), collapse = "::");
     # cat(unit.label, "\n")
     # Empty matrices for tracking unit vectors
     unit.directed.adjacency.vectors <- data.frame(matrix(0, nrow = 1, ncol = length(f.codes)^2)[0,]);

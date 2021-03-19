@@ -125,7 +125,7 @@ contexts <- function(x, hoo_rules, units = NULL, split_rules = NULL) {
     x_ <- hoo(x_, rule = r);
   }
 
-  raw_input <- x$model$raw.input;
+  raw_input <- x_$model$raw.input;
   split_expr_valid <- TRUE;
   err_found <- 0;
   tryCatch(expr = is.null(split_rules), error = function(e) { 
