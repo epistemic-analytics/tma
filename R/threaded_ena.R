@@ -4,6 +4,7 @@
 #' @param units_by TBD
 #' @param conversation_rules TBD
 #' @param code_cols TBD
+#' @param ... TBD
 #' @param conversation_splits TBD
 #' @param as_directed TBD
 #' @param window_size TBD

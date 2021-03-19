@@ -9,6 +9,7 @@ accumulate_threads(
   units_by,
   conversation_rules,
   code_cols,
+  ...,
   conversation_splits = NULL,
   as_directed = FALSE,
   window_size = 4,
@@ -23,6 +24,8 @@ accumulate_threads(
 \item{conversation_rules}{TBD}
 
 \item{code_cols}{TBD}
+
+\item{...}{TBD}
 
 \item{conversation_splits}{TBD}
 
