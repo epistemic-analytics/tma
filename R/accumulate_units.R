@@ -24,7 +24,8 @@ accumulate_context_threads <- function(...) {
     
     decay.function = simple_window,
     weight.by = no_weight,
-    mode.column = "Thread"
+    mode.column = "Thread",
+    context_filter = args$context_filter
   )
 }
 
@@ -32,6 +33,7 @@ accumulate_context_threads <- function(...) {
 #
 # @param x TBD
 # @param codes TBD
+# @param ... TBD
 # @param time.column TBD
 # @param decay.function TBD
 # @param mode.column TBD
@@ -54,7 +56,8 @@ accumulate_contexts <- function(
   weight.by = sqrt,
   meta.data = NULL,
   return.dena.set = FALSE,
-  return.ena.set = TRUE
+  return.ena.set = TRUE,
+  context_filter = NULL
 ) {
   data <- x$model$raw.input;
   f.contexts <- x$model$contexts; #context.object #$contexts
@@ -134,6 +137,9 @@ accumulate_contexts <- function(
       this_context_codes <- all_codes[this.context.rows,, drop = FALSE]
       # this_context_codes <- all_codes[this.context.rows,, drop = FALSE]
       this.unit.rows_tf <- this.context$QEUNIT == unit.label
+      if(!is.null(context_filter)) {
+        this.unit.rows_tf <- do.call(context_filter, list(unit = unit.label, context = this.context))  
+      }
       this.unit.rows <- which(this.unit.rows_tf);
       if(use.window) {
         f.time <- "CID"
@@ -303,13 +309,15 @@ accumulate_contexts <- function(
       }
     })
     
-    # browser()
     unit.directed.adjacency.vectors <- data.table::rbindlist(res_context)
     directed.adjacency.vectors  <- rbind( directed.adjacency.vectors,  colSums(unit.directed.adjacency.vectors) );
 
-    unit.undirected.adjacency.vectors <- unit.directed.adjacency.vectors[, {
-      as.list(as.undirected.vector(as.undirected.matrix(matrix(unlist(.SD), ncol = sqrt(length(.SD))))))
-    }, by = seq(nrow(unit.directed.adjacency.vectors))][, -1]
+    # browser(expr = { unit.index == 149})
+    if(nrow(unit.directed.adjacency.vectors) > 0) {
+      unit.undirected.adjacency.vectors <- unit.directed.adjacency.vectors[, {
+        as.list(as.undirected.vector(as.undirected.matrix(matrix(unlist(.SD), ncol = sqrt(length(.SD))))))
+      }, by = seq(nrow(unit.directed.adjacency.vectors))][, -1]
+    }
     
     undirected.adjacency.vectors <- rbind( undirected.adjacency.vectors, colSums(unit.undirected.adjacency.vectors) );
     
