@@ -312,7 +312,6 @@ accumulate_contexts <- function(
     unit.directed.adjacency.vectors <- data.table::rbindlist(res_context)
     directed.adjacency.vectors  <- rbind( directed.adjacency.vectors,  colSums(unit.directed.adjacency.vectors) );
 
-    # browser(expr = { unit.index == 149})
     if(nrow(unit.directed.adjacency.vectors) > 0) {
       unit.undirected.adjacency.vectors <- unit.directed.adjacency.vectors[, {
         as.list(as.undirected.vector(as.undirected.matrix(matrix(unlist(.SD), ncol = sqrt(length(.SD))))))
