@@ -13,15 +13,14 @@ vignette: >
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 install.packages("rENA", repo = "https://cran.rstudio.org");
+library(tma)
+library(rENA)
+library(magrittr)
 ```
 
 ## Threaded Example
 
 ```{r}
-library(tma)
-library(rENA)
-library(magrittr)
-
 data("test_reddit2", package = "tma")
 reddit_data <- data.table::as.data.table(test_reddit2)
 for(i in 1:nrow(reddit_data)) {
@@ -34,15 +33,15 @@ for(i in 1:nrow(reddit_data)) {
       next_parent <- reddit_data[ID == parent, ]$ParentID
       
       if(next_parent != "N/A") {
-        parent_vec <- c(parent_vec, next_parent)
+        parent_vec <- c(next_parent, parent_vec)
       }
       parent <- next_parent
     }
   }
-  
+
   reddit_data[i, parents := list(list(parent_vec))]
 }
-# Model Setup ----
+
 reddit_code_cols <- c("LetsOpen","Economy","TooSoon","Politics","Spread")
 reddit_units_by <- c("Author2");
 test_window_size <- 4;
@@ -66,7 +65,8 @@ threaded_accum <- tma::accumulate_threads(
   code_cols = reddit_code_cols,
   conversation_rules = reddit_conversation_rules,
   conversation_splits = reddit_split_fun,
-  window_size = 4
+  window_size = 4,
+  decay_function = function(x) { (x < 4) * 1 }
 )
 threaded_model <- rENA::ena.make.set(threaded_accum)
 
