@@ -29,6 +29,37 @@ accumulate_context_threads <- function(...) {
   )
 }
 
+ground_response_crossprod <- function(
+  x, y
+) {
+  eff_call_env <- new.env(parent = environment(ground_effect_function));
+  environment(ground_effect_function) <- eff_call_env;
+  assign("UNIT", UNIT, envir = eff_call_env);
+  assign("UNIT_LABEL", UNIT_LABEL, envir = eff_call_env);
+  
+  # all_connection_matrices_raw <- list_vec_apply(all_only_ground_connections, responses.codes, ground_effect_function);
+  all_connection_matrices_raw <- list_vec_apply(x, y, ground_effect_function);
+  
+  response_matrices <- lapply(y, function(x) tcrossprod(x) );
+  these_self_connections <- lapply(response_matrices, function(x) {
+    0.5 * (x - diag(diag(x)))
+  })
+  
+  all_connection_matrices <- lapply(seq(all_connection_matrices_raw), function(i) {
+    all_connection_matrices_raw[[i]] + these_self_connections[[i]]
+  })
+  
+  dir_vecs <- t(sapply(all_connection_matrices, function(x) { dim(x) <- c(1, length(codes)^2); (x) }));
+  
+  acc_call_env <- new.env(parent = environment(accumulate_unit_vectors_by));
+  environment(accumulate_unit_vectors_by) <- acc_call_env;
+  assign("UNIT", UNIT, envir = acc_call_env);
+  assign("UNIT_LABEL", UNIT_LABEL, envir = acc_call_env);
+  dir_vecs <- accumulate_unit_vectors_by(dir_vecs);
+  
+  return(dir_vecs)
+}
+
 # accumulate_contexts
 #
 # @param x TBD
@@ -57,6 +88,8 @@ accumulate_contexts <- function(
   return.dena.set = FALSE,
   return.ena.set = TRUE,
   context_filter = NULL,
+  calculate_adj_vectors_using = ground_response_crossprod,
+  ground_effect_function = function(x, y) crossprod(t(x), y),
   accumulate_unit_vectors_by = colSums
 ) {
   data <- x$model$raw.input;
@@ -211,34 +244,16 @@ accumulate_contexts <- function(
           fn = function(x, y) x - y
         );
         
-        ## Sparse Matrices
-        all_connection_matrices_raw <- list_vec_apply(all_only_ground_connections, responses.codes, function(x, y) crossprod(t(x), y));
-        
-        response_matrices <- lapply(responses.codes, function(x) tcrossprod(x) );
-        these_self_connections <- lapply(response_matrices, function(x) {
-          0.5 * (x - diag(diag(x)))
-        })
-        
-        all_connection_matrices <- lapply(seq(all_connection_matrices_raw), function(i) {
-          all_connection_matrices_raw[[i]] + these_self_connections[[i]]
-        })
-        
-        # dir_mats <- as.matrix(Reduce(x = all_connection_matrices, f = `+`, init = blank.code.matrix, accumulate = FALSE));
-        # dim(dir_mats) <- c(1, prod(dim(dir_mats) ));
-        # data.frame(dir_mats);
-        
-        dir_vecs <- t(sapply(all_connection_matrices, function(x) { dim(x) <- c(1, length(codes)^2); (x) }));
-        
-        acc_call_env <- new.env(parent = environment(accumulate_unit_vectors_by));
-        environment(accumulate_unit_vectors_by) <- acc_call_env;
-        assign("UNIT", this.unit, envir = acc_call_env);
-        assign("UNIT_LABEL", unit.label, envir = acc_call_env);
-        dir_vecs <- accumulate_unit_vectors_by(dir_vecs);
+        ##
+        adj_call_env <- new.env(parent = environment(calculate_adj_vectors_using));
+        environment(calculate_adj_vectors_using) <- adj_call_env;
+        assign("UNIT", this.unit, envir = adj_call_env);
+        assign("UNIT_LABEL", unit.label, envir = adj_call_env);
+        assign("ground_effect_function", ground_effect_function, envir = adj_call_env);
+        assign("accumulate_unit_vectors_by", accumulate_unit_vectors_by, envir = adj_call_env);
+        dir_vecs <- calculate_adj_vectors_using(all_only_ground_connections, responses.codes)
         
         dim(dir_vecs) <- c( 1, length(dir_vecs) );
-        
-        # data.frame(dir_vecs);
-        # stopifnot(all.equal(dir_mats, dir_vecs))
         
         data.frame(dir_vecs);
       }
