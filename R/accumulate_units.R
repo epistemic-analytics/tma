@@ -49,7 +49,7 @@ ground_response_crossprod <- function(
     all_connection_matrices_raw[[i]] + these_self_connections[[i]]
   })
   
-  dir_vecs <- t(sapply(all_connection_matrices, function(x) { dim(x) <- c(1, length(codes)^2); (x) }));
+  dir_vecs <- t(sapply(all_connection_matrices, function(x) { dim(x) <- c(1, nrow(x)^2); (x) }));
   
   acc_call_env <- new.env(parent = environment(accumulate_unit_vectors_by));
   environment(accumulate_unit_vectors_by) <- acc_call_env;

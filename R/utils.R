@@ -91,5 +91,5 @@ reclass <- function(x, cl, stringsAsFactors = default.stringsAsFactors()) {
 #
 # @return character vector
 merge_columns <- function(x, cols = colnames(x), sep = ".") {
-  do.call(paste, c(as.data.frame(x)[, cols], sep = sep))
+  do.call(paste, c(as.data.frame(x)[, cols, drop = FALSE], sep = sep))
 }
