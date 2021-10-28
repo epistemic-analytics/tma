@@ -146,7 +146,6 @@ accumulate_contexts <- function(
     
     this.unit <- attr(unit.contexts[[1]], "tma.unit");
     unit.label <- paste(as.character(this.unit), collapse = "::");
-    
     # Empty matrices for tracking unit vectors
     unit.directed.adjacency.vectors <- data.frame(matrix(0, nrow = 1, ncol = length(f.codes)^2)[0,]);
     unit.undirected.adjacency.vectors <- data.frame(matrix(0, nrow = 1, ncol = ncol(adjacency_key(f.codes))))[0,]
@@ -210,10 +209,11 @@ accumulate_contexts <- function(
           
           subbed <- as.numeric(response.times[wh] - ground.times[[wh]])
           if(is.function(f.decay)) {
-            CONTEXT[ , {
-              assign("GROUND_ROW", .SD, envir = call_env);
-              f.decay(subbed[.GRP])
-            }, by = which(grounds[[wh]])][[2]];
+            f.decay(subbed)
+            # CONTEXT[ , {
+            #   assign("GROUND_ROW", .SD, envir = call_env);
+            #   f.decay(subbed[.GRP])
+            # }, by = which(grounds[[wh]])][[2]];
           }
           else if (use.modes) {
             mapply(FUN = function(xx, yy, INDEX) {
@@ -223,6 +223,7 @@ accumulate_contexts <- function(
         }, simplify = FALSE)
         
         grounds.codes = mapply(grounds.codes.raw, all.decays, FUN = function(x, y) {
+          # print(sum(y))
           if(length(y) == 1) {
             x * y[[1]]
           }
@@ -264,7 +265,9 @@ accumulate_contexts <- function(
 
     if(nrow(unit.directed.adjacency.vectors) > 0) {
       unit.undirected.adjacency.vectors <- unit.directed.adjacency.vectors[, {
-        as.list(as.undirected.vector(as.undirected.matrix(matrix(unlist(.SD), ncol = sqrt(length(.SD))))))
+        as.list(
+          as.undirected.vector(as.undirected.matrix(matrix(unlist(.SD), ncol = sqrt(length(.SD)))))
+        )
       }, by = seq(nrow(unit.directed.adjacency.vectors))][, -1]
     }
     
@@ -279,7 +282,7 @@ accumulate_contexts <- function(
   directed.adjacency.vectors <- structure(
     lapply(directed.adjacency.vectors, reclass, cl = "ena.co.occurrence"), 
     class = c("ena.connections", "data.table", "data.frame"),
-    names = apply(t(apply(matrix(c(rep(seq(f.codes), times = length(f.codes)), rep(seq(f.codes), each = length(f.codes))), ncol = 2), 2, function(x) LETTERS[x])), 2, paste, collapse = " & ")
+    names = apply(t(apply(matrix(c(rep(seq(f.codes), times = length(f.codes)), rep(seq(f.codes), each = length(f.codes))), ncol = 2), 2, function(x) f.codes[x])), 2, paste, collapse = " & ")
   );
   
   # lapply(undirected.adjacency.vectors, as.ena.co.occurrence), 
@@ -292,7 +295,7 @@ accumulate_contexts <- function(
   x$meta.data <- structure(
     lapply(output.meta.data, reclass, cl = "ena.metadata"), 
     class = c("ena.matrix", "data.table", "data.frame")
-  )
+  );
   
   # Standard ENA Set
   if(return.ena.set) {
