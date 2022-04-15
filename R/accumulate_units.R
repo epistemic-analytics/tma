@@ -88,6 +88,7 @@ accumulate_contexts <- function(
   return.dena.set = FALSE,
   return.ena.set = TRUE,
   context_filter = NULL,
+  summarize_ground_using = colSums,
   calculate_adj_vectors_using = ground_response_crossprod,
   ground_effect_function = function(x, y) crossprod(t(x), y),
   accumulate_unit_vectors_by = colSums
@@ -240,7 +241,8 @@ accumulate_contexts <- function(
         
         this.responses.in.grounds <- list_vec_apply(grounds.codes, this.unit.resp.idx, function(x, g) { x[g, ] })
         
-        these.grounds <- lapply(grounds.codes, function(x) colSums(x) );
+        # these.grounds <- lapply(grounds.codes, function(x) colSums(x) );
+        these.grounds <- lapply(grounds.codes, function(x) summarize_ground_using(x) );
         
         all_only_ground_connections <- list_vec_apply(
           x = these.grounds,
