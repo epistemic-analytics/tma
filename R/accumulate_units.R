@@ -200,11 +200,14 @@ accumulate_contexts <- function(
         all.decays <- sapply(seq(grounds), function(wh) {
           call_env <- new.env(parent = environment(f.decay));
           RESPONSE_INDEX <- attr(grounds[[wh]], which = "tma.response.index")
-          RESPONSE <- this.context[RESPONSE_INDEX, ]
-          CONTEXT <- this.context[grounds[[wh]], ]
+          # RESPONSE <- this.context[RESPONSE_INDEX, ]
+          ROWS <- grounds[[wh]]
+          # CONTEXT <- this.context[this_rows, ]
+          # RESPONSE <- CONTEXT[.N]
           assign("FULL_CONTEXT", this.context, envir = call_env)
-          assign("CONTEXT", CONTEXT, envir = call_env)
-          assign("RESPONSE", RESPONSE, envir = call_env)
+          # assign("CONTEXT", CONTEXT, envir = call_env)
+          # assign("RESPONSE", RESPONSE, envir = call_env)
+          assign("ROWS", ROWS, envir = call_env)
           environment(f.decay) <- call_env;
           
           subbed <- as.numeric(response.times[wh] - ground.times[[wh]])
