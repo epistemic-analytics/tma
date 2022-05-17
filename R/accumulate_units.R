@@ -32,6 +32,8 @@ accumulate_context_threads <- function(...) {
 ground_response_crossprod <- function(
   x, y
 ) {
+  UNIT = NULL;
+  UNIT_LABEL = NULL;
   eff_call_env <- new.env(parent = environment(ground_effect_function));
   environment(ground_effect_function) <- eff_call_env;
   assign("UNIT", UNIT, envir = eff_call_env);
