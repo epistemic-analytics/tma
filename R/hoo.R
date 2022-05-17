@@ -147,7 +147,7 @@ contexts <- function(x, hoo_rules, units = NULL, split_rules = NULL) {
       model_units <- x_$`_function.params`$units;
   
       if ( is.function (split_rules) ) {
-          # browser()
+        # browser()
         # stop("THIS NEEDS UPDATING (2)")
         unique_units <- unique(model_units);
         unit_contexts_res <- apply(unique_units, 1, function(u) {

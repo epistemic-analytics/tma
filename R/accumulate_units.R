@@ -160,9 +160,11 @@ accumulate_contexts <- function(
     res_context <- lapply(seq(unit.contexts), function(context.index) {
       this.code.matrix <- blank.code.matrix;
       this.context.rows <- unit.contexts[[context.index]];
-      this.context <- x$model$raw.input[this.context.rows, ];
+      this.context <- x$model$raw.input[this.context.rows, , on = c("QEID")];
       this.context$CID <- seq(nrow(this.context))
-      this_context_codes <- all_codes[this.context.rows,, drop = FALSE]
+      # browser()
+      # this_context_codes <- all_codes[this.context.rows,, drop = FALSE]
+      this_context_codes <- all_codes[this.context.rows$QEID,, drop = FALSE]
       this.unit.rows_tf <- this.context$QEUNIT == unit.label
       if(!is.null(context_filter)) {
         this.unit.rows_tf <- do.call(context_filter, list(unit = unit.label, context = this.context))  
