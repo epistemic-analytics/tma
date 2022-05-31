@@ -196,6 +196,20 @@ contexts <- function(x, hoo_rules, units = NULL, split_rules = NULL) {
       
       x_$model$contexts <- unit_contexts;
     }
+    else {
+      unit_contexts <- x_$model$contexts;
+      model_units <- x_$`_function.params`$units;
+      unique_units <- unique(model_units);
+      unit_contexts_res <- apply(unique_units, 1, function(u) {
+        unit_label <- paste(u, collapse = "::");
+        res <- raw_input[unit_contexts[[unit_label]]];
+        attr(res, "tma.unit") <- attr(unit_contexts[[unit_label]], "tma.unit");
+        res
+      });
+      names(unit_contexts_res) <- apply(unique_units, 1, paste, collapse = "::"); #names(unit_contexts);
+      unit_contexts <- unit_contexts_res;
+      x_$model$contexts <- unit_contexts;
+    }
   }
   
   return(x_);

@@ -75,7 +75,7 @@ ena.set.directed <- function(data, units, conversations, codes, ...) {
 # @param stringsAsFactors logical, default: default.stringsAsFactors()
 #
 # @return vector with class: c(cl, class(x))
-reclass <- function(x, cl, stringsAsFactors = default.stringsAsFactors()) {
+reclass <- function(x, cl, stringsAsFactors = FALSE) {
   if(!stringsAsFactors && is.factor(x)) {
     x <- as.character(x)
   }

@@ -49,7 +49,7 @@ reddit_conversation_rules <- conversation_rules(
   (ID %in% unlist(UNIT$parents))
 );
 reddit_split_fun <- function(unit, unit_context) {
-  unit_rows <- unit_context[unit, c("user", "ID", "parentID", "parents"), on = names(unit)]
+  unit_rows <- unit_context[unit, c("Author2", "ID", "ParentID", "parents"), on = names(unit)]
   split(
     unit_rows[, {
       res2 <- unit_context[ID %chin% unlist(.SD$parents), ];

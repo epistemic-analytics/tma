@@ -148,6 +148,9 @@ accumulate_contexts <- function(
     }
     
     this.unit <- attr(unit.contexts[[1]], "tma.unit");
+    if(is.null(this.unit)) {
+      this.unit <- attr(unit.contexts, "tma.unit");
+    }
     unit.label <- paste(as.character(this.unit), collapse = "::");
     # Empty matrices for tracking unit vectors
     unit.directed.adjacency.vectors <- data.frame(matrix(0, nrow = 1, ncol = length(f.codes)^2)[0,]);
@@ -162,7 +165,12 @@ accumulate_contexts <- function(
     res_context <- lapply(seq(unit.contexts), function(context.index) {
       this.code.matrix <- blank.code.matrix;
       this.context.rows <- unit.contexts[[context.index]];
-      this.context <- x$model$raw.input[this.context.rows, , on = c("QEID")];
+      if(is.numeric(this.context.rows)) {
+        this.context <- x$model$raw.input[this.context.rows, ];
+      }
+      else {
+        this.context <- x$model$raw.input[this.context.rows, , on = c("QEID")];
+      }
       this.context$CID <- seq(nrow(this.context))
       # browser()
       # this_context_codes <- all_codes[this.context.rows,, drop = FALSE]
