@@ -105,17 +105,18 @@ conversation_rules <- function(...) {
   rlang::exprs(...)
 }
 
-# Title
-#
-# @param x TBD
-# @param units TBD
-# @param hoo_rules TBD
-# @param split_rules TBD
-#
-# @return TBD
-contexts <- function(x, hoo_rules, units = NULL, split_rules = NULL) {
+#' Title
+#'
+#' @param x TBD
+#' @param units_by TBD
+#' @param hoo_rules TBD
+#' @param split_rules TBD
+#'
+#' @return TBD
+#' @export
+contexts <- function(x, hoo_rules, units_by = NULL, split_rules = NULL) {
   if(!is.null( units )) {
-    x_ <- units(x, units);
+    x_ <- units(x, units_by);
   }
   else {
     x_ <- x;

@@ -62,30 +62,32 @@ ground_response_crossprod <- function(
   return(dir_vecs)
 }
 
-# accumulate_contexts
-#
-# @param x TBD
-# @param codes TBD
-# @param ... TBD
-# @param time.column TBD
-# @param decay.function TBD
-# @param mode.column TBD
-# @param mask TBD
-# @param weight.by TBD
-# @param meta.data TBD
-# @param return.dena.set TBD
-# @param return.ena.set TBD 
-# @param accumulate_unit_vectors_by TBD 
-#
-# @return ENA set
+#' accumulate_contexts
+#'
+#' @param x TBD
+#' @param codes TBD
+#' @param ... TBD
+#' @param time.column TBD
+#' @param decay.function TBD
+#' @param mode.column TBD
+#' @param mask TBD
+#' @param weight.by TBD
+#' @param meta.data TBD
+#' @param return.dena.set TBD
+#' @param return.ena.set TBD 
+#' @param accumulate_unit_vectors_by TBD 
+#'
+#' @return ENA set
+#' @export
 accumulate_contexts <- function(
   x,
   codes,
+  decay.function = decay(simple_window, window_size = 4),
   time.column = NULL,
-  decay.function = NULL,
   mode.column = NULL,
   mask = NULL,
   weight.by = sqrt,
+  norm.by = `_sphere_norm`,
   meta.data = NULL,
   return.dena.set = FALSE,
   return.ena.set = TRUE,
@@ -113,6 +115,7 @@ accumulate_contexts <- function(
   use.meta = ifelse(any(is.null(f.meta.data)), FALSE, TRUE)
   use.mask = ifelse(is.matrix(mask), TRUE, FALSE)
   use.window = ifelse(is.null(f.time) || is.na(f.time), TRUE, FALSE)
+  
   
   meta_cols <- x$`_function.params`$units.by;
   if(use.meta) {
@@ -219,7 +222,7 @@ accumulate_contexts <- function(
           # RESPONSE <- CONTEXT[.N]
           assign("FULL_CONTEXT", this.context, envir = call_env)
           # assign("CONTEXT", CONTEXT, envir = call_env)
-          # assign("RESPONSE", RESPONSE, envir = call_env)
+          assign("RESPONSE_INDEX", RESPONSE_INDEX, envir = call_env)
           assign("ROWS", ROWS, envir = call_env)
           environment(f.decay) <- call_env;
           
@@ -239,21 +242,21 @@ accumulate_contexts <- function(
         }, simplify = FALSE)
         
         grounds.codes = mapply(grounds.codes.raw, all.decays, FUN = function(x, y) {
-          # print(sum(y))
+          
           if(length(y) == 1) {
             x * y[[1]]
           }
-
+          
           #otherwise this is a bit of fancy math that multiplies each row of the matrix
           #by a different scalar from a vector of scalars
           else {
-            sweep(x, MARGIN = 1, as.numeric(y), FUN = `*`)
+            # browser()
+            # sweep(x, MARGIN = 1, (y), FUN = `*`)
+            x * y
           }
         }, SIMPLIFY = FALSE);
         
         this.responses.in.grounds <- list_vec_apply(grounds.codes, this.unit.resp.idx, function(x, g) { x[g, ] })
-        
-        # these.grounds <- lapply(grounds.codes, function(x) colSums(x) );
         these.grounds <- lapply(grounds.codes, function(x) summarize_ground_using(x) );
         
         all_only_ground_connections <- list_vec_apply(
@@ -333,6 +336,11 @@ accumulate_contexts <- function(
       data.table::copy(x$connection.counts),
       class = c("row.connections", "ena.matrix", "data.table", "data.frame")
     );
+    # browser()
+    
+    if(!is.null(norm.by)) {
+      x$line.weights <- norm.by(x = as.matrix(undirected.adjacency.vectors))
+    }
     
     output = x;
   }
