@@ -1,22 +1,24 @@
 stages:
   - setup
-  - docker
   - build
   - check
-  - package
+  - publish
   - release
+  - tag
 
-variables:
-  VERSION: "0.1.0"
-  PKG: "tma"
-  PKGL: "tma"
-  REG_URL: "${CI_REGISTRY}/epistemic-analytics/qe-packages/${PKGL}"
-  
 include:
-  - project: 'epistemic-analytics/qe-packages/cranqe'
-    ref: master
-    file:
-      - '/public/ci_templates/setup_template.yml'
-      - '/public/ci_templates/rhub_template.yml'
-      - '/public/ci_templates/build_template.yml'
-      - '/public/ci_templates/cranqe_release_template.yml'
+  - project: 'cran-ci/ci-templates'
+    ref: main
+    file: '/templates/build/R-build.gitlab-ci.yml'
+  - project: 'cran-ci/ci-templates'
+    ref: main
+    file: '/templates/setup/setup.gitlab-ci.yml'
+  - project: 'cran-ci/ci-templates'
+    ref: main
+    file: '/templates/check/Rhub-checks-updated.gitlab-ci.yml'
+  - project: 'cran-ci/ci-templates'
+    ref: main
+    file: '/templates/release/pkgdown.gitlab-ci.yml'
+  - project: 'cran-ci/ci-templates'
+    ref: main
+    file: '/templates/cran/CRAN.gitlab-ci.yml'
