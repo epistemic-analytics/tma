@@ -365,6 +365,10 @@ accumulate_contexts <- function(
     dena_data$connection.counts = reclass(dena_data$connection.counts, c("ena.connections", "ena.matrix"))
     dena_data$model$row.connection.counts <- reclass(dena_data$model$row.connection.counts, c("row.connections", "ena.matrix"))
     
+    if ( !is.null(norm.by) ) {
+      dena_data$line.weights <- norm.by(x = as.matrix(directed.adjacency.vectors))
+    }
+    
     output = dena_data;
   }
   
