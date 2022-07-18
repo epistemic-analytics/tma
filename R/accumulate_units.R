@@ -66,7 +66,6 @@ ground_response_crossprod <- function(
 #'
 #' @param x TBD
 #' @param codes TBD
-#' @param ... TBD
 #' @param time.column TBD
 #' @param decay.function TBD
 #' @param mode.column TBD
@@ -76,6 +75,11 @@ ground_response_crossprod <- function(
 #' @param return.dena.set TBD
 #' @param return.ena.set TBD 
 #' @param accumulate_unit_vectors_by TBD 
+#' @param norm.by TBD
+#' @param context_filter TBD
+#' @param summarize_ground_using TBD
+#' @param calculate_adj_vectors_using TBD
+#' @param ground_effect_function TBD
 #'
 #' @return ENA set
 #' @export

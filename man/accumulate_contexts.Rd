@@ -38,15 +38,23 @@ accumulate_contexts(
 
 \item{weight.by}{TBD}
 
+\item{norm.by}{TBD}
+
 \item{meta.data}{TBD}
 
 \item{return.dena.set}{TBD}
 
 \item{return.ena.set}{TBD}
 
-\item{accumulate_unit_vectors_by}{TBD}
+\item{context_filter}{TBD}
 
-\item{...}{TBD}
+\item{summarize_ground_using}{TBD}
+
+\item{calculate_adj_vectors_using}{TBD}
+
+\item{ground_effect_function}{TBD}
+
+\item{accumulate_unit_vectors_by}{TBD}
 }
 \value{
 ENA set

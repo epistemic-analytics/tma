@@ -1,6 +1,7 @@
 #' simple window decay
 #'
 #' @param x numeric vector
+#' @param args TBD
 #'
 #' @return numeric vector
 #' @export

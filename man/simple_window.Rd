@@ -8,6 +8,8 @@ simple_window(x, args = NULL)
 }
 \arguments{
 \item{x}{numeric vector}
+
+\item{args}{TBD}
 }
 \value{
 numeric vector
