@@ -148,12 +148,9 @@ contexts <- function(x, hoo_rules, units_by = NULL, split_rules = NULL) {
       model_units <- x_$`_function.params`$units;
   
       if ( is.function (split_rules) ) {
-        # browser()
-        # stop("THIS NEEDS UPDATING (2)")
         unique_units <- unique(model_units);
         unit_contexts_res <- apply(unique_units, 1, function(u) {
           unit_label <- paste(u, collapse = "::");
-          # browser()
           res <- do.call(what = split_rules, args = list(unit = u, raw_input[unit_contexts[[unit_label]]]));
           attr(res, "tma.unit") <- attr(unit_contexts[[unit_label]], "tma.unit");
           res <- lapply(res, function(r) {
@@ -202,7 +199,8 @@ contexts <- function(x, hoo_rules, units_by = NULL, split_rules = NULL) {
       model_units <- x_$`_function.params`$units;
       unique_units <- unique(model_units);
       unit_contexts_res <- apply(unique_units, 1, function(u) {
-        unit_label <- paste(u, collapse = "::");
+        # unit_label <- paste(u, collapse = "::");
+        unit_label <- paste(trimws(u), collapse = "::");
         res <- raw_input[unit_contexts[[unit_label]]];
         attr(res, "tma.unit") <- attr(unit_contexts[[unit_label]], "tma.unit");
         res
