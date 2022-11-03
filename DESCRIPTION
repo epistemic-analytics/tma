@@ -14,7 +14,9 @@ Depends:
 License: GPL-3 | file LICENSE
 Imports:
     stats,
-    rlang
+    methods,
+    rlang,
+    Rcpp
 Suggests:
     testthat (>= 2.1.0),
     magrittr,
@@ -22,3 +24,6 @@ Suggests:
     knitr,
     rmarkdown
 RoxygenNote: 7.2.0
+LinkingTo: 
+    Rcpp,
+    RcppArmadillo

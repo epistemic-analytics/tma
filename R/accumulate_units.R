@@ -41,7 +41,7 @@ ground_response_crossprod <- function(
   
   # all_connection_matrices_raw <- list_vec_apply(all_only_ground_connections, responses.codes, ground_effect_function);
   all_connection_matrices_raw <- list_vec_apply(x, y, ground_effect_function);
-  
+  # print(all_connection_matrices_raw);
   response_matrices <- lapply(y, function(x) tcrossprod(x) );
   these_self_connections <- lapply(response_matrices, function(x) {
     0.5 * (x - diag(diag(x)))
@@ -50,14 +50,15 @@ ground_response_crossprod <- function(
   all_connection_matrices <- lapply(seq(all_connection_matrices_raw), function(i) {
     all_connection_matrices_raw[[i]] + these_self_connections[[i]]
   })
-  
   dir_vecs <- t(sapply(all_connection_matrices, function(x) { dim(x) <- c(1, nrow(x)^2); (x) }));
+  # print(dir_vecs);
   
   acc_call_env <- new.env(parent = environment(accumulate_unit_vectors_by));
   environment(accumulate_unit_vectors_by) <- acc_call_env;
   assign("UNIT", UNIT, envir = acc_call_env);
   assign("UNIT_LABEL", UNIT_LABEL, envir = acc_call_env);
   dir_vecs <- accumulate_unit_vectors_by(dir_vecs);
+  # browser()
   
   return(dir_vecs)
 }
@@ -228,6 +229,7 @@ accumulate_contexts <- function(
           # assign("CONTEXT", CONTEXT, envir = call_env)
           assign("RESPONSE_INDEX", RESPONSE_INDEX, envir = call_env)
           assign("ROWS", ROWS, envir = call_env)
+          
           environment(f.decay) <- call_env;
           
           subbed <- as.numeric(response.times[wh] - ground.times[[wh]])
@@ -353,7 +355,7 @@ accumulate_contexts <- function(
   else {
     dena_data = ena.set.directed(f.raw, f.units, NA, f.codes)
     dena_data$meta.data <- data.table::as.data.table(output.meta.data)
-    dena_data$meta.data[, c("ENA_UNIT") := merge_columns(dena_data$meta.data, cols = x$`_function.params`$units.by)]
+    dena_data$meta.data[, c("ENA_UNIT") := merge_columns(dena_data$meta.data, cols = x$`_function.params`$units.by, sep = "::")]
     for( i in colnames(dena_data$meta.data) ) {
       data.table::set(dena_data$meta.data, j = i, value = reclass(dena_data$meta.data[[i]], "ena.metadata"))
     }

@@ -86,11 +86,19 @@ hoo <- function(x, ..., rule = NULL) {
   x
 }
 
-# Title
+
+## Possible improvement: 
+# rules((Condition & GroupName & UserName)) --->
+#   bq = base::bquote(...);
+#   bq[[2]][[3]] <- quote(UserName == UNIT$UserName)
 #
-# @param ... TBD
-#
-# @return TBD
+
+#' Title
+#'
+#' @param ... TBD
+#'
+#' @return TBD
+#' @export
 rules <- function(...) {
   rlang::exprs(...)
 }
@@ -115,12 +123,12 @@ conversation_rules <- function(...) {
 #' @return TBD
 #' @export
 contexts <- function(x, hoo_rules, units_by = NULL, split_rules = NULL) {
-  if(!is.null( units )) {
-    x_ <- units(x, units_by);
-  }
-  else {
-    x_ <- x;
-  }
+  x_ <- units(x, units_by);
+  # if(!is.null( units )) {
+  # }
+  # else {
+  #   x_ <- x;
+  # }
   
   for(r in hoo_rules) {
     x_ <- hoo(x_, rule = r);
@@ -211,5 +219,8 @@ contexts <- function(x, hoo_rules, units_by = NULL, split_rules = NULL) {
     }
   }
   
-  return(x_);
+  # x_list <- list2env(x_);
+  # class(x_list) <- c("ena.set", class(x_list));
+  # return(x_list);
+  x_
 }

@@ -3,6 +3,7 @@ test_that("small network", {
   sm <- test_smalldata;
 
   units_by <- c("GroupName", "UserName");
+  
   hoo_rules <- conversation_rules(
     (Condition == UNIT$Condition & GroupName == UNIT$GroupName & Context == "Public"),
     (Condition == UNIT$Condition & GroupName == UNIT$GroupName & UserName == UNIT$UserName)
