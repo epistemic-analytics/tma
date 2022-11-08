@@ -10,7 +10,7 @@ Description: Transmodal Analysis for ENA. tma, along with rENA,
 LazyData: TRUE
 Depends:
     R (>= 3.6),
-    data.table
+    data.table (>= 4.1.2)
 License: GPL-3 | file LICENSE
 Imports:
     stats,
