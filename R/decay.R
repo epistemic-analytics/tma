@@ -9,7 +9,7 @@ simple_window <- function(x, args = NULL) {
   (x < args$window_size) * 1 
 }
 
-#' Title
+#' decay
 #'
 #' @param what function to use as decay
 #' @param ... named parameter list to pass to `what`

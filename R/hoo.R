@@ -37,13 +37,6 @@ units <- function(x, by) {
   return(model);
 }
 
-# Title
-#
-# @param x TBD
-# @param ... TBD
-# @param rule TBD
-#
-# @return TBD
 hoo <- function(x, ..., rule = NULL) {
   units <- x$`_function.params`$units;
   unit_contexts <- x$model$contexts;
@@ -93,7 +86,7 @@ hoo <- function(x, ..., rule = NULL) {
 #   bq[[2]][[3]] <- quote(UserName == UNIT$UserName)
 #
 
-#' Title
+#' rules
 #'
 #' @param ... TBD
 #'
@@ -113,7 +106,7 @@ conversation_rules <- function(...) {
   rlang::exprs(...)
 }
 
-#' Title
+#' contexts
 #'
 #' @param x TBD
 #' @param units_by TBD

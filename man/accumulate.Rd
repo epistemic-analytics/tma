@@ -2,7 +2,7 @@
 % Please edit documentation in R/accumulate.R
 \name{accumulate}
 \alias{accumulate}
-\title{Title}
+\title{accumulate}
 \usage{
 accumulate(
   x,
@@ -29,5 +29,5 @@ accumulate(
 TBD
 }
 \description{
-Title
+accumulate
 }

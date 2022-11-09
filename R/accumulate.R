@@ -1,4 +1,4 @@
-#' Title
+#' accumulate
 #'
 #' @param x TBD
 #' @param code_cols TBD
@@ -62,7 +62,7 @@ accumulate <- function (
     V2 = code_factor[rep(1:code_length, code_length)]
   );
   adjacency.key <- reclass(adjacency.key, "adjacency.key");
-  adjacency.key <- data.table::as.data.table(t(as.numeric(adjacency.key)));
+  adjacency.key <- data.table::as.data.table(t((adjacency.key)));
   
   x$rotation <- structure(
     list(

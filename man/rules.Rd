@@ -2,7 +2,7 @@
 % Please edit documentation in R/hoo.R
 \name{rules}
 \alias{rules}
-\title{Title}
+\title{rules}
 \usage{
 rules(...)
 }
@@ -13,5 +13,5 @@ rules(...)
 TBD
 }
 \description{
-Title
+rules
 }
