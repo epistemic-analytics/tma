@@ -11,4 +11,3 @@ Coming Soon
 ```
 install.packages("tma", repos = c("https://epistemic-analytics.gitlab.io/qe-packages/tma/cran/", "https://cran.rstudio.org"))
 ```
-
