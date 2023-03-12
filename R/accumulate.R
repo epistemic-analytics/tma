@@ -5,6 +5,7 @@
 #' @param decay_function TBD
 #' @param time_col TBD
 #' @param bind_meta TBD
+#' @param ordered TBD
 #'
 #' @return TBD
 #' @export
@@ -13,7 +14,8 @@ accumulate <- function (
   code_cols,
   decay_function = function(x) { rep_len(1, length(x)) },
   time_col = NULL,
-  bind_meta = TRUE
+  bind_meta = TRUE,
+  ordered = TRUE
 ) {
   stopifnot(is(x, "ena.set"));
   stopifnot(is.function(decay_function));
@@ -39,7 +41,7 @@ accumulate <- function (
     class = c("ena.matrix", "data.table", "data.frame")
   );
   
-  accumulated <- accumulate_networks(x = x, code_cols = (code_col_indices - 1), decay_function = decay_function, time_col = time_col);
+  accumulated <- accumulate_networks(x = x, code_cols = (code_col_indices - 1), decay_function = decay_function, time_col = time_col, ordered = ordered);
   accumulated.dt <- data.table::as.data.table(accumulated$networks);
   x$connection.counts <- structure(
     lapply(accumulated.dt, reclass, cl = "ena.co.occurrence"), 
@@ -80,6 +82,12 @@ accumulate <- function (
   # connection.counts <- reclass(connection.counts, c("networks.connections", "network.matrix"));
   # row.connection.counts <- reclass(row.connection.counts, c("row.connections", "network.matrix"));
 
-  class(x) <- c("ena.directed.set", class(x));
+  # class(x) <- c("ena.set", class(x));
+  if(ordered == TRUE) {
+    class(x) <- c("ena.ordered.set", class(x));
+  }
+  else {
+    class(x) <- c("ena.unordered.set", class(x));
+  }
   x;
 }

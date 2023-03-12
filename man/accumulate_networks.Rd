@@ -4,7 +4,13 @@
 \alias{accumulate_networks}
 \title{fast accumulate networks}
 \usage{
-accumulate_networks(x, code_cols, decay_function, time_col = -1L)
+accumulate_networks(
+  x,
+  code_cols,
+  decay_function,
+  time_col = -1L,
+  ordered = TRUE
+)
 }
 \arguments{
 \item{x}{TBD}
@@ -14,6 +20,8 @@ accumulate_networks(x, code_cols, decay_function, time_col = -1L)
 \item{decay_function}{TBD}
 
 \item{time_col}{TBD}
+
+\item{ordered}{TBD}
 }
 \description{
 fast accumulate networks

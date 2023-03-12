@@ -11,9 +11,20 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// choose_two
+int choose_two(int n);
+RcppExport SEXP _tma_choose_two(SEXP nSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    rcpp_result_gen = Rcpp::wrap(choose_two(n));
+    return rcpp_result_gen;
+END_RCPP
+}
 // accumulate_network
-Rcpp::List accumulate_network(std::string unit, SEXP unit_rows_sexp, NumericVector code_cols, Function decay_function, int time_col);
-RcppExport SEXP _tma_accumulate_network(SEXP unitSEXP, SEXP unit_rows_sexpSEXP, SEXP code_colsSEXP, SEXP decay_functionSEXP, SEXP time_colSEXP) {
+Rcpp::List accumulate_network(std::string unit, SEXP unit_rows_sexp, NumericVector code_cols, Function decay_function, int time_col, bool ordered);
+RcppExport SEXP _tma_accumulate_network(SEXP unitSEXP, SEXP unit_rows_sexpSEXP, SEXP code_colsSEXP, SEXP decay_functionSEXP, SEXP time_colSEXP, SEXP orderedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -22,13 +33,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< NumericVector >::type code_cols(code_colsSEXP);
     Rcpp::traits::input_parameter< Function >::type decay_function(decay_functionSEXP);
     Rcpp::traits::input_parameter< int >::type time_col(time_colSEXP);
-    rcpp_result_gen = Rcpp::wrap(accumulate_network(unit, unit_rows_sexp, code_cols, decay_function, time_col));
+    Rcpp::traits::input_parameter< bool >::type ordered(orderedSEXP);
+    rcpp_result_gen = Rcpp::wrap(accumulate_network(unit, unit_rows_sexp, code_cols, decay_function, time_col, ordered));
     return rcpp_result_gen;
 END_RCPP
 }
 // accumulate_networks
-Rcpp::List accumulate_networks(List x, NumericVector code_cols, Function decay_function, int time_col);
-RcppExport SEXP _tma_accumulate_networks(SEXP xSEXP, SEXP code_colsSEXP, SEXP decay_functionSEXP, SEXP time_colSEXP) {
+Rcpp::List accumulate_networks(List x, NumericVector code_cols, Function decay_function, int time_col, bool ordered);
+RcppExport SEXP _tma_accumulate_networks(SEXP xSEXP, SEXP code_colsSEXP, SEXP decay_functionSEXP, SEXP time_colSEXP, SEXP orderedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -36,14 +48,16 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< NumericVector >::type code_cols(code_colsSEXP);
     Rcpp::traits::input_parameter< Function >::type decay_function(decay_functionSEXP);
     Rcpp::traits::input_parameter< int >::type time_col(time_colSEXP);
-    rcpp_result_gen = Rcpp::wrap(accumulate_networks(x, code_cols, decay_function, time_col));
+    Rcpp::traits::input_parameter< bool >::type ordered(orderedSEXP);
+    rcpp_result_gen = Rcpp::wrap(accumulate_networks(x, code_cols, decay_function, time_col, ordered));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_tma_accumulate_network", (DL_FUNC) &_tma_accumulate_network, 5},
-    {"_tma_accumulate_networks", (DL_FUNC) &_tma_accumulate_networks, 4},
+    {"_tma_choose_two", (DL_FUNC) &_tma_choose_two, 1},
+    {"_tma_accumulate_network", (DL_FUNC) &_tma_accumulate_network, 6},
+    {"_tma_accumulate_networks", (DL_FUNC) &_tma_accumulate_networks, 5},
     {NULL, NULL, 0}
 };
 

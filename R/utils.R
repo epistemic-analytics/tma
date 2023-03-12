@@ -99,7 +99,7 @@ merge_columns <- function(x, cols = colnames(x), sep = ".") {
 #' @param x TBD
 #' @param ... TBD
 #'
-#' @return
+#' @return TBD
 #' @export
 'as.character.adjacency.key' <- function(x, ...) {
   # collapse = " & "
@@ -271,7 +271,7 @@ as.network.connection <- function(x) {
 #' @param x TBD 
 #' @param ... TBD
 #'
-#' @return
+#' @return TBD
 #' @export
 as.matrix.network.connections <- function(x, ...) {
   x_ <- data.table::copy(x);

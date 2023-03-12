@@ -5,6 +5,40 @@
 using namespace Rcpp;
 using namespace arma;
 
+//' @title n choose 2
+//' @param n int
+//' @export
+// [[Rcpp::export]]
+int choose_two(int n) {
+  return (n * (n - 1)) / 2;
+}
+
+arma::rowvec vector_to_summed_uppertri(arma::vec blank) {
+  // Rcpp::Rcout << "V1" << std::endl;
+  // Rcpp::Rcout << blank << std::endl;
+  int code_count = pow(blank.size(), 0.5);
+  int tri_size = choose_two(code_count);
+  arma::rowvec network_vector = arma::rowvec(tri_size);
+  // Rcpp::Rcout << "V2" << std::endl;
+  // Rcpp::Rcout << network_vector << std::endl;
+  
+  arma::mat blank_mat(blank);
+  blank_mat.reshape(code_count, code_count);
+  // Rcpp::Rcout << "Mat" << std::endl;
+  // Rcpp::Rcout << blank_mat;
+  
+  blank_mat = blank_mat + blank_mat.t();
+  arma::colvec blank_vec = blank_mat.as_col();
+  // Rcpp::Rcout << "V3" << std::endl;
+  arma::uvec upper_indices = arma::trimatu_ind( arma::size(blank_mat), 1 );
+  // Rcpp::Rcout << "V4" << std::endl;
+  network_vector = arma::conv_to< arma::rowvec >::from(blank_vec.elem(upper_indices));
+  // network_vector = blank_vec.elem(upper_indices);
+  // Rcpp::Rcout << "V5" << std::endl;
+  
+  return network_vector;
+}
+
 // std::vector<double> accumulate_network(
 // [[Rcpp::export]]
 Rcpp::List accumulate_network(
@@ -12,8 +46,10 @@ Rcpp::List accumulate_network(
   SEXP unit_rows_sexp, 
   NumericVector code_cols,
   Function decay_function,
-  int time_col = -1
+  int time_col = -1,
+  bool ordered = true
 ) {
+  // Rcpp::Rcout << "1" << std::endl;
   arma::vec blank(code_cols.size() * code_cols.size());
   Rcpp::DataFrame unit_rows = Rcpp::as<Rcpp::DataFrame>(wrap(unit_rows_sexp));
   Rcpp::NumericMatrix codes(unit_rows.nrow(), code_cols.size());
@@ -33,29 +69,16 @@ Rcpp::List accumulate_network(
     Rcpp::NumericMatrix::Column codes_col = codes(_, i);
     codes_col = unit_code_col;
   }
-  // Rcpp::Rcout << "qeunit_row_indices: " << std::endl << qeunit_row_indices << std::endl;
 
   // Environment decay_fun_env(decay_function);
   Environment decay_fun_env = decay_function.environment();
-  // Rcpp::Rcout << "Got the environment." << std::endl;
   decay_fun_env["UNIT"] = unit;
   
-  // Rcpp::Rcout << "Set in the environment." << std::endl;
+  // Rcpp::Rcout << "3" << std::endl;
   for(int i = 0; i < qeunit_row_indices.size(); i++) {
     int unit_response_row = qeunit_row_indices[i];
     
     arma::uvec ground_rows = arma::regspace<uvec>(0, 1, unit_response_row);
-    // if((unit_response_row - 1) >= 0) {
-    //   NumericVector first_row_to_this_one = as<NumericVector>(wrap(seq_len(unit_response_row - 1)));
-    //   
-    //   for(int j = 0; j < (unit_response_row); j++) {
-    //     ground_rows.push_back(j);
-    //   }
-    // }
-    // ground_rows.push_back(unit_response_row);
-    // Rcpp::Rcout << "Grd rows: " << (ground_rows) << std::endl;
-    // Rcpp::Rcout << "Resp row: " << (unit_response_row) << std::endl;
-    
     NumericVector ground_dist_from_response(ground_rows.size());
     if (time_col == -1) {
       ground_dist_from_response = seq(0, ground_rows.size()-1);
@@ -63,24 +86,17 @@ Rcpp::List accumulate_network(
     }
     else {
       arma::uvec times = Rcpp::as<arma::uvec>(wrap(unit_rows[time_col]));
-      // Rcpp::Rcout << "Times: " << std::endl << times << std::endl;
       arma::uvec ground_times = times.elem(ground_rows);
-      // Rcpp::Rcout << "Grd Times: " << (ground_times) << std::endl;
       arma::uword response_time = ground_times[ground_times.size() - 1];
       arma::uvec response_times(ground_times.n_elem, arma::fill::value(response_time));
-      // Rcpp::Rcout << "Resp Time: " << response_time << std::endl;
       
       ground_dist_from_response = response_times - ground_times;
-      // ground_dist_from_response.fill(1);
-      // Rcpp::Rcout << "Time to response: " << (ground_dist_from_response) << std::endl;
     }
     arma::vec decay_effect = as<arma::vec>(wrap(decay_function(ground_dist_from_response)));
 
     NumericMatrix ground_codes_raw = codes( Range( ground_rows[0], ground_rows[ground_rows.size() - 1]  ), _);
-    // Rcpp::Rcout << "ground_codes_raw: " << std::endl << ground_codes_raw << std::endl;
     
     arma::mat ground_codes_mat = as<arma::mat>(ground_codes_raw);
-
     arma::mat codes_decayed(ground_codes_mat.n_rows, ground_codes_mat.n_cols);
     for(int j = 0; j < codes_decayed.n_rows; j ++) {
       codes_decayed.row(j) = ground_codes_mat.row(j) * decay_effect[j];
@@ -88,20 +104,16 @@ Rcpp::List accumulate_network(
 
     arma::rowvec response_row = codes_decayed.tail_rows(1);
     arma::rowvec ground_summarized = arma::sum(codes_decayed);
-    // Rcpp::Rcout << "ground_summarized: " << std::endl << ground_summarized << std::endl;
     
     arma::rowvec ground_summarized_no_resp = ground_summarized - response_row;
     arma::mat connection_matrix = ground_summarized_no_resp.t() * response_row;
-    // Rcpp::Rcout << "connection_matrix: " << std::endl << connection_matrix << std::endl;
     
     arma::mat self_connection_matrix = response_row.t() * response_row;
     self_connection_matrix.diag() *= 0;
     self_connection_matrix = self_connection_matrix * 0.5;
-    // Rcpp::Rcout << "self_connection_matrix: " << std::endl << self_connection_matrix << std::endl;
     
     arma::mat full_connection_matrix = connection_matrix + self_connection_matrix;
     arma::vec full_connection_vec = arma::vectorise(full_connection_matrix);
-    // Rcpp::Rcout << "full_connection_vec: " << std::endl << full_connection_vec << std::endl;
     
     individual_networks.row(i) = full_connection_vec.t();
     blank = blank + full_connection_vec;
@@ -113,9 +125,18 @@ Rcpp::List accumulate_network(
   individual_networks_nm.attr("unit_rows") = subset(unit_rows, qeunit_row_indices + 1, R_MissingArg);
   CharacterVector classes = {"unit.rows","list"};
   individual_networks_nm.attr("class") = classes;
-
+ 
+  arma::rowvec network_vector;
+  if(ordered == false) {
+    network_vector = vector_to_summed_uppertri(blank);
+  }
+  else {
+    network_vector = blank.t();
+  }
+  // Rcpp::Rcout << "5" << std::endl;
+  
   return Rcpp::List::create(
-    Rcpp::Named("networks") = as<std::vector<double>>(wrap(blank.t())),
+    Rcpp::Named("networks") = as<std::vector<double>>(wrap(network_vector)),
     Rcpp::Named("row_networks") = individual_networks_nm
   );
 }
@@ -125,6 +146,7 @@ Rcpp::List accumulate_network(
 //' @param code_cols TBD
 //' @param decay_function TBD
 //' @param time_col TBD
+//' @param ordered TBD
 //' 
 //' @export
 // [[Rcpp::export]]
@@ -132,28 +154,31 @@ Rcpp::List accumulate_networks(
   List x,
   NumericVector code_cols,
   Function decay_function,
-  int time_col = -1
+  int time_col = -1,
+  bool ordered = true
 ) {
   List model = x["model"];
   List contexts = model["contexts"];
   CharacterVector units = model["unit.labels"];
   
-  NumericMatrix blank(units.size(), code_cols.size() * code_cols.size());
+  // Rcpp::Rcout << "N codes: " << code_cols.size() << std::endl;
+  int ncol = code_cols.size() * code_cols.size();
+  if(ordered == false) {
+    ncol = choose_two(code_cols.size());
+    // Rcpp::Rcout << "Ncol: " << ncol << std::endl;
+  }
+  NumericMatrix blank(units.size(), ncol);
   Rcpp::List unit_networks_by_row = Rcpp::List::create();
   
   for(int i = 0; i < units.size(); i++) {
     NumericMatrix::Row unit_row = blank.row(i);
     std::string unit_name = as<std::string>(wrap(units[i]));
-    // std::vector<double> unit_network = accumulate_network(unit_name, contexts[unit_name], code_cols, decay_function, time_col);
-    // NumericVector unit_network_conv = as<NumericVector>(wrap(unit_network));
-    // unit_row = unit_network_conv;
     
-    Rcpp::List accumulated = accumulate_network(unit_name, contexts[unit_name], code_cols, decay_function, time_col);
+    Rcpp::List accumulated = accumulate_network(unit_name, contexts[unit_name], code_cols, decay_function, time_col, ordered);
     NumericVector unit_network_conv = as<NumericVector>(wrap(accumulated["networks"]));
-    
     NumericMatrix row_networks = accumulated["row_networks"];
-    unit_networks_by_row[unit_name] = row_networks; 
     
+    unit_networks_by_row[unit_name] = row_networks;
     unit_row = unit_network_conv;
   }
   

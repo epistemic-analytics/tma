@@ -11,7 +11,8 @@ accumulate(
      rep_len(1, length(x))
  },
   time_col = NULL,
-  bind_meta = TRUE
+  bind_meta = TRUE,
+  ordered = TRUE
 )
 }
 \arguments{
@@ -24,6 +25,8 @@ accumulate(
 \item{time_col}{TBD}
 
 \item{bind_meta}{TBD}
+
+\item{ordered}{TBD}
 }
 \value{
 TBD

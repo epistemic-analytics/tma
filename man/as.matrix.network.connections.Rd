@@ -11,6 +11,9 @@
 
 \item{...}{TBD}
 }
+\value{
+TBD
+}
 \description{
 Title
 }
