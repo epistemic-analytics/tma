@@ -5,7 +5,7 @@
 \alias{test_reddit2}
 \title{Sample Data}
 \format{
-An object of class \code{data.frame} with 776 rows and 14 columns.
+An object of class \code{data.frame} with 776 rows and 15 columns.
 }
 \usage{
 test_reddit2

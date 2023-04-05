@@ -8,10 +8,11 @@
 #' A dataset containing threads
 "test_reddit2"
 
-#' Sample Data
+#' Coded Rescushell Chat Data
 #'
-#' A dataset containing conversations
-"test_rsdata"
+#' A dataset containing sample chat data from the Rescushell Virtual
+#' Internship
+"RS.data"
 
 #' Sample Data
 #'
