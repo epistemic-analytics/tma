@@ -144,11 +144,16 @@ accumulate_contexts <- function(
   
   n = length(codes)
   blank.code.matrix = matrix(0, nrow = n, ncol = n, dimnames = list(codes, codes))
-  unit.code.matrices <- structure(rep(list(list(
-    directed.adjacency = blank.code.matrix,
-    undirected.adjacency = structure(rep(0, ncol(blank.code.matrix)))
-    
-  )), length(names(f.contexts))), names = names(f.contexts))
+  unit.code.matrices <- structure(
+    rep(
+      list(list(
+        directed.adjacency = blank.code.matrix,
+        undirected.adjacency = structure(rep(0, ncol(blank.code.matrix)))
+      )),
+      length(names(f.contexts))
+    ),
+    names = names(f.contexts)
+  );
   for( unit.index in seq(f.contexts)) {
     unit.contexts <- f.contexts[[unit.index]];
     if(is.numeric(unit.contexts)) {
@@ -182,7 +187,7 @@ accumulate_contexts <- function(
       this.context$CID <- seq(nrow(this.context))
       # browser()
       # this_context_codes <- all_codes[this.context.rows,, drop = FALSE]
-      this_context_codes <- all_codes[this.context.rows$QEID,, drop = FALSE]
+      this_context_codes <- all_codes[this.context$QEID,, drop = FALSE]
       this.unit.rows_tf <- this.context$QEUNIT == unit.label
       if(!is.null(context_filter)) {
         this.unit.rows_tf <- do.call(context_filter, list(unit = unit.label, context = this.context))  
@@ -318,13 +323,25 @@ accumulate_contexts <- function(
     names = apply(adjacency_key(f.codes), 2, paste, collapse = " & ")
   );
   
-  x$meta.data <- structure(
-    lapply(output.meta.data, reclass, cl = "ena.metadata"), 
-    class = c("ena.matrix", "data.table", "data.frame")
-  );
+  # x$meta.data <- structure(
+  #   lapply(output.meta.data, reclass, cl = "ena.metadata"), 
+  #   class = c("ena.matrix", "data.table", "data.frame")
+  # );
+  x$meta.data <- data.table::copy(output.meta.data);
+  set(x$meta.data, j = "ENA_UNIT", value = do.call(paste, c(lapply(x$`_function.params`$units.by, function(u) x$meta.data[[u]]), sep = "::")))
+  for( i in colnames(x$meta.data) ) {
+    data.table::set(x$meta.data, j = i, value = reclass(x$meta.data[[i]], "ena.metadata"))
+  }
+  class(x$meta.data) = c("ena.matrix", class(x$meta.data));
   
   # Standard ENA Set
   if(return.ena.set) {
+    # x$meta.data[, c("ENA_UNIT") := merge_columns(x$meta.data, cols = x$`_function.params`$units.by, sep = "::")]
+    # set(x$meta.data, j = "ENA_UNIT", value = do.call(paste, c(lapply(units.by, function(u) x$meta.data[[u]]), sep = "::")))
+    # for( i in colnames(x$meta.data) ) {
+    #   data.table::set(x$meta.data, j = i, value = reclass(x$meta.data[[i]], "ena.metadata"))
+    # }
+    
     x$rotation = structure(list(
       codes = f.codes,
       adjacency.key = structure(

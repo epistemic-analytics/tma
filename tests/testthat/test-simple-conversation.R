@@ -1,7 +1,6 @@
 testthat::context("Test conversations");
  
-data(test_rsdata);
-RS.data <- test_rsdata;
+data("RS.data");
 RS.data$Context <- "Public";
 RS.data$Row <- seq(nrow(RS.data));
   
