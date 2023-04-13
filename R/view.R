@@ -12,13 +12,15 @@
 #' @param conversation.by [TBD]
 #' @param window [TBD]
 #' @param conversation.exclude [TBD]
+#' @param id_col TBD
 #'
 #' @export
 #' @return list containing row indices representing conversations
 tma.conversations = function(
   x, units, 
   units.by = NULL, codes = NULL, conversation.by = NULL, 
-  window = 4, conversation.exclude = c()
+  window = 4, conversation.exclude = c(),
+  id_col = "QEUNIT"
 ) {
   if(is.null(units.by)) {
     units.by = x$`_function.params`$units.by;
@@ -38,7 +40,7 @@ tma.conversations = function(
   conversationsTable2 = rawAcc2[, paste(.I, collapse = ","), by = c(conversation.by)];
   rows2 = lapply(conversationsTable2$V1, function(x) as.numeric(unlist(strsplit(x, split=","))));
   names(rows2) = merge_columns(conversationsTable2, conversation.by);
-  unitRows2 = rawAcc2$QEUNIT;
+  unitRows2 = rawAcc2[[id_col]];
 
   codedRows = rawAcc2[, rowSums(.SD), .SDcols = codes] > 0
   codedUnitRows2 = which(unitRows2 %in% units & codedRows)
@@ -92,6 +94,7 @@ tma.conversations = function(
 #' @param window_size TBD
 #' @param more_cols TBD
 #' @param in_browser TBD
+#' @param id_col TBD
 #'
 #' @return TBD
 #' @export
@@ -103,15 +106,16 @@ view <- function(
   codes = x$rotation$codes,
   window_size = x$`_function.params`$window_size,
   more_cols = NULL,
-  in_browser = FALSE
+  in_browser = FALSE,
+  id_col = "QE_UNIT"
 ) {
-  unit_conv <- tma.conversations(x = x, units = wh, units.by = units.by, conversation.by = conversation.by, codes = codes, window = window_size);
+  unit_conv <- tma.conversations(x = x, units = wh, units.by = units.by, conversation.by = conversation.by, codes = codes, window = window_size, id_col = id_col);
   rows <- x$model$contexts[[wh]];
   if(is.null(rows)) {
     stop(paste0("Now rows found for context: ", wh));
   }
 
-  cols = unique(c("QEID", "QEUNIT", units.by, conversation.by, text_col, more_cols, codes));
+  cols = unique(c("QEID", id_col, units.by, conversation.by, text_col, more_cols, codes));
   tbl <- x$model$raw.input[unit_conv$convRows, cols, with = FALSE];
   unit_conv$unitRows <- unit_conv$unitRows;
   unit_conv$toRemove <- unit_conv$toRemove;
