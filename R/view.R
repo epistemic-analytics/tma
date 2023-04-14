@@ -107,15 +107,16 @@ view <- function(
   window_size = x$`_function.params`$window_size,
   more_cols = NULL,
   in_browser = FALSE,
-  id_col = "QE_UNIT"
+  id_col = "QEUNIT"
 ) {
   unit_conv <- tma.conversations(x = x, units = wh, units.by = units.by, conversation.by = conversation.by, codes = codes, window = window_size, id_col = id_col);
-  rows <- x$model$contexts[[wh]];
-  if(is.null(rows)) {
-    stop(paste0("Now rows found for context: ", wh));
-  }
+  # rows <- x$model$contexts[[wh]];
+  # if(is.null(rows)) {
+  #   stop(paste0("Now rows found for context: ", wh));
+  # }
 
-  cols = unique(c("QEID", id_col, units.by, conversation.by, text_col, more_cols, codes));
+  cols <- unique(c("QEID", id_col, units.by, conversation.by, text_col, more_cols, codes));
+  cols <- cols[cols %in% colnames(x$model$raw.input)];
   tbl <- x$model$raw.input[unit_conv$convRows, cols, with = FALSE];
   unit_conv$unitRows <- unit_conv$unitRows;
   unit_conv$toRemove <- unit_conv$toRemove;
