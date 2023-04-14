@@ -6,7 +6,7 @@
 #' @return numeric vector
 #' @export
 simple_window <- function(x, args = NULL) { 
-  (x < args$window_size) * 1 
+  (x <= args$window_size) * 1 
 }
 
 #' decay
