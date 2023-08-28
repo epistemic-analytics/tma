@@ -201,7 +201,7 @@
 
                     // Not Unit, but in Window
                     if(
-                      data.unitRows.filter(a => !data.toRemove.some(b => b === a))
+                      data.unitRows.filter(a => ![].concat(data.toRemove).flat().some(b => b === a))
                         .some( a => a >= qeid && a < (qeid + data.window))
                     ) {
                       collapsed = false;
