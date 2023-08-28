@@ -72,13 +72,13 @@ Rcpp::List accumulate_network(
 
   // Environment decay_fun_env(decay_function);
   Environment decay_fun_env = decay_function.environment();
-  decay_fun_env["UNIT"] = unit;
   
   // Rcpp::Rcout << "3" << std::endl;
   for(int i = 0; i < qeunit_row_indices.size(); i++) {
     int unit_response_row = qeunit_row_indices[i];
     
     arma::uvec ground_rows = arma::regspace<uvec>(0, 1, unit_response_row);
+    Rcpp::NumericVector ground_rows2 = Rcpp::as<Rcpp::NumericVector>(wrap(ground_rows));
     NumericVector ground_dist_from_response(ground_rows.size());
     if (time_col == -1) {
       ground_dist_from_response = seq(0, ground_rows.size()-1);
@@ -92,6 +92,36 @@ Rcpp::List accumulate_network(
       
       ground_dist_from_response = response_times - ground_times;
     }
+    
+    decay_fun_env["UNIT"] = unit;
+    decay_fun_env["RESPONSE_INDEX"] = unit_response_row + 1;
+    // Rcpp::Rcout << "Rows: " << (ground_rows + 1) << std::endl;
+    decay_fun_env["ROWS"] = (ground_rows + 1);
+    
+    Rcpp::List myList(unit_rows.size());
+    Rcpp::CharacterVector namevec;
+    std::string namestem = "Column Heading ";
+    for (int i=0; i < unit_rows.ncol(); i++) {
+      // arma::uvec fnd = arma::find(ground_rows == i);
+      // Rcpp::Rcout << "Fnd: " << fnd.size() << std::endl;
+      // if(fnd.size() > 0) {
+        // Rcpp::Rcout << "i: " << i << std::endl;
+        Rcpp::CharacterVector v = unit_rows(i);
+        myList[i] = v[ground_rows2]; // adding vectors
+        // Rcpp::Rcout << "V : " << v << std::endl;
+        // myList[i] = myList
+        // namevec.push_back(namestem+std::string(1,(char)(((int)'a') + i))); // making up column names
+      // }
+    }
+    myList.attr("names") = unit_rows.attr("names");
+    Rcpp::DataFrame dfout(myList);
+    decay_fun_env["FULL_CONTEXT"] = dfout;
+    // arma::uvec all_rows(ground_rows.size() + 1);
+    // for(int z = 0; z < ground_rows.size(); z++) {
+    //   all_rows[z] = ground_rows[z] + 1;
+    // }
+    // // all_rows[all_rows.size() - 1] = unit_response_row + 2;
+    
     arma::vec decay_effect = as<arma::vec>(wrap(decay_function(ground_dist_from_response)));
 
     NumericMatrix ground_codes_raw = codes( Range( ground_rows[0], ground_rows[ground_rows.size() - 1]  ), _);
@@ -189,7 +219,7 @@ Rcpp::List accumulate_networks(
 }
 
 /*** R
-test_smalldata = data.table::fread(system.file(package = "tma", 'extdata/test_data_3.csv'), stringsAsFactors = FALSE)
+test_smalldata = data.table::fread("inst/extdata/test_data_3.csv", stringsAsFactors = FALSE)
 test_smalldata$Timestamp2 = as.numeric(as.POSIXct(test_smalldata$Timestamp));
 test_smalldata[12,2] <- "User2";
 hoo_rules <- conversation_rules(
@@ -213,7 +243,8 @@ network2 <- accumulate_network("Group_1::User3", network_contexts$model$contexts
 network22 <- accumulate_network(
   "Group_1::User3", network_contexts$model$contexts$`Group_1::User3`, (code_cols - 1), 
   decay_function = function(x) {
-    print(x);
+    print(UNIT);
+    print(ROWS);
     sqrt(x)
   },
   time_col = 8

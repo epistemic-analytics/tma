@@ -38,8 +38,8 @@ as.undirected.vector <- function(x, diag = FALSE) {
 }
 
 
-as.ena.directed.set <- function(x) {
-  to <- c("ena.directed.set")
+as.ena.ordered.set <- function(x) {
+  to <- c("ena.ordered.set")
   if(!inherits(x = x, what = "ena.set")) {
     to <- c(to, "ena.set")
   }
@@ -47,7 +47,7 @@ as.ena.directed.set <- function(x) {
   return(x);
 }
 ena.set.directed <- function(data, units, conversations, codes, ...) {
-  as.ena.directed.set(
+  as.ena.ordered.set(
     list(
       meta.data = NULL,
       model = list(
