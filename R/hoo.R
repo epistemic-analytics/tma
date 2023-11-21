@@ -27,12 +27,13 @@ units <- function(x, by) {
   unique_units <- unique(all_units);
   model$`_function.params`$units <- all_units;
   
-  unique_unit_labels <- apply(unique_units, 1, function(y) paste(trimws(y), collapse = "::"));
+  unique_unit_labels <- apply(unique_units, 1, function(y) paste((y), collapse = "::"));
 
   # model$model$contexts <- structure(rep(list(model$model$raw.input[0,]), length(unique_unit_labels)), names = unique_unit_labels);
   model$model$contexts <- structure(rep(list(c()), length(unique_unit_labels)), names = unique_unit_labels);
   model$model$unit.labels <- unique_unit_labels;
-  model$model$raw.input$QEUNIT <- apply(all_units, 1, function(y) paste(trimws(y), collapse = "::"));
+  model$model$raw.input$QEUNIT <- apply(all_units, 1, function(y) paste((y), collapse = "::"));
+  # model$model$raw.input[, QEUNIT:=paste(.SD, collapse = "::"), .SDcols = names(all_units), by=1:nrow(model$model$raw.input)]
   
   return(model);
 }
