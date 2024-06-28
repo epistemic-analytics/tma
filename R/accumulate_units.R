@@ -29,8 +29,9 @@ accumulate_context_threads <- function(...) {
   )
 }
 
+# Key change: Pass in argument z representing the weighted response vectors. y are unweighted response vectors
 ground_response_crossprod <- function(
-  x, y
+  x, y, z 
 ) {
   UNIT = NULL;
   UNIT_LABEL = NULL;
@@ -42,7 +43,11 @@ ground_response_crossprod <- function(
   # all_connection_matrices_raw <- list_vec_apply(all_only_ground_connections, responses.codes, ground_effect_function);
   all_connection_matrices_raw <- list_vec_apply(x, y, ground_effect_function);
   
-  response_matrices <- lapply(y, function(x) tcrossprod(x) );
+  # Key change: z passed in here, so that we calculate the response matrices as matmul(z, r^T)
+  # This way, the result is 1/2 * f_{diag}((w_rr) * rr^T), where f_{diag} is a function that 0s out 
+  # the diagonal of a matrix, rather than 1/2 * f_{diag}(rr^T)
+  # response_matrices <- lapply(y, function(x) tcrossprod(x) );
+  response_matrices <- Map(function(zi, yi) zi %*% t(yi), z, y);
   these_self_connections <- lapply(response_matrices, function(x) {
     0.5 * (x - diag(diag(x)))
   })
@@ -150,6 +155,9 @@ accumulate_contexts <- function(
       unit.contexts <- list(unit.contexts)
     }
     
+    # browser to stop at mentor unit
+    # if (unit.index == 3) { browser() } 
+    
     this.unit <- attr(unit.contexts[[1]], "tma.unit");
     if(is.null(this.unit)) {
       this.unit <- attr(unit.contexts, "tma.unit");
@@ -202,9 +210,11 @@ accumulate_contexts <- function(
           grounds
         })
         
+        
         grounds.codes.raw <- lapply(grounds, function(xx) this_context_codes[xx,, drop = FALSE]);
         
         this.unit.resp.idx <- sapply(grounds, attr, which = "tma.response.index");
+   
         responses.codes <- list_vec_apply(grounds.codes.raw, this.unit.resp.idx, function(x,y) { as.numeric(x[y,,drop = FALSE]) });
         
         grounds.modes <- rep(NA, length(responses.codes))
@@ -241,6 +251,7 @@ accumulate_contexts <- function(
           }
         }, simplify = FALSE)
         
+        
         grounds.codes = mapply(grounds.codes.raw, all.decays, FUN = function(x, y) {
           
           if(length(y) == 1) {
@@ -272,7 +283,10 @@ accumulate_contexts <- function(
         assign("UNIT_LABEL", unit.label, envir = adj_call_env);
         assign("ground_effect_function", ground_effect_function, envir = adj_call_env);
         assign("accumulate_unit_vectors_by", accumulate_unit_vectors_by, envir = adj_call_env);
-        dir_vecs <- calculate_adj_vectors_using(all_only_ground_connections, responses.codes)
+        # dir_vecs <- calculate_adj_vectors_using(all_only_ground_connections, responses.codes)
+        # Key change: pass in weighted response vectors, this.responses.in.grounds, to calculate_adj_vectors_using
+        # (currently ground_response_crossprod) as well 
+        dir_vecs <- calculate_adj_vectors_using(all_only_ground_connections, responses.codes, this.responses.in.grounds)
         
         dim(dir_vecs) <- c( 1, length(dir_vecs) );
         
