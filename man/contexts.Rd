@@ -2,7 +2,7 @@
 % Please edit documentation in R/hoo.R
 \name{contexts}
 \alias{contexts}
-\title{Title}
+\title{contexts}
 \usage{
 contexts(x, hoo_rules, units_by = NULL, split_rules = NULL)
 }
@@ -19,5 +19,5 @@ contexts(x, hoo_rules, units_by = NULL, split_rules = NULL)
 TBD
 }
 \description{
-Title
+contexts
 }

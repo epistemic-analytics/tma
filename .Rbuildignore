@@ -24,9 +24,11 @@ cran-comments.md
 
 ^doc$
 ^Meta$
-
 .bash_history
 
 ^data-raw$
 
 public/
+vignettes/
+
+lastMiKTeXException

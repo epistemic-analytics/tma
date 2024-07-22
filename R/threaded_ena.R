@@ -30,7 +30,7 @@ accumulate_threads <- function(
   
   model <- contexts(
     x = data,
-    units = units_by,
+    units_by = units_by,
     hoo_rules = conversation_rules,
     split_rules = conversation_splits
   );

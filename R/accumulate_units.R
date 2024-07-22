@@ -55,14 +55,15 @@ ground_response_crossprod <- function(
   all_connection_matrices <- lapply(seq(all_connection_matrices_raw), function(i) {
     all_connection_matrices_raw[[i]] + these_self_connections[[i]]
   })
-  
   dir_vecs <- t(sapply(all_connection_matrices, function(x) { dim(x) <- c(1, nrow(x)^2); (x) }));
+  # print(dir_vecs);
   
   acc_call_env <- new.env(parent = environment(accumulate_unit_vectors_by));
   environment(accumulate_unit_vectors_by) <- acc_call_env;
   assign("UNIT", UNIT, envir = acc_call_env);
   assign("UNIT_LABEL", UNIT_LABEL, envir = acc_call_env);
   dir_vecs <- accumulate_unit_vectors_by(dir_vecs);
+  # browser()
   
   return(dir_vecs)
 }
@@ -71,7 +72,6 @@ ground_response_crossprod <- function(
 #'
 #' @param x TBD
 #' @param codes TBD
-#' @param ... TBD
 #' @param time.column TBD
 #' @param decay.function TBD
 #' @param mode.column TBD
@@ -81,6 +81,11 @@ ground_response_crossprod <- function(
 #' @param return.dena.set TBD
 #' @param return.ena.set TBD 
 #' @param accumulate_unit_vectors_by TBD 
+#' @param norm.by TBD
+#' @param context_filter TBD
+#' @param summarize_ground_using TBD
+#' @param calculate_adj_vectors_using TBD
+#' @param ground_effect_function TBD
 #'
 #' @return ENA set
 #' @export
@@ -144,11 +149,16 @@ accumulate_contexts <- function(
   
   n = length(codes)
   blank.code.matrix = matrix(0, nrow = n, ncol = n, dimnames = list(codes, codes))
-  unit.code.matrices <- structure(rep(list(list(
-    directed.adjacency = blank.code.matrix,
-    undirected.adjacency = structure(rep(0, ncol(blank.code.matrix)))
-    
-  )), length(names(f.contexts))), names = names(f.contexts))
+  unit.code.matrices <- structure(
+    rep(
+      list(list(
+        directed.adjacency = blank.code.matrix,
+        undirected.adjacency = structure(rep(0, ncol(blank.code.matrix)))
+      )),
+      length(names(f.contexts))
+    ),
+    names = names(f.contexts)
+  );
   for( unit.index in seq(f.contexts)) {
     unit.contexts <- f.contexts[[unit.index]];
     if(is.numeric(unit.contexts)) {
@@ -185,7 +195,7 @@ accumulate_contexts <- function(
       this.context$CID <- seq(nrow(this.context))
       # browser()
       # this_context_codes <- all_codes[this.context.rows,, drop = FALSE]
-      this_context_codes <- all_codes[this.context.rows$QEID,, drop = FALSE]
+      this_context_codes <- all_codes[this.context$QEID,, drop = FALSE]
       this.unit.rows_tf <- this.context$QEUNIT == unit.label
       if(!is.null(context_filter)) {
         this.unit.rows_tf <- do.call(context_filter, list(unit = unit.label, context = this.context))  
@@ -234,6 +244,7 @@ accumulate_contexts <- function(
           # assign("CONTEXT", CONTEXT, envir = call_env)
           assign("RESPONSE_INDEX", RESPONSE_INDEX, envir = call_env)
           assign("ROWS", ROWS, envir = call_env)
+          
           environment(f.decay) <- call_env;
           
           subbed <- as.numeric(response.times[wh] - ground.times[[wh]])
@@ -326,13 +337,25 @@ accumulate_contexts <- function(
     names = apply(adjacency_key(f.codes), 2, paste, collapse = " & ")
   );
   
-  x$meta.data <- structure(
-    lapply(output.meta.data, reclass, cl = "ena.metadata"), 
-    class = c("ena.matrix", "data.table", "data.frame")
-  );
+  # x$meta.data <- structure(
+  #   lapply(output.meta.data, reclass, cl = "ena.metadata"), 
+  #   class = c("ena.matrix", "data.table", "data.frame")
+  # );
+  x$meta.data <- data.table::copy(output.meta.data);
+  set(x$meta.data, j = "ENA_UNIT", value = do.call(paste, c(lapply(x$`_function.params`$units.by, function(u) x$meta.data[[u]]), sep = "::")))
+  for( i in colnames(x$meta.data) ) {
+    data.table::set(x$meta.data, j = i, value = reclass(x$meta.data[[i]], "ena.metadata"))
+  }
+  class(x$meta.data) = c("ena.matrix", class(x$meta.data));
   
   # Standard ENA Set
   if(return.ena.set) {
+    # x$meta.data[, c("ENA_UNIT") := merge_columns(x$meta.data, cols = x$`_function.params`$units.by, sep = "::")]
+    # set(x$meta.data, j = "ENA_UNIT", value = do.call(paste, c(lapply(units.by, function(u) x$meta.data[[u]]), sep = "::")))
+    # for( i in colnames(x$meta.data) ) {
+    #   data.table::set(x$meta.data, j = i, value = reclass(x$meta.data[[i]], "ena.metadata"))
+    # }
+    
     x$rotation = structure(list(
       codes = f.codes,
       adjacency.key = structure(
@@ -363,7 +386,7 @@ accumulate_contexts <- function(
   else {
     dena_data = ena.set.directed(f.raw, f.units, NA, f.codes)
     dena_data$meta.data <- data.table::as.data.table(output.meta.data)
-    dena_data$meta.data[, c("ENA_UNIT") := merge_columns(dena_data$meta.data, cols = x$`_function.params`$units.by)]
+    dena_data$meta.data[, c("ENA_UNIT") := merge_columns(dena_data$meta.data, cols = x$`_function.params`$units.by, sep = "::")]
     for( i in colnames(dena_data$meta.data) ) {
       data.table::set(dena_data$meta.data, j = i, value = reclass(dena_data$meta.data[[i]], "ena.metadata"))
     }
@@ -378,6 +401,10 @@ accumulate_contexts <- function(
     
     dena_data$connection.counts = reclass(dena_data$connection.counts, c("ena.connections", "ena.matrix"))
     dena_data$model$row.connection.counts <- reclass(dena_data$model$row.connection.counts, c("row.connections", "ena.matrix"))
+    
+    if ( !is.null(norm.by) ) {
+      dena_data$line.weights <- norm.by(x = as.matrix(directed.adjacency.vectors))
+    }
     
     output = dena_data;
   }

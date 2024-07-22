@@ -27,23 +27,17 @@ units <- function(x, by) {
   unique_units <- unique(all_units);
   model$`_function.params`$units <- all_units;
   
-  unique_unit_labels <- apply(unique_units, 1, function(y) paste(trimws(y), collapse = "::"));
+  unique_unit_labels <- apply(unique_units, 1, function(y) paste((y), collapse = "::"));
 
   # model$model$contexts <- structure(rep(list(model$model$raw.input[0,]), length(unique_unit_labels)), names = unique_unit_labels);
   model$model$contexts <- structure(rep(list(c()), length(unique_unit_labels)), names = unique_unit_labels);
   model$model$unit.labels <- unique_unit_labels;
-  model$model$raw.input$QEUNIT <- apply(all_units, 1, function(y) paste(trimws(y), collapse = "::"));
+  model$model$raw.input$QEUNIT <- apply(all_units, 1, function(y) paste((y), collapse = "::"));
+  # model$model$raw.input[, QEUNIT:=paste(.SD, collapse = "::"), .SDcols = names(all_units), by=1:nrow(model$model$raw.input)]
   
   return(model);
 }
 
-# Title
-#
-# @param x TBD
-# @param ... TBD
-# @param rule TBD
-#
-# @return TBD
 hoo <- function(x, ..., rule = NULL) {
   units <- x$`_function.params`$units;
   unit_contexts <- x$model$contexts;
@@ -86,11 +80,19 @@ hoo <- function(x, ..., rule = NULL) {
   x
 }
 
-# Title
+
+## Possible improvement: 
+# rules((Condition & GroupName & UserName)) --->
+#   bq = base::bquote(...);
+#   bq[[2]][[3]] <- quote(UserName == UNIT$UserName)
 #
-# @param ... TBD
-#
-# @return TBD
+
+#' rules
+#'
+#' @param ... TBD
+#'
+#' @return TBD
+#' @export
 rules <- function(...) {
   rlang::exprs(...)
 }
@@ -105,7 +107,7 @@ conversation_rules <- function(...) {
   rlang::exprs(...)
 }
 
-#' Title
+#' contexts
 #'
 #' @param x TBD
 #' @param units_by TBD
@@ -115,12 +117,12 @@ conversation_rules <- function(...) {
 #' @return TBD
 #' @export
 contexts <- function(x, hoo_rules, units_by = NULL, split_rules = NULL) {
-  if(!is.null( units )) {
-    x_ <- units(x, units_by);
-  }
-  else {
-    x_ <- x;
-  }
+  x_ <- units(x, units_by);
+  # if(!is.null( units )) {
+  # }
+  # else {
+  #   x_ <- x;
+  # }
   
   for(r in hoo_rules) {
     x_ <- hoo(x_, rule = r);
@@ -148,12 +150,9 @@ contexts <- function(x, hoo_rules, units_by = NULL, split_rules = NULL) {
       model_units <- x_$`_function.params`$units;
   
       if ( is.function (split_rules) ) {
-        # browser()
-        # stop("THIS NEEDS UPDATING (2)")
         unique_units <- unique(model_units);
         unit_contexts_res <- apply(unique_units, 1, function(u) {
           unit_label <- paste(u, collapse = "::");
-          # browser()
           res <- do.call(what = split_rules, args = list(unit = u, raw_input[unit_contexts[[unit_label]]]));
           attr(res, "tma.unit") <- attr(unit_contexts[[unit_label]], "tma.unit");
           res <- lapply(res, function(r) {
@@ -202,7 +201,8 @@ contexts <- function(x, hoo_rules, units_by = NULL, split_rules = NULL) {
       model_units <- x_$`_function.params`$units;
       unique_units <- unique(model_units);
       unit_contexts_res <- apply(unique_units, 1, function(u) {
-        unit_label <- paste(u, collapse = "::");
+        # unit_label <- paste(u, collapse = "::");
+        unit_label <- paste(trimws(u), collapse = "::");
         res <- raw_input[unit_contexts[[unit_label]]];
         attr(res, "tma.unit") <- attr(unit_contexts[[unit_label]], "tma.unit");
         res
@@ -213,5 +213,8 @@ contexts <- function(x, hoo_rules, units_by = NULL, split_rules = NULL) {
     }
   }
   
-  return(x_);
+  # x_list <- list2env(x_);
+  # class(x_list) <- c("ena.set", class(x_list));
+  # return(x_list);
+  x_
 }

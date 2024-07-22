@@ -2,7 +2,7 @@
 % Please edit documentation in R/decay.R
 \name{decay}
 \alias{decay}
-\title{Title}
+\title{decay}
 \usage{
 decay(what, ...)
 }
@@ -15,5 +15,5 @@ decay(what, ...)
 TB
 }
 \description{
-Title
+decay
 }
