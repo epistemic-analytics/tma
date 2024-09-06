@@ -13,7 +13,8 @@ view(
   codes = x$rotation$codes,
   window_size = x$`_function.params`$window_size,
   more_cols = NULL,
-  in_browser = FALSE
+  in_browser = FALSE,
+  id_col = "QEUNIT"
 )
 }
 \arguments{
@@ -34,6 +35,8 @@ view(
 \item{more_cols}{TBD}
 
 \item{in_browser}{TBD}
+
+\item{id_col}{TBD}
 }
 \value{
 TBD

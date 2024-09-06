@@ -11,7 +11,8 @@ tma.conversations(
   codes = NULL,
   conversation.by = NULL,
   window = 4,
-  conversation.exclude = c()
+  conversation.exclude = c(),
+  id_col = "QEUNIT"
 )
 }
 \arguments{
@@ -28,6 +29,8 @@ tma.conversations(
 \item{window}{[TBD]}
 
 \item{conversation.exclude}{[TBD]}
+
+\item{id_col}{TBD}
 }
 \value{
 list containing row indices representing conversations
