@@ -36,35 +36,48 @@ accum_multidim <- function(
     return_ena_set = FALSE,
     ...
 ) {
-  # For each unit, context
+  adj_vectors <- list()
+  # For each unit
+  for (unit in contexts[["model"]][["unit.labels"]]) { # assuming TMA generating contexts
+    adj_vector <- list()
+    # For each context, get unit's lines in that context (r_vec)
+    counting_matrices <- list()
+    for (line in contexts[["model"]][["contexts"]][[unit]]) { 
+      if (line$QEUNIT == unit) {
+      # Let this line be r_vec 
+      # Look back at all lines before this line, which are individual g_vec  
+      
+      # 0 out all those g_vec that are not in window size
+      
+      # Query multidimensional array to reweight g^w_vec = w^{sr} * g_vec
+      
+      # Sum all g^w_vec together as g^{ws}_vec
+        
+      
+      # Compute counting matrix = g^{ws}_vec r^T + 0.5w^{rr} * r_vec r_vec^T
+      counting_matrix = list() # TODO 
+      counting_matrices = append(counting_matrices, counting_matrix)
+      } else {
+        # Do nothing 
+      }
+    }
   
-    # For each unit's lines in that context (r_vec)
+    # Sum all counting matrices to get Omega matrix 
+      # Depends on accumulate_unit_vectors_by 
+    omega_matrix = list() # TODO 
+
+    # Make into adjacency vector
+      # If using ENA, keep only upper triangle (not including diag) as adjacency vector 
   
-      # Look back at all lines before this line (g_vec) and query multidimensional array (w^g_{sr})
+    # Apply normalization 
+      # Depends on norm_by 
   
-      # Let g^w_vec be w^g_{sr} * g_vec 
+    # Save unit's adjacency vec
+    adj_vectors[[unit]] <- adj_vector
+  }
   
-      # Sum all g^w_vec together for those g^w_vec that project far enough forward w.r.t. time 
-      # as g^{ws}_vec
-        # Depends on summarize_ground_using
-        # Depends on decay function; if decay function is not a simple window, we need to reweight here
-  
-      # Compute matmul(g^{ws}_vec^T,r) + 0.5w_{rr} * matmul(r_vec^T, r_vec)
-  
-      # Sum all g_vec^T r_vec to get Omega matrix 
-        # Depends on accumulate_unit_vectors_by 
-  
-      # Make into adjacency vector
-        # If using ENA, keep only upper triangle (not including diag) as adjacency vector 
-    
-      # Apply normalization 
-        # Depends on norm_by 
-  
-      # Save unit's adjacency vec
-  
-    # Return accumulation (adjacency vecs for all units)
-  
-  return(0)
+  # Return accumulation (adjacency vecs for all units)
+  return(adj_vectors)
 }
 
 # Notes:
