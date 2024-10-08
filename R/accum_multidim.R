@@ -42,35 +42,38 @@ accum_multidim <- function(
     adj_vector <- list()
     # For each context, get unit's lines in that context (r_vec)
     counting_matrices <- list()
-    for (line in contexts[["model"]][["contexts"]][[unit]]) { 
-      if (line$QEUNIT == unit) {
-      # Let this line be r_vec 
-      # Look back at all lines before this line, which are individual g_vec  
-      
-      # 0 out all those g_vec that are not in window size
-      
-      # Query multidimensional array to reweight g^w_vec = w^{sr} * g_vec
-      
-      # Sum all g^w_vec together as g^{ws}_vec
+    for (i in seq_along(contexts[["model"]][["contexts"]][[unit]])) { 
+      r_vec = contexts[["model"]][["contexts"]][[unit]][[i]]
+      if (r_vec$QEUNIT == unit) {
+        # Look back at all lines before this line, which are individual g_vec  
+        g_vecs <- list() # TODO 
         
-      
-      # Compute counting matrix = g^{ws}_vec r^T + 0.5w^{rr} * r_vec r_vec^T
-      counting_matrix = list() # TODO 
-      counting_matrices = append(counting_matrices, counting_matrix)
+        # 0 out all those g_vec that are not in window size
+        g_vecs <- list() # TODO 
+        
+        # Query multidimensional array to reweight g^w_vec = w^{sr} * g_vec
+        g_w_vecs <- list() # TODO 
+        
+        # Sum all g^w_vec together as g^{ws}_vec
+        g_ws_vec <- list() # TODO. 
+          
+        # Compute counting matrix = g^{ws}_vec r_vec^T + 0.5w^{rr} * r_vec r_vec^T
+        # TODO 
+        counting_matrix = matmul(g_ws_vec,t(r_vec)) + 0.5 * multidim_arr[...] * matmul(r_vec, t(r_vec))
+        counting_matrices = append(counting_matrices, counting_matrix)
       } else {
         # Do nothing 
       }
     }
   
     # Sum all counting matrices to get Omega matrix 
-      # Depends on accumulate_unit_vectors_by 
     omega_matrix = list() # TODO 
 
     # Make into adjacency vector
-      # If using ENA, keep only upper triangle (not including diag) as adjacency vector 
+    # TODO; just do ONA version. need to keep upper triangle + binarize if using ENA
   
     # Apply normalization 
-      # Depends on norm_by 
+    # TODO 
   
     # Save unit's adjacency vec
     adj_vectors[[unit]] <- adj_vector
@@ -79,6 +82,3 @@ accum_multidim <- function(
   # Return accumulation (adjacency vecs for all units)
   return(adj_vectors)
 }
-
-# Notes:
-# 1) Where does binaralization get applied; before or after weighting the ground vectors? 
