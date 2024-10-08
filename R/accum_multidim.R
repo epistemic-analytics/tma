@@ -1,7 +1,58 @@
+# If sender_cols, receiver_cols, or mode_column are empty, have our standin. Be sure to fill in 
+# standin as expected in multidim_arr. 
+# We do this so we don't fail when they don't specify senders/receivers/mode
+preprocess <- function(
+    multidim_arr, 
+    sender_cols,
+    receiver_cols,
+    mode_colum
+) {
+  # TODO
+}
+
+# Returns ground vectors to consider for a response line 
+apply_windows <- function(
+    multidim_arr, # multidimensional array [sender, receiver, modality, weight/window]
+    sender_cols,
+    receiver_cols,
+    time_column,
+    mode_column,
+    codes,
+    i, # index in context
+    context 
+) {
+  # TODO. This should return the actual ground vectors from the context i.e. not just the codes
+  
+}
+
+# Applies weights to ground vectors for a response line 
+apply_weights <- function(
+    multidim_arr, # multidimensional array [sender, receiver, modality, weight/window]
+    sender_cols,
+    receiver_cols,
+    mode_column,
+    g_vecs # ground vectors to weight 
+) {
+  # TODO. This should return the ground vectors just with the codes
+  
+}
+
+# 0 out diagonal of a square matrix
+f_diag <- function(
+    square_matrix
+) {
+  if (!is.matrix(mat) || nrow(mat) != ncol(mat)) {
+    stop("Input must be a square matrix.")
+  }
+  
+  mat[diag(nrow(mat))] <- 0
+  return(mat)
+}
+
 #' accum_multidim
 #'
 #' @param multidim_arr Input multidimensional array. This should be in the format
-#' [sender, receiver, modality, weight, window]
+#' [sender, receiver, modality, weight/window]
 #' @param sender_cols Sender columns
 #' @param receiver_cols Receiver columns
 #' @param time_column Time column in contexts
@@ -17,7 +68,7 @@
 #' @param summarize_ground_using How to combine ground into one vec. By default, this is colSums
 #' @param return_ena_set Whether or not to return an ENA set. By default, this is ONA
 #' 
-#' @return ONA or ENA accumulation
+#' @return T/ONA (or T/ENA) accumulation
 #' @export
 accum_multidim <- function(
     multidim_arr, 
@@ -36,6 +87,13 @@ accum_multidim <- function(
     return_ena_set = FALSE,
     ...
 ) {
+  # Preprocess multidim array
+  result <- preprocess(multidim_arr, sender_cols, receiver_cols, mode_column)
+  multidim_arr <- result$multidim_arr
+  sender_cols <- result$sender_cols
+  receiver_cols <- result$receiver_cols
+  mode_column <- result$mode_column
+  
   adj_vectors <- list()
   # For each unit
   for (unit in contexts[["model"]][["unit.labels"]]) { # assuming TMA generating contexts
@@ -45,21 +103,24 @@ accum_multidim <- function(
     for (i in seq_along(contexts[["model"]][["contexts"]][[unit]])) { 
       r_vec = contexts[["model"]][["contexts"]][[unit]][[i]]
       if (r_vec$QEUNIT == unit) {
-        # Look back at all lines before this line, which are individual g_vec  
-        g_vecs <- list() # TODO 
-        
-        # 0 out all those g_vec that are not in window size
-        g_vecs <- list() # TODO 
-        
+        # Get all lines before this line, which are individual g_vec, and 0 out those that
+        # don't project far enough
+        g_vecs <- apply_windows(multidim_arr, sender_cols, receiver_cols, time_column, mode_column,
+                                codes, i, context)
+
         # Query multidimensional array to reweight g^w_vec = w^{sr} * g_vec
-        g_w_vecs <- list() # TODO 
-        
-        # Sum all g^w_vec together as g^{ws}_vec
-        g_ws_vec <- list() # TODO. 
+        g_w_vecs <- list(multidim_arr, sender_cols, receiver_cols, mode_column, g_vecs) 
           
-        # Compute counting matrix = g^{ws}_vec r_vec^T + 0.5w^{rr} * r_vec r_vec^T
-        # TODO 
-        counting_matrix = matmul(g_ws_vec,t(r_vec)) + 0.5 * multidim_arr[...] * matmul(r_vec, t(r_vec))
+        # Sum all g^w_vec together as g^{ws}_vec
+        g_ws_vec <- Reduce("+", g_w_vecs)
+          
+        # Compute counting matrix = g^{ws}_vec r_vec^T + 0.5w^{rr} * f_diag(r_vec r_vec^T)
+        response_sender_state <- r_vec[sender_cols]
+        response_receiver_state <- r_vec[receiver_cols]
+        response_mode_state <- r_vec[mode_column]
+        w_rr = multidim_arr[response_sender_state, response_receiver_state, response_mode_state, "weight"]
+        
+        counting_matrix = matmul(g_ws_vec,t(r_vec)) + 0.5 * w_rr * f_diag(matmul(r_vec, t(r_vec)))
         counting_matrices = append(counting_matrices, counting_matrix)
       } else {
         # Do nothing 
@@ -67,16 +128,21 @@ accum_multidim <- function(
     }
   
     # Sum all counting matrices to get Omega matrix 
-    omega_matrix = list() # TODO 
+    omega_matrix = Reduce("+", counting_matrices)
+    rownames(omega_matrix) = codes
+    colnames(omega_matrix) = codes
 
     # Make into adjacency vector
-    # TODO; just do ONA version. need to keep upper triangle + binarize if using ENA
+      # Just do ONA version. need to keep upper triangle + binarize if using ENA
+    row_col_combinations <- expand.grid(rownames(omega_matrix), colnames(omega_matrix))
+    adj_vector <- paste(row_col_combinations[,1], "&", row_col_combinations[,2])
   
     # Apply normalization 
-    # TODO 
-  
+    l2_adj_vector <- sqrt(sum(adj_vector^2))
+    normed_adj_vector <- adj_vector / l2_adj_vector
+    
     # Save unit's adjacency vec
-    adj_vectors[[unit]] <- adj_vector
+    adj_vectors[[unit]] <- normed_adj_vector
   }
   
   # Return accumulation (adjacency vecs for all units)
