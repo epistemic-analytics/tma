@@ -46,7 +46,7 @@ apply_windows <- function(
     m_j = potential_g_vec[[,mode_column]]
     
     # Verify t_i - (t_j + window_{s_j, r_i, m_j}) \geq 0 
-    val_to_check <- context[[i]][[time_column]] - (potential_g_vec[[j]] + multidim_arr[s_j, r_i, m_j, "window"])
+    val_to_check <- context[[i,time_column]] - (potential_g_vec[[j]] + multidim_arr[s_j, r_i, m_j, "window"])
     if (val_to_check >= 0) {
       g_vecs <- append(g_vecs, potential_g_vec)
     }
@@ -101,7 +101,7 @@ f_diag <- function(
 #' @param time_column Time column in contexts
 #' @param mode_column Modality column in contexts
 #' @param codes Codes of interest
-#' @param contexts Contexts for each unit of analysis
+#' @param context_model TMA context model containing contexts for each unit of analysis
 #' @param decay Which decay function to use. By default, this is a simple window 
 #' @param calculate_adj_vectors_using How to compute adj vectors. By default, this is matmul(g^T, r).
 #' @param adj_vec_transform How to transform adj. vecs e.g. binarization. By default, this is empty  
@@ -120,7 +120,7 @@ accum_multidim <- function(
     time_column,
     mode_column,
     codes,
-    contexts,
+    context_model,
     # Nothing below this line is implemented in terms of arguments
     decay = decay(simple_window),
     calculate_adj_vectors_using = inner_product_ground_response,
@@ -139,21 +139,21 @@ accum_multidim <- function(
   mode_column <- result$mode_column
   
   adj_vectors <- list()
-  units <- contexts[["model"]][["unit.labels"]] # assuming TMA generating contexts
+  units <- context_model[["model"]][["unit.labels"]] # assuming TMA generating contexts
   # For each unit
   for (unit in units) {
     # List to store adjacency vectors for this unit
     adj_vector <- list()
     
     # Ensure context has column "standin" with values "standin" for all lines
-    context <- contexts[["model"]][["contexts"]][[unit]] %>% 
+    context <- context_model[["model"]][["contexts"]][[unit]] %>% 
     context[,"standin"] = "standin"
     
     # List to store connection matrices before accumulation for this unit
     counting_matrices <- list()
     
     # For each context, get unit's lines in that context (r_vec)
-    for (i in seq_along(length(context)) { 
+    for (i in seq_along(length(context))) { 
       r_vec = context[i,] 
       # If this response vector isn't our units, skip
       if (r_vec$QEUNIT == unit) {

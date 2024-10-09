@@ -1,0 +1,60 @@
+
+```{r}
+# Load libraries
+library(tidyverse)
+library(ona)
+library(tma)
+```
+
+```{r}
+# Load mock data and source program
+mock_data <- read_csv("./mock_data_edited.csv")
+source("../R/accum_multidim.R")
+```
+
+```{r}
+# Initialize TMA units and contexts
+unit_cols <- c("userID", "condition")
+codes <- c("A", "B", "C")
+HOO_rules_model <- tma:::rules(
+  modality %in% "chat" & chatGroup %in% UNIT$chatGroup & condition %in% UNIT$condition, modality %in% "resource" & userID %in% UNIT$userID & condition %in% UNIT$condition
+)
+
+context_model <- tma:::contexts(
+  x = mock_data,
+  units = unit_cols,
+  hoo_rules = HOO_rules_model
+)
+```
+potential senders: role, language, handwriting
+potential receivers: role, language, handwriting
+```{r}
+# Test 1: Make a  multidim arr. with 1 sender, 1 receiver, 1 modality with both weights and windows filled in
+# Does accum_multidim.R run? 
+
+sender_cols = "role" # for now, don't have list
+receiver_cols = "language"
+mode_column = "modality"
+time_column = "timeStamp"
+
+unique_senders = unique(mock_data[[,sender_cols]])
+unique_receivers =  unique(mock_data[[,receiver_cols]])
+unique_modes = unique(mock_data[[,mode_column]])
+weight_window_axis = c("weight", "window")
+
+result <- accum_multidim(
+    multidim_arr, 
+    sender_cols,
+    receiver_cols,
+    time_column,
+    mode_column,
+    codes,
+    context_model
+)
+```
+
+```{r}
+# Test 2: Does it return the correct answer? 
+```
+
+
