@@ -7,7 +7,20 @@ preprocess <- function(
     receiver_cols,
     mode_colum
 ) {
-  # TODO
+  if (length(sender_cols) == 0) {
+    sender_cols = list("standin")
+  }
+  if (length(receiver_cols) == 0) {
+    receiver_cols = list("standin")
+  }
+  if (length(mode_column) == 0) {
+    mode_column = list("standin")
+  }
+  
+  # TODO: Process multidim array to handle this
+    # multidimarray should be of shape (len(unique(sender)), len(unique(receiver)), 1, 2)
+  
+  # TODO. This should return a list with members being the new multidim_arr, sender_cols, receiver_cols, or mode_column
 }
 
 # Returns ground vectors to consider for a response line 
@@ -17,12 +30,25 @@ apply_windows <- function(
     receiver_cols,
     time_column,
     mode_column,
-    codes,
     i, # index in context
     context 
 ) {
-  # TODO. This should return the actual ground vectors from the context i.e. not just the codes
+  g_vecs <- list()
+  r_i = context[[i,receiver_cols]]
+  for (j in seq_along(0, i)) {
+    potential_g_vec <- context[j,]
+    s_j = potential_g_vec[[,sender_cols]]
+    m_j = potential_g_vec[[,mode_column]]
+    
+    # Verify t_i - (t_j + window_{s_j, r_i, m_j}) \geq 0 
+    val_to_check <- context[[i]][[time_column]] - (potential_g_vec[[j]] + multidim_arr[s_j, r_i, m_j, "window"])
+    if (val_to_check >= 0) {
+      g_vecs <- append(g_vecs, potential_g_vec)
+    }
+  }
   
+  # This should return the actual ground vectors from the context i.e. not just the codes
+  return(g_vecs)
 }
 
 # Applies weights to ground vectors for a response line 
@@ -31,10 +57,22 @@ apply_weights <- function(
     sender_cols,
     receiver_cols,
     mode_column,
+    codes,
+    i,
+    context,
     g_vecs # ground vectors to weight 
 ) {
-  # TODO. This should return the ground vectors just with the codes
-  
+  # This should return the weighted ground vectors with just the codes
+  g_w_vecs <- list()
+  r_i = context[[i,receiver_cols]]
+  for (vec in g_vecs) {
+    s_j = potential_g_vec[[,sender_cols]]
+    m_j = potential_g_vec[[,mode_column]]
+    
+    g_w_vec = multidim_arr[[s_j, r_i, m_j, "weight"]] * g_vec
+    
+    g_w_vecs <- append(g_w_vecs, g_w_vec)
+  }
 }
 
 # 0 out diagonal of a square matrix
@@ -99,6 +137,8 @@ accum_multidim <- function(
   for (unit in contexts[["model"]][["unit.labels"]]) { # assuming TMA generating contexts
     adj_vector <- list()
     # For each context, get unit's lines in that context (r_vec)
+    # TODO: ensure context has column "standin" with values "standin" for all lines
+    # TODO: ensure context only has codes we want to keep
     counting_matrices <- list()
     for (i in seq_along(contexts[["model"]][["contexts"]][[unit]])) { 
       r_vec = contexts[["model"]][["contexts"]][[unit]][[i]]
@@ -106,10 +146,11 @@ accum_multidim <- function(
         # Get all lines before this line, which are individual g_vec, and 0 out those that
         # don't project far enough
         g_vecs <- apply_windows(multidim_arr, sender_cols, receiver_cols, time_column, mode_column,
-                                codes, i, context)
+                                i, context)
 
         # Query multidimensional array to reweight g^w_vec = w^{sr} * g_vec
-        g_w_vecs <- list(multidim_arr, sender_cols, receiver_cols, mode_column, g_vecs) 
+        g_w_vecs <- apply_weights(multidim_arr, sender_cols, receiver_cols, mode_column, codes, i, context,
+                                  g_vecs) 
           
         # Sum all g^w_vec together as g^{ws}_vec
         g_ws_vec <- Reduce("+", g_w_vecs)
