@@ -26,6 +26,15 @@ preprocess <- function(
   # TODO. This should return a list with members being the new multidim_arr, sender_cols, receiver_cols, or mode_column
   
   # TODO: Maybe we can do this outside of this function? 
+  
+  result <- list(
+    multidim_arr = multidim_arr,
+    sender_cols = sender_cols,
+    receiver_cols = receiver_cols,
+    mode_column = mode_column
+  )
+  
+  return(result)  
 }
 
 # Returns ground vectors to consider for a response line 
@@ -39,16 +48,18 @@ apply_windows <- function(
     context 
 ) {
   g_vecs <- list()
+  g_vecs_counter = 1
+  # ground is at j, response is at i
   r_i = context[[i,receiver_cols]]
-  for (j in seq_along(0, i)) {
-    potential_g_vec <- context[j,]
-    s_j = potential_g_vec[[,sender_cols]]
-    m_j = potential_g_vec[[,mode_column]]
+  for (j in seq(1, i)) {
+    s_j = pull(context[j, ..sender_cols])
+    m_j = pull(context[j, ..mode_column])
     
-    # Verify t_i - (t_j + window_{s_j, r_i, m_j}) \geq 0 
-    val_to_check <- context[[i,time_column]] - (potential_g_vec[[j]] + multidim_arr[s_j, r_i, m_j, "window"])
-    if (val_to_check >= 0) {
-      g_vecs <- append(g_vecs, potential_g_vec)
+    # Verify t_i + w_{s_j, r_i, m_j} \geq t_j
+    val_to_check <- pull(context[i, ..time_column]) + multidim_arr[s_j, r_i, m_j, "window"] 
+    if (val_to_check >= pull(context[j, ..time_column])) {
+      g_vecs[[g_vecs_counter]] <- context[j]
+      g_vecs_counter = g_vecs_counter + 1 
     }
   }
   
@@ -69,20 +80,27 @@ apply_weights <- function(
 ) {
   # This should return the weighted ground vectors with just the codes
   g_w_vecs <- list()
-  r_i = context[[i,receiver_cols]]
+  g_w_vecs_counter = 1 
+  # ground is at j, response is at i
+  r_i = pull(context[i, ..receiver_cols])
   for (vec in g_vecs) {
-    s_j = potential_g_vec[[,sender_cols]]
-    m_j = potential_g_vec[[,mode_column]]
+    s_j = pull(vec[,..sender_cols])
+    m_j = pull(vec[,..mode_column])
     
-    g_w_vec = multidim_arr[[s_j, r_i, m_j, "weight"]] * g_vec[[,codes]] # ensure we only get codes specified
+    unweighted <- as.numeric(unname(c(vec[,..codes])))  # ensure we only get codes specified
     
-    g_w_vecs <- append(g_w_vecs, g_w_vec)
+    g_w_vec = multidim_arr[[s_j, r_i, m_j, "weight"]] * unweighted
+    
+    g_w_vecs[[g_w_vecs_counter]] <- g_w_vec
+    g_w_vecs_counter = g_w_vecs_counter + 1 
   }
+  
+  return(g_w_vecs)
 }
 
 # 0 out diagonal of a square matrix
 f_diag <- function(
-    square_matrix
+    mat # a square matrix
 ) {
   if (!is.matrix(mat) || nrow(mat) != ncol(mat)) {
     stop("Input must be a square matrix.")
@@ -146,14 +164,15 @@ accum_multidim <- function(
     adj_vector <- list()
     
     # Ensure context has column "standin" with values "standin" for all lines
-    context <- context_model[["model"]][["contexts"]][[unit]] %>% 
+    context <- context_model[["model"]][["contexts"]][[unit]]
     context[,"standin"] = "standin"
     
     # List to store connection matrices before accumulation for this unit
     counting_matrices <- list()
+    counting_matrices_counter = 1
     
     # For each context, get unit's lines in that context (r_vec)
-    for (i in seq_along(length(context))) { 
+    for (i in seq(1, nrow(context))) { 
       r_vec = context[i,] 
       # If this response vector isn't our units, skip
       if (r_vec$QEUNIT == unit) {
@@ -161,22 +180,27 @@ accum_multidim <- function(
         # far enough
         g_vecs <- apply_windows(multidim_arr, sender_cols, receiver_cols, time_column, mode_column, 
                                 i, context)
-
+        
         # Query multidimensional array to reweight g^w_vec = w^{srm} * g_vec
         g_w_vecs <- apply_weights(multidim_arr, sender_cols, receiver_cols, mode_column, codes, i, context,
                                   g_vecs) 
+      
           
         # Sum all g^w_vec together as g^{ws}_vec
         g_ws_vec <- Reduce("+", g_w_vecs)
+  
           
         # Compute counting matrix = g^{ws}_vec r_vec^T + 0.5w_{resp}^{srm} * f_diag(r_vec r_vec^T)
-        response_sender_state <- r_vec[[,sender_cols]]
-        response_receiver_state <- r_vec[[,receiver_cols]]
-        response_mode_state <- r_vec[[,mode_column]]
-        w_rr = multidim_arr[response_sender_state, response_receiver_state, response_mode_state, "weight"]
+        s_i <- r_vec[[sender_cols]]
+        r_i <- r_vec[[receiver_cols]]
+        m_i <- r_vec[[mode_column]]
+        w_rr = multidim_arr[s_i, r_i, m_i, "weight"]
+        r_vec <- as.numeric(unname(c(r_vec[,..codes])))
         
-        counting_matrix = matmul(g_ws_vec,t(r_vec)) + 0.5 * w_rr * f_diag(matmul(r_vec, t(r_vec)))
-        counting_matrices = append(counting_matrices, counting_matrix)
+        counting_matrix = (g_ws_vec %*% t(r_vec)) + 0.5 * w_rr * f_diag(r_vec %*% t(r_vec))
+        counting_matrices[[counting_matrices_counter]] = counting_matrix
+        
+        counting_matrices_counter = counting_matrices_counter + 1
       } else {
         # Do nothing 
       }
@@ -190,8 +214,11 @@ accum_multidim <- function(
     # Make into adjacency vector
       # Just do ONA version. need to keep upper triangle + binarize if using ENA
     row_col_combinations <- expand.grid(rownames(omega_matrix), colnames(omega_matrix))
-    adj_vector <- paste(row_col_combinations[,1], "&", row_col_combinations[,2])
-  
+    adj_vector_names <- paste(row_col_combinations[,1], "&", row_col_combinations[,2])
+    adj_vector <- as.vector(omega_matrix[row_col_combinations[,1], row_col_combinations[,2]])
+    adj_vector <- setNames(adj_vector, adj_vector_names)
+    print(adj_vector)
+    
     # Apply normalization 
     l2_adj_vector <- sqrt(sum(adj_vector^2))
     normed_adj_vector <- adj_vector / l2_adj_vector
@@ -203,3 +230,5 @@ accum_multidim <- function(
   # Return accumulation (adjacency vecs for all units)
   return(adj_vectors)
 }
+
+# TODO: Need to handle the case that there is nothing beforehand and we get NULL for g_vecs

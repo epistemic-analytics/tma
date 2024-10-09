@@ -37,12 +37,27 @@ receiver_cols = "language"
 mode_column = "modality"
 time_column = "timeStamp"
 
-unique_senders = unique(mock_data[[,sender_cols]])
-unique_receivers =  unique(mock_data[[,receiver_cols]])
-unique_modes = unique(mock_data[[,mode_column]])
+unique_senders = pull(unique(mock_data[,sender_cols]))
+unique_receivers =  pull(unique(mock_data[,receiver_cols]))
+unique_modes = pull(unique(mock_data[,mode_column]))
 weight_window_axis = c("weight", "window")
 
-result <- accum_multidim(
+dim_names <- list(
+  senders = unique_senders,
+  receivers = unique_receivers,
+  modes = unique_modes,
+  weight_window = weight_window_axis
+)
+
+multidim_arr <- array(200, 
+                  dim = c(length(unique_senders), 
+                          length(unique_receivers), 
+                          length(unique_modes), 
+                          length(weight_window_axis)), 
+                  dimnames = dim_names)
+
+
+result_1 <- accum_multidim(
     multidim_arr, 
     sender_cols,
     receiver_cols,
@@ -51,6 +66,7 @@ result <- accum_multidim(
     codes,
     context_model
 )
+# print(result_1)
 ```
 
 ```{r}
