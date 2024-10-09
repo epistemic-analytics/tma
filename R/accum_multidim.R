@@ -1,5 +1,5 @@
-# TODO: First, get 1 sender, 1 receiver, 1 modality, with all entries in both weight and window specified, 
-# working
+# TODO: Need to handle the case that there is nothing beforehand and we get NULL for g_vecs
+# TODO: Need to handle "standin" case
 
 # If sender_cols, receiver_cols, or mode_column are empty, have our standin. Be sure to fill in 
 # standin as expected in multidim_arr. 
@@ -232,5 +232,3 @@ accum_multidim <- function(
   # Return accumulation (adjacency vecs for all units)
   return(adj_vectors)
 }
-
-# TODO: Need to handle the case that there is nothing beforehand and we get NULL for g_vecs
