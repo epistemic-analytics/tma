@@ -215,9 +215,11 @@ accum_multidim <- function(
       # Just do ONA version. need to keep upper triangle + binarize if using ENA
     row_col_combinations <- expand.grid(rownames(omega_matrix), colnames(omega_matrix))
     adj_vector_names <- paste(row_col_combinations[,1], "&", row_col_combinations[,2])
-    adj_vector <- as.vector(omega_matrix[row_col_combinations[,1], row_col_combinations[,2]])
+    
+    adj_vector <- omega_matrix[cbind(match(row_col_combinations[, 1], rownames(omega_matrix)), 
+                                     match(row_col_combinations[, 2], colnames(omega_matrix)))]
+    
     adj_vector <- setNames(adj_vector, adj_vector_names)
-    print(adj_vector)
     
     # Apply normalization 
     l2_adj_vector <- sqrt(sum(adj_vector^2))
