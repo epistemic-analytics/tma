@@ -125,7 +125,7 @@ f_diag <- function(
 #' @param adj_vec_transform How to transform adj. vecs e.g. binarization. By default, this is empty  
 #' @param accumulate_unit_vectors_by How to compute final adjacency vector from adjacency vectors
 #' accross all of a unit's utterances; by default, this is colSums 
-#' @param norm_by How to normalize. By default, this is w.r.t. the \ell_2 norm 
+#' @param normalization How to normalize. Can be \ell_2 or NA
 #' @param summarize_ground_using How to combine ground into one vec. By default, this is colSums
 #' @param return_ena_set Whether or not to return an ENA set. By default, this is ONA
 #' 
@@ -144,7 +144,7 @@ accum_multidim <- function(
     calculate_adj_vectors_using = inner_product_ground_response,
     adj_vec_transform = NA,
     accumulate_unit_vectors_by = colSums,
-    norm_by = "l2",
+    norm_by = NA,
     summarize_ground_using = colSums,
     return_ena_set = FALSE,
     ...
@@ -222,8 +222,12 @@ accum_multidim <- function(
     adj_vector <- setNames(adj_vector, adj_vector_names)
     
     # Apply normalization 
-    l2_adj_vector <- sqrt(sum(adj_vector^2))
-    normed_adj_vector <- adj_vector / l2_adj_vector
+    if (norm_by == "ell_2") {
+      l2_adj_vector <- sqrt(sum(adj_vector^2))
+      normed_adj_vector <- adj_vector / l2_adj_vector
+    } else {
+      normed_adj_vector <- adj_vector
+    }
     
     # Save unit's adjacency vec
     adj_vectors[[unit]] <- normed_adj_vector
