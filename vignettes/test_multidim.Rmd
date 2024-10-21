@@ -59,6 +59,9 @@ multidim_arr <- array(200,
 
 result_1 <- accum_multidim(
     multidim_arr, 
+    unique_senders,
+    unique_receivers,
+    unique_modes,
     sender_cols,
     receiver_cols,
     time_column,
@@ -66,11 +69,39 @@ result_1 <- accum_multidim(
     codes,
     context_model
 )
-# print(result_1)
+print(result_1)
+# Passed!
 ```
 
 ```{r}
-# Test 2: Does it return the correct answer? 
+# Test 2: Do we get the correct standin matrix when specifying just a modality? 
 ```
+
+```{r}
+# Test 3: Do we get the correct answer with just a modality? 
+```
+
+```{r}
+# Test 4: Do we get the correct answer with just a sender? 
+```
+
+```{r}
+# Test 5: Do we get the correct answer with just a receiver? 
+```
+
+```{r}
+# Test 6: Do we get the correct answer with sender, no receiver, modality? 
+```
+
+```{r}
+# Test 7: Do we get the correct answer with no sender, receiver, modality? 
+```
+
+```{r}
+# Test 8: Do we get the correct answer with senders, receivers, modality? 
+```
+
+
+
 
 

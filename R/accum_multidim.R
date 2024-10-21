@@ -1,40 +1,71 @@
-# TODO: Need to handle the case that there is nothing beforehand and we get NULL for g_vecs
-# TODO: Need to handle "standin" case
-
 # If sender_cols, receiver_cols, or mode_column are empty, have our standin. Be sure to fill in 
 # standin as expected in multidim_arr. 
 # We do this so we don't fail when they don't specify senders/receivers/mode
 preprocess <- function(
     multidim_arr, 
+    unique_senders,
+    unique_receivers,
+    unique_modes,
     sender_cols,
     receiver_cols,
-    mode_colum
+    mode_column
 ) {
+  # Ensure standin is present for any empty columns
   if (length(sender_cols) == 0) {
-    sender_cols = list("standin")
+    sender_cols <- list("standin")
+    unique_senders <- list("standin")
   }
   if (length(receiver_cols) == 0) {
-    receiver_cols = list("standin")
+    receiver_cols <- list("standin")
+    unique_receivers <- list("standin")
   }
   if (length(mode_column) == 0) {
-    mode_column = list("standin")
+    mode_column <- list("standin")
+    unique_modes <- list("standin")
   }
   
-  # TODO: Process multidim array to handle this
-    # multidimarray should be of shape (len(unique(sender)), len(unique(receiver)), 1, 2)
+  # Create a new multidimensional array to hold expanded values
+  weight_window_axis = c("weight", "window")
+  new_dimnames <- list(
+    senders = unique_senders,
+    receivers = unique_receivers,
+    modes = unique_modes,
+    weight_window = weight_window_axis
+  )
+  new_dims = c(length(unique_senders), 
+          length(unique_receivers), 
+          length(unique_modes), 
+          length(weight_window_axis))
+  new_multidim_arr <- array(0, dim = new_dims, dimnames = new_dimnames)
   
-  # TODO. This should return a list with members being the new multidim_arr, sender_cols, receiver_cols, or mode_column
+  # Copy existing values to new entries with "standin"
+  for (orig_s in dimnames(multidim_arr)[[1]]) {
+    for (orig_r in dimnames(multidim_arr)[[2]]) {
+      for (orig_m in dimnames(multidim_arr)[[3]]) {
+        for (new_s in unique_senders) {
+          for (new_r in unique_receivers) {
+            for (new_m in unique_modes) {
+              # Only copy if there is an original sender, receiver, and modality
+              if (orig_s != "standin" && orig_r != "standin" && orig_m != "standin") {
+                new_multidim_arr[new_s, new_r, new_m, "weight"] <- multidim_arr[orig_s, orig_r, orig_m, "weight"]
+                new_multidim_arr[new_s, new_r, new_m, "window"] <- multidim_arr[orig_s, orig_r, orig_m, "window"]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
   
-  # TODO: Maybe we can do this outside of this function? 
-  
+  # Return the updated multidimensional array and the new column identifiers
   result <- list(
-    multidim_arr = multidim_arr,
+    multidim_arr = new_multidim_arr,
     sender_cols = sender_cols,
     receiver_cols = receiver_cols,
     mode_column = mode_column
   )
   
-  return(result)  
+  return(result)
 }
 
 # Returns ground vectors to consider for a response line 
@@ -133,6 +164,9 @@ f_diag <- function(
 #' @export
 accum_multidim <- function(
     multidim_arr, 
+    unique_senders,
+    unique_receivers,
+    unique_modes,
     sender_cols,
     receiver_cols,
     time_column,
@@ -144,13 +178,14 @@ accum_multidim <- function(
     calculate_adj_vectors_using = inner_product_ground_response,
     adj_vec_transform = NA,
     accumulate_unit_vectors_by = colSums,
-    norm_by = NA,
+    norm_by = "No",
     summarize_ground_using = colSums,
     return_ena_set = FALSE,
     ...
 ) {
   # Preprocess multidim array
-  result <- preprocess(multidim_arr, sender_cols, receiver_cols, mode_column)
+  result <- preprocess(multidim_arr, unique_senders, unique_receivers, unique_modes, 
+                       sender_cols, receiver_cols, mode_column)
   multidim_arr <- result$multidim_arr
   sender_cols <- result$sender_cols
   receiver_cols <- result$receiver_cols
@@ -180,6 +215,10 @@ accum_multidim <- function(
         # far enough
         g_vecs <- apply_windows(multidim_arr, sender_cols, receiver_cols, time_column, mode_column, 
                                 i, context)
+        
+        if (is.null(g_vecs)) {
+          return("no connections")
+        }
         
         # Query multidimensional array to reweight g^w_vec = w^{srm} * g_vec
         g_w_vecs <- apply_weights(multidim_arr, sender_cols, receiver_cols, mode_column, codes, i, context,
