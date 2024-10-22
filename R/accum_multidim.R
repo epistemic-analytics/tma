@@ -10,18 +10,29 @@ preprocess <- function(
     receiver_cols,
     mode_column
 ) {
+  old_unique_senders <- unique_senders
+  old_unique_receivers <- unique_receivers
+  old_unique_modes <- unique_modes
+  if (length(old_unique_senders) == 0) {
+    old_unique_senders <- NA  # Placeholder for missing senders
+  }
+  if (length(old_unique_receivers) == 0) {
+    old_unique_receivers <- NA  # Placeholder for missing receivers
+  }
+  
+  
   # Ensure standin is present for any empty columns
   if (length(sender_cols) == 0) {
-    sender_cols <- list("standin")
-    unique_senders <- list("standin")
+    sender_cols <- "standin"
+    unique_senders <- c("standin")
   }
   if (length(receiver_cols) == 0) {
-    receiver_cols <- list("standin")
-    unique_receivers <- list("standin")
+    receiver_cols <- "standin"
+    unique_receivers <- c("standin")
   }
   if (length(mode_column) == 0) {
-    mode_column <- list("standin")
-    unique_modes <- list("standin")
+    mode_column <- "standin"
+    unique_modes <- c("standin")
   }
   
   # Create a new multidimensional array to hold expanded values
@@ -37,25 +48,41 @@ preprocess <- function(
           length(unique_modes), 
           length(weight_window_axis))
   new_multidim_arr <- array(0, dim = new_dims, dimnames = new_dimnames)
+
   
-  # Copy existing values to new entries with "standin"
-  for (orig_s in dimnames(multidim_arr)[[1]]) {
-    for (orig_r in dimnames(multidim_arr)[[2]]) {
-      for (orig_m in dimnames(multidim_arr)[[3]]) {
-        for (new_s in unique_senders) {
-          for (new_r in unique_receivers) {
-            for (new_m in unique_modes) {
-              # Only copy if there is an original sender, receiver, and modality
-              if (orig_s != "standin" && orig_r != "standin" && orig_m != "standin") {
-                new_multidim_arr[new_s, new_r, new_m, "weight"] <- multidim_arr[orig_s, orig_r, orig_m, "weight"]
-                new_multidim_arr[new_s, new_r, new_m, "window"] <- multidim_arr[orig_s, orig_r, orig_m, "window"]
-              }
-            }
-          }
-        }
-      }
-    }
+  combinations <- expand.grid(new_senders = unique_senders,
+                              new_receivers = unique_receivers,
+                              new_modes = unique_modes,
+                              old_senders = old_unique_senders,
+                              old_receivers = old_unique_receivers,
+                              old_modes = old_unique_modes,
+                              stringsAsFactors = FALSE)
+  
+  View(combinations)
+  
+
+  for (i in seq_len(nrow(combinations))) {
+    new_s <- combinations$new_senders[i]
+    new_r <- combinations$new_receivers[i]
+    new_m <- combinations$new_modes[i]
+    orig_s <- combinations$old_senders[i]
+    orig_r <- combinations$old_receivers[i]
+    orig_m <- combinations$old_modes[i]
+    
+    cat("new_s:", as.character(new_s), "new_r:", as.character(new_r), "new_m:", as.character(new_m), "\n")
+    cat("orig_s:", as.character(orig_s), "orig_r:", as.character(orig_r), "orig_m:", as.character(orig_m), "\n")
+    
+    
+    old_index_list <- Filter(Negate(is.na), list(orig_s, orig_r, orig_m))
+    
+    cat("Weight Value:", do.call(`[`, c(list(multidim_arr), old_index_list, list("weight"))), "\n")
+    cat("Window Value:", do.call(`[`, c(list(multidim_arr), old_index_list, list("window"))), "\n")
+    
+    new_multidim_arr[new_s, new_r, new_m, "weight"] <- do.call(`[`, c(list(multidim_arr), old_index_list, list("weight")))
+    new_multidim_arr[new_s, new_r, new_m, "window"] <- do.call(`[`, c(list(multidim_arr), old_index_list, list("window")))
+  
   }
+  
   
   # Return the updated multidimensional array and the new column identifiers
   result <- list(
@@ -190,6 +217,8 @@ accum_multidim <- function(
   sender_cols <- result$sender_cols
   receiver_cols <- result$receiver_cols
   mode_column <- result$mode_column
+  
+  View(multidim_arr)
   
   adj_vectors <- list()
   units <- context_model[["model"]][["unit.labels"]] # assuming TMA generating contexts

@@ -26,6 +26,7 @@ context_model <- tma:::contexts(
   hoo_rules = HOO_rules_model
 )
 ```
+
 potential senders: role, language, handwriting
 potential receivers: role, language, handwriting
 ```{r}
@@ -74,27 +75,56 @@ print(result_1)
 ```
 
 ```{r}
-# Test 2: Do we get the correct standin matrix when specifying just a modality? 
+mock_data <- mock_data %>% filter(chatGroup == "PAM") # just keep PAM for now
+# Test 2: Do we get the correct standin matrix when specifying just a modality?
+dim_names <- list(
+  modes = unique_modes,
+  weight_window = weight_window_axis
+)
+multidim_arr <- array(0, 
+                  dim = c(length(unique_modes), 
+                        length(weight_window_axis)), 
+                  dimnames = dim_names)
+multidim_arr["chat", "weight"] <- 1
+multidim_arr["resource", "weight"] <- 1
+multidim_arr["chat", "window"] <- 1000
+multidim_arr["resource", "window"] <- 360
+
+result_1 <- accum_multidim(
+    multidim_arr, 
+    unique_senders = list(),
+    unique_receivers = list(),
+    unique_modes,
+    sender_cols = list(),
+    receiver_cols = list(),
+    time_column,
+    mode_column,
+    codes,
+    context_model
+)
+
+print(result_1)
+
 ```
 
 ```{r}
-# Test 3: Do we get the correct answer with just a modality? 
+# Test 2: Do we get the correct answer with just a modality? 
 ```
 
 ```{r}
-# Test 4: Do we get the correct answer with just a sender? 
+# Test 3: Do we get the correct answer with just a sender? 
 ```
 
 ```{r}
-# Test 5: Do we get the correct answer with just a receiver? 
+# Test 4: Do we get the correct answer with just a receiver? 
 ```
 
 ```{r}
-# Test 6: Do we get the correct answer with sender, no receiver, modality? 
+# Test 5: Do we get the correct answer with sender, no receiver, modality? 
 ```
 
 ```{r}
-# Test 7: Do we get the correct answer with no sender, receiver, modality? 
+# Test 6: Do we get the correct answer with no sender, receiver, modality? 
 ```
 
 ```{r}
