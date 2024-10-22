@@ -13,6 +13,7 @@ source("../R/accum_multidim.R")
 ```
 
 ```{r}
+mock_data <- mock_data %>% filter(chatGroup == "PAM") # just keep PAM for now
 # Initialize TMA units and contexts
 unit_cols <- c("userID", "condition")
 codes <- c("A", "B", "C")
@@ -75,7 +76,7 @@ print(result_1)
 ```
 
 ```{r}
-mock_data <- mock_data %>% filter(chatGroup == "PAM") # just keep PAM for now
+source("../R/accum_multidim.R")
 # Test 2: Do we get the correct standin matrix when specifying just a modality?
 dim_names <- list(
   modes = unique_modes,
@@ -87,7 +88,7 @@ multidim_arr <- array(0,
                   dimnames = dim_names)
 multidim_arr["chat", "weight"] <- 1
 multidim_arr["resource", "weight"] <- 1
-multidim_arr["chat", "window"] <- 1000
+multidim_arr["chat", "window"] <- 360 # try diff modality vals too
 multidim_arr["resource", "window"] <- 360
 
 result_new <- accum_multidim(
@@ -108,9 +109,9 @@ result_old <- tma:::accumulate_contexts (
     codes = codes,
     weight.by = function(x) { x },
     decay.function = function(x) {
-        modality_effect <- c("chat" = 1000, "resource" = 360)
+        modality_effect <- c("chat" = 360, "resource" = 360) # try diff modality vals too
         modality <- FULL_CONTEXT[RESPONSE_INDEX, modality]
-        weight <- (x < (modality)) * 1
+        weight <- (x < (modality_effect[modality])) * 1
         return(weight)
     },
     time.column = "timeStamp",
@@ -120,10 +121,6 @@ result_old <- tma:::accumulate_contexts (
 
 print(result_old$connection.counts)
 print(result_new)
-```
-
-```{r}
-# Test 2: Do we get the correct answer with just a modality? 
 ```
 
 ```{r}
@@ -143,7 +140,7 @@ print(result_new)
 ```
 
 ```{r}
-# Test 8: Do we get the correct answer with senders, receivers, modality? 
+# Test 7: Do we get the correct answer with senders, receivers, modality? 
 ```
 
 

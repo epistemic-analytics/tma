@@ -1,6 +1,7 @@
 # If sender_cols, receiver_cols, or mode_column are empty, have our standin. Be sure to fill in 
 # standin as expected in multidim_arr. 
 # We do this so we don't fail when they don't specify senders/receivers/mode
+# note: works for no sender, no receiver, modality
 preprocess <- function(
     multidim_arr, 
     unique_senders,
@@ -79,15 +80,8 @@ preprocess <- function(
     orig_s <- combinations$old_senders[i]
     orig_r <- combinations$old_receivers[i]
     orig_m <- combinations$old_modes[i]
-    
-    cat("new_s:", as.character(new_s), "new_r:", as.character(new_r), "new_m:", as.character(new_m), "\n")
-    cat("orig_s:", as.character(orig_s), "orig_r:", as.character(orig_r), "orig_m:", as.character(orig_m), "\n")
-    
-    
+  
     old_index_list <- Filter(Negate(is.na), list(orig_s, orig_r, orig_m))
-    
-    cat("Weight Value:", do.call(`[`, c(list(multidim_arr), old_index_list, list("weight"))), "\n")
-    cat("Window Value:", do.call(`[`, c(list(multidim_arr), old_index_list, list("window"))), "\n")
     
     new_multidim_arr[new_s, new_r, new_m, "weight"] <- do.call(`[`, c(list(multidim_arr), old_index_list, list("weight")))
     new_multidim_arr[new_s, new_r, new_m, "window"] <- do.call(`[`, c(list(multidim_arr), old_index_list, list("window")))
@@ -233,6 +227,9 @@ accum_multidim <- function(
   units <- context_model[["model"]][["unit.labels"]] # assuming TMA generating contexts
   # For each unit
   for (unit in units) {
+    if (as.character(unit) == as.character(units[[2]]) | (as.character(unit) == (as.character(units[[3]])))) {
+      next
+    }
     # List to store adjacency vectors for this unit
     adj_vector <- list()
     
@@ -258,11 +255,15 @@ accum_multidim <- function(
           return("no connections")
         }
         
+        print(g_vecs)
+
+        
         # Query multidimensional array to reweight g^w_vec = w^{srm} * g_vec
+        # note: looks to be working for no sender, no receiver, modality
         g_w_vecs <- apply_weights(multidim_arr, sender_cols, receiver_cols, mode_column, codes, i, context,
                                   g_vecs) 
-      
-          
+
+        
         # Sum all g^w_vec together as g^{ws}_vec
         g_ws_vec <- Reduce("+", g_w_vecs)
   
