@@ -57,8 +57,19 @@ preprocess <- function(
                               old_receivers = old_unique_receivers,
                               old_modes = old_unique_modes,
                               stringsAsFactors = FALSE)
+
   
-  View(combinations)
+  combinations <- combinations[
+    (# just modality
+    (combinations$new_senders == "standin" & combinations$new_receivers == "standin" & combinations$new_modes == combinations$old_modes) | 
+    # modality + sender
+    (combinations$new_senders ==  combinations$old_senders & combinations$new_receivers == "standin" & combinations$new_modes == combinations$old_modes) | 
+    # modality + receiver
+    (combinations$new_senders == "standin" & combinations$new_receivers == combinations$new_receivers & combinations$new_modes == combinations$old_modes) | 
+    # modality + sender + receiver
+    (combinations$new_senders == combinations$old_senders & combinations$new_receivers == combinations$new_receivers & combinations$new_modes == combinations$old_modes)) 
+    ,
+  ]
   
 
   for (i in seq_len(nrow(combinations))) {
