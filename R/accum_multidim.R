@@ -229,8 +229,6 @@ accum_multidim <- function(
   receiver_cols <- result$receiver_cols
   mode_column <- result$mode_column
   
-  View(multidim_arr)
-  
   adj_vectors <- list()
   units <- context_model[["model"]][["unit.labels"]] # assuming TMA generating contexts
   # For each unit

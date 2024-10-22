@@ -90,7 +90,7 @@ multidim_arr["resource", "weight"] <- 1
 multidim_arr["chat", "window"] <- 1000
 multidim_arr["resource", "window"] <- 360
 
-result_1 <- accum_multidim(
+result_new <- accum_multidim(
     multidim_arr, 
     unique_senders = list(),
     unique_receivers = list(),
@@ -103,8 +103,23 @@ result_1 <- accum_multidim(
     context_model
 )
 
-print(result_1)
+result_old <- tma:::accumulate_contexts (
+    x = context_model,
+    codes = codes,
+    weight.by = function(x) { x },
+    decay.function = function(x) {
+        modality_effect <- c("chat" = 1000, "resource" = 360)
+        modality <- FULL_CONTEXT[RESPONSE_INDEX, modality]
+        weight <- (x < (modality)) * 1
+        return(weight)
+    },
+    time.column = "timeStamp",
+    return.ena.set = FALSE,
+    mode.column = "modality"
+)
 
+print(result_old$connection.counts)
+print(result_new)
 ```
 
 ```{r}
