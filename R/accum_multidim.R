@@ -169,6 +169,7 @@ apply_weights <- function(
     
     unweighted <- as.numeric(unname(c(vec[,..codes])))  # ensure we only get codes specified
     
+    # print(multidim_arr[[s_j, r_i, m_j, "weight"]]) is getting correct weight 
     g_w_vec = multidim_arr[[s_j, r_i, m_j, "weight"]] * unweighted
     
     g_w_vecs[[g_w_vecs_counter]] <- g_w_vec
@@ -211,7 +212,7 @@ f_diag <- function(
 #' @param return_ena_set Whether or not to return an ENA set. By default, this is ONA
 #' 
 #' @return T/ONA (or T/ENA) accumulation
-#' @export
+#@export
 accum_multidim <- function(
     multidim_arr, 
     unique_senders,
@@ -248,8 +249,8 @@ accum_multidim <- function(
   units <- context_model[["model"]][["unit.labels"]] # assuming TMA generating contexts
   # For each unit
   for (unit in units) {
-    #if (as.character(unit) == as.character(units[[2]]) | (as.character(unit) == (as.character(units[[3]])))) {
-     # next
+   # if (as.character(unit) == as.character(units[[1]]) | (as.character(unit) == (as.character(units[[3]])))) {
+      #next
     #}
     # List to store adjacency vectors for this unit
     adj_vector <- list()
@@ -280,7 +281,6 @@ accum_multidim <- function(
         }
       
 
-        
         # Query multidimensional array to reweight g^w_vec = w^{srm} * g_vec
         # note: looks to be working for no sender, no receiver, modality
         g_w_vecs <- apply_weights(multidim_arr, sender_cols, receiver_cols, mode_column, codes, i, context,
@@ -301,6 +301,7 @@ accum_multidim <- function(
         # print(r_vec)
         # print((g_ws_vec %*% t(r_vec))) 
         # print(f_diag(r_vec %*% t(r_vec))) 
+        # print(0.5 * w_rr * f_diag(r_vec %*% t(r_vec)))
         counting_matrix = (g_ws_vec %*% t(r_vec)) + 0.5 * w_rr * f_diag(r_vec %*% t(r_vec))
         counting_matrices[[counting_matrices_counter]] = counting_matrix
         

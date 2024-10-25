@@ -123,9 +123,9 @@ result_old <- tma:::accumulate_contexts (
 print(result_old$connection.counts)
 print(result_new)
 
-# works when windows are the same (tried 180, 360, 720) 
+# works when windows are the same (tried 180, 360, 720) and weights are the same (tried 1, 2, 4) 
+# (run roxygen2::roxygenise() before running these tests, b/c otherwise it stops utilizing our change)
 # doesn't work when windows are different
-# doesn't work when weights are different 
 ```
 
 

@@ -3,7 +3,7 @@ Load necessary dependencies and mock dataset
 library(tidyverse)
 library(tma)
 library(ona)
-mock_data <- read_csv("./vignettes/mock_data.csv") %>% # note: for purposes of testing, Mentor is in PAM not Mentor Group
+mock_data <- read_csv("./mock_data.csv") %>% # note: for purposes of testing, Mentor is in PAM not Mentor Group
   rename(indices = "...1") 
 ```
 
@@ -86,6 +86,9 @@ ordered_cc_gtruth_sending <- accum_ordered_sending$connection.counts
 print(unordered_cc_gtruth_sending)
 print(ordered_cc_gtruth_sending)
 ```
+# User1: A & C is 4, everything else 0 (good)
+# User2: A & B is 3, A & C is 1, B & C is 1, C & B is 1 (good)
+# User3: A & C is 2, B & A is 2, B & C is 2, C & A is 2 (good)
 
 Connection counts computed TMA function (receiving): 2.1 unordered 2.2 ordered
 ```{r}
