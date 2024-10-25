@@ -33,7 +33,7 @@ potential receivers: role, language, handwriting
 ```{r}
 # Test 1: Make a  multidim arr. with 1 sender, 1 receiver, 1 modality with both weights and windows filled in
 # Does accum_multidim.R run? 
-
+source("../R/accum_multidim.R")
 sender_cols = "role" # for now, don't have list
 receiver_cols = "language"
 mode_column = "modality"
