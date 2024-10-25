@@ -21,6 +21,10 @@ preprocess <- function(
     old_unique_receivers <- NA  # Placeholder for missing receivers
   }
   
+  if (length(old_unique_modes) == 0) {
+    old_unique_modes <- NA # Placeholder for missing modes
+  }
+  
   
   # Ensure standin is present for any empty columns
   if (length(sender_cols) == 0) {
@@ -63,6 +67,10 @@ preprocess <- function(
   combinations <- combinations[
     (# just modality
     (combinations$new_senders == "standin" & combinations$new_receivers == "standin" & combinations$new_modes == combinations$old_modes) | 
+    # just sender
+    (combinations$new_senders == combinations$old_senders & combinations$new_receivers == "standin" & combinations$new_modes == "standin") | 
+    # just receiver
+    (combinations$new_senders == "standin" & combinations$new_receivers == combinations$old_receivers & combinations$new_modes == "standin") | 
     # modality + sender
     (combinations$new_senders ==  combinations$old_senders & combinations$new_receivers == "standin" & combinations$new_modes == combinations$old_modes) | 
     # modality + receiver
@@ -71,6 +79,9 @@ preprocess <- function(
     (combinations$new_senders == combinations$old_senders & combinations$new_receivers == combinations$new_receivers & combinations$new_modes == combinations$old_modes)) 
     ,
   ]
+  
+  # remove NA rows
+  combinations <- combinations[rowSums(is.na(combinations)) < ncol(combinations), ]
   
 
   for (i in seq_len(nrow(combinations))) {
@@ -82,6 +93,7 @@ preprocess <- function(
     orig_m <- combinations$old_modes[i]
   
     old_index_list <- Filter(Negate(is.na), list(orig_s, orig_r, orig_m))
+    # print(old_index_list) # this should be L2, not list()
     
     new_multidim_arr[new_s, new_r, new_m, "weight"] <- do.call(`[`, c(list(multidim_arr), old_index_list, list("weight")))
     new_multidim_arr[new_s, new_r, new_m, "window"] <- do.call(`[`, c(list(multidim_arr), old_index_list, list("window")))
@@ -242,8 +254,12 @@ accum_multidim <- function(
   receiver_cols <- result$receiver_cols
   mode_column <- result$mode_column
   
-  # print(multidim_arr[,,,"weight"]) # working 
-  # print(multidim_arr[,,,"window"]) # working
+  # print(sender_cols)
+  # print(receiver_cols)
+  # print(mode_column)
+  
+  # print(multidim_arr[,,,"weight"]) # not working when just senders or just receivers
+  # print(multidim_arr[,,,"window"]) # not working when just senders or just receivers
   
   adj_vectors <- list()
   units <- context_model[["model"]][["unit.labels"]] # assuming TMA generating contexts
@@ -268,7 +284,7 @@ accum_multidim <- function(
       r_vec = context[i,] 
       # If this response vector isn't our units, skip
       if (r_vec$QEUNIT == unit) {
-        # Get all lines before this line, which are individual g_vec, and only get those that project
+        # Get all lines *strictly* before this line, which are individual g_vec, and only get those that project
         # far enough
         g_vecs <- apply_windows(multidim_arr, sender_cols, receiver_cols, time_column, mode_column, 
                                 i, context, codes)
@@ -282,7 +298,6 @@ accum_multidim <- function(
       
 
         # Query multidimensional array to reweight g^w_vec = w^{srm} * g_vec
-        # note: looks to be working for no sender, no receiver, modality
         g_w_vecs <- apply_weights(multidim_arr, sender_cols, receiver_cols, mode_column, codes, i, context,
                                   g_vecs) 
 

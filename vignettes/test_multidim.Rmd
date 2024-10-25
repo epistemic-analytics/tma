@@ -34,11 +34,18 @@ potential receivers: role, language, handwriting
 # Test 1: Make a  multidim arr. with 1 sender, 1 receiver, 1 modality with both weights and windows filled in
 # Does accum_multidim.R run? 
 source("../R/accum_multidim.R")
-sender_cols = "role" # for now, don't have list
+# sender_cols = list("role") 
+# receiver_cols = list("language")
+# mode_column = list("modality")
+# for now, don't have list
+sender_cols = "role"
 receiver_cols = "language"
 mode_column = "modality"
 time_column = "timeStamp"
 
+# unique_senders = pull(unique(mock_data[,sender_cols[[1]]]))
+# unique_receivers =  pull(unique(mock_data[,receiver_cols[[1]]]))
+# unique_modes = pull(unique(mock_data[,mode_column[[1]]]))
 unique_senders = pull(unique(mock_data[,sender_cols]))
 unique_receivers =  pull(unique(mock_data[,receiver_cols]))
 unique_modes = pull(unique(mock_data[,mode_column]))
@@ -133,10 +140,107 @@ print(result_new)
 
 ```{r}
 # Test 3: Do we get the correct answer with just a sender? 
+source("../R/accum_multidim.R")
+unique_senders = pull(unique(mock_data[,sender_cols]))
+
+
+dim_names <- list(
+  senders = unique_senders,
+  weight_window = weight_window_axis
+)
+multidim_arr <- array(0, 
+                  dim = c(length(unique_senders), 
+                        length(weight_window_axis)), 
+                  dimnames = dim_names)
+
+multidim_arr["Mentor", "weight"] <- 1
+multidim_arr["Player", "weight"] <- 1
+multidim_arr["Mentor", "window"] <- 360
+multidim_arr["Player", "window"] <- 360
+
+result_new <- accum_multidim(
+    multidim_arr, 
+    unique_senders = unique_senders,
+    unique_receivers = list(),
+    unique_modes = list(),
+    sender_cols = sender_cols,
+    receiver_cols = list(),
+    time_column,
+    mode_column = list(),
+    codes,
+    context_model
+)
+
+results_old <- tma:::accumulate_contexts (
+    x = context_model,
+    codes = codes,
+    weight.by = function(x) { x },
+    decay.function = function(x) {
+        learner_effect <- c("Mentor" = 1, "Player" = 1)
+        learner <- FULL_CONTEXT[ROWS, role]
+        weight <- (x < (360)) * learner_effect[learner]
+        return(weight)
+    },
+    time.column = "timeStamp",
+    return.ena.set = FALSE,
+    mode.column = "role"
+)
+
+print(result_old$connection.counts)
+print(result_new)
+
+#'*works*: in equal windows equal weights case
 ```
 
 ```{r}
 # Test 4: Do we get the correct answer with just a receiver? 
+source("../R/accum_multidim.R")
+
+dim_names <- list(
+  receivers = unique_receivers,
+  weight_window = weight_window_axis
+)
+multidim_arr <- array(0, 
+                  dim = c(length(unique_receivers), 
+                        length(weight_window_axis)), 
+                  dimnames = dim_names)
+multidim_arr["L1", "weight"] <- 1
+multidim_arr["L2", "weight"] <- 1
+multidim_arr["L1", "window"] <- 360
+multidim_arr["L2", "window"] <- 360
+
+result_new <- accum_multidim(
+    multidim_arr, 
+    unique_senders = list(),
+    unique_receivers = unique_receivers,
+    unique_modes = list(),
+    sender_cols = list(),
+    receiver_cols = receiver_cols,
+    time_column,
+    mode_column = list(),
+    codes,
+    context_model
+)
+
+accum_ordered_receiving <- tma:::accumulate_contexts (
+    x = context_model,
+    codes = codes,
+    weight.by = function(x) { x },
+    decay.function = function(x) {
+        learner_effect <- c("L1" = 1, "L2" = 1)
+        learner <- FULL_CONTEXT[RESPONSE_INDEX, language]
+        weight <- (x < (360)) * learner_effect[learner]
+        return(weight)
+    },
+    time.column = "timeStamp",
+    return.ena.set = FALSE,
+    mode.column = "language"
+)
+
+print(result_old$connection.counts)
+print(result_new)
+
+#'*works*: in equal windows equal weights case
 ```
 
 ```{r}
