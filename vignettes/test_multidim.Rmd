@@ -111,7 +111,7 @@ result_old <- tma:::accumulate_contexts (
     decay.function = function(x) {
         modality_effect <- c("chat" = 360, "resource" = 360)
         modality_weight_effect <- c("chat" = 1, "resource" = 1)
-        modality <- FULL_CONTEXT[RESPONSE_INDEX, modality]
+        modality <- FULL_CONTEXT[ROWS, modality]
         weight <- (x < (modality_effect[modality])) * modality_weight_effect[modality]
         return(weight)
     },
@@ -123,9 +123,11 @@ result_old <- tma:::accumulate_contexts (
 print(result_old$connection.counts)
 print(result_new)
 
-# works when windows are the same (tried 180, 360, 720) and weights are the same (tried 1, 2, 4) 
-# (run roxygen2::roxygenise() before running these tests, b/c otherwise it stops utilizing our change)
-# doesn't work when windows are different
+# run roxygen2::roxygenise() before running these tests, b/c otherwise it stops utilizing our change to o.g. accum func
+#'*works* when windows are the same (tried 180, 360, 720)  
+#'*works* when weights are the same (tried 1, 2, 4) 
+#'*works* when weights are different (e.g. c = 2, r = 1)
+#'*works* when windows are different (c = 360, resource = 180)
 ```
 
 
