@@ -144,7 +144,7 @@ apply_windows <- function(
     val_to_check <- pull(context[j, ..time_column]) + multidim_arr[s_j, r_i, m_j, "window"] # this is fine
     # print(val_to_check)
     if (val_to_check >= pull(context[i, ..time_column])) {
-      # print(context[j,]) # this is... right? 
+      # print(context[j,]) # 
       g_vecs[[g_vecs_counter]] <- context[j,]
       g_vecs_counter = g_vecs_counter + 1 
     }
@@ -254,19 +254,19 @@ accum_multidim <- function(
   receiver_cols <- result$receiver_cols
   mode_column <- result$mode_column
   
-  # print(sender_cols)
+  # print(sender_cols) this is working 
   # print(receiver_cols)
   # print(mode_column)
   
-  # print(multidim_arr[,,,"weight"]) # not working when just senders or just receivers
-  # print(multidim_arr[,,,"window"]) # not working when just senders or just receivers
+  # print(multidim_arr[,,,"weight"]) # this is working 
+  # print(multidim_arr[,,,"window"]) # this is working
   
   adj_vectors <- list()
   units <- context_model[["model"]][["unit.labels"]] # assuming TMA generating contexts
   # For each unit
   for (unit in units) {
-   # if (as.character(unit) == as.character(units[[1]]) | (as.character(unit) == (as.character(units[[3]])))) {
-      #next
+    #if (as.character(unit) == as.character(units[[1]]) | (as.character(unit) == (as.character(units[[3]])))) {
+    #  next
     #}
     # List to store adjacency vectors for this unit
     adj_vector <- list()

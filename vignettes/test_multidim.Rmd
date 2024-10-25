@@ -94,7 +94,7 @@ multidim_arr <- array(0,
                         length(weight_window_axis)), 
                   dimnames = dim_names)
 multidim_arr["chat", "weight"] <- 1
-multidim_arr["resource", "weight"] <- 1
+multidim_arr["resource", "weight"] <- 2
 multidim_arr["chat", "window"] <- 360
 multidim_arr["resource", "window"] <- 360
 
@@ -117,7 +117,7 @@ result_old <- tma:::accumulate_contexts (
     weight.by = function(x) { x },
     decay.function = function(x) {
         modality_effect <- c("chat" = 360, "resource" = 360)
-        modality_weight_effect <- c("chat" = 1, "resource" = 1)
+        modality_weight_effect <- c("chat" = 1, "resource" = 2)
         modality <- FULL_CONTEXT[ROWS, modality]
         weight <- (x < (modality_effect[modality])) * modality_weight_effect[modality]
         return(weight)
@@ -154,7 +154,7 @@ multidim_arr <- array(0,
                   dimnames = dim_names)
 
 multidim_arr["Mentor", "weight"] <- 1
-multidim_arr["Player", "weight"] <- 1
+multidim_arr["Player", "weight"] <- 2
 multidim_arr["Mentor", "window"] <- 360
 multidim_arr["Player", "window"] <- 360
 
@@ -171,14 +171,15 @@ result_new <- accum_multidim(
     context_model
 )
 
-results_old <- tma:::accumulate_contexts (
+result_old <- tma:::accumulate_contexts (
     x = context_model,
     codes = codes,
     weight.by = function(x) { x },
     decay.function = function(x) {
-        learner_effect <- c("Mentor" = 1, "Player" = 1)
-        learner <- FULL_CONTEXT[ROWS, role]
-        weight <- (x < (360)) * learner_effect[learner]
+        role_window_effect <- c("Mentor" = 360, "Player" = 360)
+        role_weight_effect <- c("Mentor" = 1, "Player" = 2)
+        role <- FULL_CONTEXT[ROWS, role]
+        weight <- (x < (role_window_effect[role])) * role_weight_effect[role]
         return(weight)
     },
     time.column = "timeStamp",
@@ -190,6 +191,7 @@ print(result_old$connection.counts)
 print(result_new)
 
 #'*works*: in equal windows equal weights case
+#'*doesn't work* in inequal weights case--try mentor = 1, player = 2 
 ```
 
 ```{r}
