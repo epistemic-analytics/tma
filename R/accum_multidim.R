@@ -115,7 +115,7 @@ apply_windows <- function(
   g_vecs_counter = 1
   # ground is at j, response is at i
   r_i = context[[i,receiver_cols]]
-  # print(context[i,]) this is fine
+  # print(context[i,]) 
   
   if (i == 1) { # first line is response line--since we aren't including response lines, just provide a dummy vec w/ 0s @ codes
     temp_vec <- context[i,]
@@ -138,10 +138,10 @@ apply_windows <- function(
     }
   }
   
-  # print(g_vecs_counter) # should be 2 (nothing), 3 (A->C), 1 (why 2??), 3 (A -> C)
+  # print(g_vecs_counter) 
   
-  # print(i) this is right 
-  # print(g_vecs) # this is right
+  # print(i)
+  # print(g_vecs) 
   
   # This should return the actual ground vectors from the context i.e. not just the codes
   return(g_vecs)
@@ -241,6 +241,9 @@ accum_multidim <- function(
   receiver_cols <- result$receiver_cols
   mode_column <- result$mode_column
   
+  # print(multidim_arr[,,,"weight"]) # working 
+  # print(multidim_arr[,,,"window"]) # working
+  
   adj_vectors <- list()
   units <- context_model[["model"]][["unit.labels"]] # assuming TMA generating contexts
   # For each unit
@@ -261,11 +264,9 @@ accum_multidim <- function(
     
     # For each context, get unit's lines in that context (r_vec)
     for (i in seq(1, nrow(context))) { 
-      # print(i) # this is fine
       r_vec = context[i,] 
       # If this response vector isn't our units, skip
       if (r_vec$QEUNIT == unit) {
-        # print(i) # this is fine
         # Get all lines before this line, which are individual g_vec, and only get those that project
         # far enough
         g_vecs <- apply_windows(multidim_arr, sender_cols, receiver_cols, time_column, mode_column, 
@@ -277,8 +278,7 @@ accum_multidim <- function(
           g_vecs[[1]] <- temp
          #  print(g_vecs)
         }
-        
-        # print(g_vecs) # this is fine
+      
 
         
         # Query multidimensional array to reweight g^w_vec = w^{srm} * g_vec
@@ -299,8 +299,8 @@ accum_multidim <- function(
         g_ws_vec <- as.numeric(g_ws_vec)
         # print(g_ws_vec)
         # print(r_vec)
-        # print((g_ws_vec %*% t(r_vec))) # this is fine now
-        # print(f_diag(r_vec %*% t(r_vec))) # this is fine now 
+        # print((g_ws_vec %*% t(r_vec))) 
+        # print(f_diag(r_vec %*% t(r_vec))) 
         counting_matrix = (g_ws_vec %*% t(r_vec)) + 0.5 * w_rr * f_diag(r_vec %*% t(r_vec))
         counting_matrices[[counting_matrices_counter]] = counting_matrix
         

@@ -88,7 +88,7 @@ multidim_arr <- array(0,
                   dimnames = dim_names)
 multidim_arr["chat", "weight"] <- 1
 multidim_arr["resource", "weight"] <- 1
-multidim_arr["chat", "window"] <- 360 # try diff modality vals too
+multidim_arr["chat", "window"] <- 360
 multidim_arr["resource", "window"] <- 360
 
 result_new <- accum_multidim(
@@ -109,9 +109,10 @@ result_old <- tma:::accumulate_contexts (
     codes = codes,
     weight.by = function(x) { x },
     decay.function = function(x) {
-        modality_effect <- c("chat" = 360, "resource" = 360) # try diff modality vals too
+        modality_effect <- c("chat" = 360, "resource" = 360)
+        modality_weight_effect <- c("chat" = 1, "resource" = 1)
         modality <- FULL_CONTEXT[RESPONSE_INDEX, modality]
-        weight <- (x < (modality_effect[modality])) * 1
+        weight <- (x < (modality_effect[modality])) * modality_weight_effect[modality]
         return(weight)
     },
     time.column = "timeStamp",
@@ -121,7 +122,12 @@ result_old <- tma:::accumulate_contexts (
 
 print(result_old$connection.counts)
 print(result_new)
+
+# works when windows are the same (tried 180, 360, 720) 
+# doesn't work when windows are different
+# doesn't work when weights are different 
 ```
+
 
 ```{r}
 # Test 3: Do we get the correct answer with just a sender? 
