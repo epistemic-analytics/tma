@@ -8,8 +8,8 @@ library(tma)
 
 ```{r}
 # Load mock data and source program
-mock_data <- read_csv("./mock_data_edited.csv")
-source("../R/accum_multidim.R")
+mock_data <- read_csv("./vignettes/mock_data_edited.csv")
+source("./R/accum_multidim.R")
 ```
 
 ```{r}
@@ -33,7 +33,7 @@ potential receivers: role, language, handwriting
 ```{r}
 # Test 1: Make a  multidim arr. with 1 sender, 1 receiver, 1 modality with both weights and windows filled in
 # Does accum_multidim.R run? 
-source("../R/accum_multidim.R")
+source("./R/accum_multidim.R")
 # sender_cols = list("role") 
 # receiver_cols = list("language")
 # mode_column = list("modality")
@@ -83,7 +83,7 @@ print(result_1)
 ```
 
 ```{r}
-source("../R/accum_multidim.R")
+source("./R/accum_multidim.R")
 # Test 2: Do we get the correct standin matrix when specifying just a modality?
 dim_names <- list(
   modes = unique_modes,
@@ -96,7 +96,7 @@ multidim_arr <- array(0,
 multidim_arr["chat", "weight"] <- 1
 multidim_arr["resource", "weight"] <- 2
 multidim_arr["chat", "window"] <- 360
-multidim_arr["resource", "window"] <- 360
+multidim_arr["resource", "window"] <- 180
 
 result_new <- accum_multidim(
     multidim_arr, 
@@ -116,7 +116,7 @@ result_old <- tma:::accumulate_contexts (
     codes = codes,
     weight.by = function(x) { x },
     decay.function = function(x) {
-        modality_effect <- c("chat" = 360, "resource" = 360)
+        modality_effect <- c("chat" = 360, "resource" = 180)
         modality_weight_effect <- c("chat" = 1, "resource" = 2)
         modality <- FULL_CONTEXT[ROWS, modality]
         weight <- (x < (modality_effect[modality])) * modality_weight_effect[modality]
@@ -140,7 +140,7 @@ print(result_new)
 
 ```{r}
 # Test 3: Do we get the correct answer with just a sender? 
-source("../R/accum_multidim.R")
+source("./R/accum_multidim.R")
 unique_senders = pull(unique(mock_data[,sender_cols]))
 
 
@@ -156,7 +156,7 @@ multidim_arr <- array(0,
 multidim_arr["Mentor", "weight"] <- 1
 multidim_arr["Player", "weight"] <- 2
 multidim_arr["Mentor", "window"] <- 360
-multidim_arr["Player", "window"] <- 360
+multidim_arr["Player", "window"] <- 180
 
 result_new <- accum_multidim(
     multidim_arr, 
@@ -176,7 +176,7 @@ result_old <- tma:::accumulate_contexts (
     codes = codes,
     weight.by = function(x) { x },
     decay.function = function(x) {
-        role_window_effect <- c("Mentor" = 360, "Player" = 360)
+        role_window_effect <- c("Mentor" = 360, "Player" = 180)
         role_weight_effect <- c("Mentor" = 1, "Player" = 2)
         role <- FULL_CONTEXT[ROWS, role]
         weight <- (x < (role_window_effect[role])) * role_weight_effect[role]
@@ -190,13 +190,15 @@ result_old <- tma:::accumulate_contexts (
 print(result_old$connection.counts)
 print(result_new)
 
-#'*works*: in equal windows equal weights case
-#'*doesn't work* in inequal weights case--try mentor = 1, player = 2 
+#'*works*: in equal windows equal weights case 
+#'*works*: weights not equal (m = 1, p = 2s)
+#'*works*: windows not equal (m = 360, p = 180)
+#'*works*: windows and weights not equal (comb of above two cases)
 ```
 
 ```{r}
 # Test 4: Do we get the correct answer with just a receiver? 
-source("../R/accum_multidim.R")
+source("./R/accum_multidim.R")
 
 dim_names <- list(
   receivers = unique_receivers,
@@ -207,9 +209,9 @@ multidim_arr <- array(0,
                         length(weight_window_axis)), 
                   dimnames = dim_names)
 multidim_arr["L1", "weight"] <- 1
-multidim_arr["L2", "weight"] <- 1
+multidim_arr["L2", "weight"] <- 5
 multidim_arr["L1", "window"] <- 360
-multidim_arr["L2", "window"] <- 360
+multidim_arr["L2", "window"] <- 180
 
 result_new <- accum_multidim(
     multidim_arr, 
@@ -224,14 +226,15 @@ result_new <- accum_multidim(
     context_model
 )
 
-accum_ordered_receiving <- tma:::accumulate_contexts (
+result_old <- tma:::accumulate_contexts (
     x = context_model,
     codes = codes,
     weight.by = function(x) { x },
     decay.function = function(x) {
-        learner_effect <- c("L1" = 1, "L2" = 1)
-        learner <- FULL_CONTEXT[RESPONSE_INDEX, language]
-        weight <- (x < (360)) * learner_effect[learner]
+        language_window_effect <- c("L1" = 360, "L2" = 180)
+        language_weight_effect <- c("L1" = 1, "L2" = 5)
+        language <- FULL_CONTEXT[RESPONSE_INDEX, language]
+        weight <- (x < (language_window_effect[language])) * language_weight_effect[language]
         return(weight)
     },
     time.column = "timeStamp",
@@ -243,18 +246,165 @@ print(result_old$connection.counts)
 print(result_new)
 
 #'*works*: in equal windows equal weights case
+#'*works*: in different windows, different weights, and mixed cases
 ```
 
 ```{r}
 # Test 5: Do we get the correct answer with sender, no receiver, modality? 
+source("./R/accum_multidim.R")
+
+dim_names <- list(
+  senders = unique_senders,
+  modes = unique_modes,
+  weight_window = weight_window_axis
+)
+
+multidim_arr <- array(0, 
+                  dim = c(length(unique_senders), 
+                          length(unique_modes),
+                        length(weight_window_axis)), 
+                  dimnames = dim_names)
+
+multidim_arr["Mentor", "chat", "weight"] <- 3
+multidim_arr["Mentor", "resource", "weight"] <- 1
+multidim_arr["Player", "chat", "weight"] <- 2
+multidim_arr["Player", "resource", "weight"] <- 5
+
+multidim_arr["Mentor", "chat", "window"] <- 180
+multidim_arr["Mentor", "resource", "window"] <- 60
+multidim_arr["Player", "chat", "window"] <- 180
+multidim_arr["Player", "resource", "window"] <- 360
+
+
+result_new <- accum_multidim(
+    multidim_arr, 
+    unique_senders = unique_senders,
+    unique_receivers = list(),
+    unique_modes = unique_modes,
+    sender_cols = sender_cols,
+    receiver_cols = list(),
+    time_column,
+    mode_column = mode_column,
+    codes,
+    context_model
+)
+
+result_old <- tma:::accumulate_contexts (
+    x = context_model,
+    codes = codes,
+    weight.by = function(x) { x },
+    decay.function = function(x) {
+      
+        sender <- FULL_CONTEXT[ROWS, role]
+        modality <- FULL_CONTEXT[ROWS, modality]
+        
+        if (length(modality) >= 2) { 
+            window <- diag(multidim_arr[sender, modality, "window"])
+            names(window) <- modality
+            
+            weighter <- diag(multidim_arr[sender, modality, "weight"])
+            names(weighter) <- modality
+            weight <- (x < window) * weighter
+            
+            return(weight)
+          } else {
+            weight <- (x < multidim_arr[sender, modality, "window"]) * multidim_arr[sender, modality, "weight"]
+            return(weight)
+          }
+    },
+    time.column = "timeStamp",
+    return.ena.set = FALSE
+   # mode.column = c("role", "modality")
+)
+
+print(result_old$connection.counts)
+print(result_new)
+
+#'*works* in case with same windows, same weights
+#'*works* in case with mixed windows, mixed weights
 ```
 
 ```{r}
 # Test 6: Do we get the correct answer with no sender, receiver, modality? 
+source("./R/accum_multidim.R")
+
+dim_names <- list(
+  receivers = unique_receivers,
+  modes = unique_modes,
+  weight_window = weight_window_axis
+)
+
+multidim_arr <- array(0, 
+                  dim = c(length(unique_receivers), 
+                          length(unique_modes),
+                        length(weight_window_axis)), 
+                  dimnames = dim_names)
+
+multidim_arr["L1", "chat", "weight"] <- 3
+multidim_arr["L1", "resource", "weight"] <- 1
+multidim_arr["L2", "chat", "weight"] <- 2
+multidim_arr["L2", "resource", "weight"] <- 5
+
+multidim_arr["L1", "chat", "window"] <- 180
+multidim_arr["L1", "resource", "window"] <- 60
+multidim_arr["L2", "chat", "window"] <- 180
+multidim_arr["L2", "resource", "window"] <- 360
+
+
+result_new <- accum_multidim(
+    multidim_arr, 
+    unique_senders = list(), 
+    unique_receivers = unique_receivers,
+    unique_modes = unique_modes,
+    sender_cols = list(),
+    receiver_cols = receiver_cols,
+    time_column,
+    mode_column = mode_column,
+    codes,
+    context_model
+)
+
+result_old <- tma:::accumulate_contexts (
+    x = context_model,
+    codes = codes,
+    weight.by = function(x) { x },
+    decay.function = function(x) {
+      
+        receiver <- FULL_CONTEXT[RESPONSE_INDEX, language]
+        modality <- FULL_CONTEXT[ROWS, modality]
+      
+        
+       #  if (length(modality) >= 2) { 
+       #      window <- diag(multidim_arr[receiver, modality, "window"])
+       #      names(window) <- modality
+       #      
+       #      weighter <- diag(multidim_arr[receiver, modality, "weight"])
+       #      names(weighter) <- modality
+       #      weight <- (x < window) * weighter
+       #      
+       #      return(weight)
+       # } else {
+          weight <- (x < multidim_arr[receiver, modality, "window"]) * multidim_arr[receiver, modality, "weight"]
+          return(weight)
+        # }
+    },
+    time.column = "timeStamp",
+    return.ena.set = FALSE
+   # mode.column = c("language", "modality")
+)
+
+print(result_old$connection.counts)
+print(result_new)
 ```
 
 ```{r}
-# Test 7: Do we get the correct answer with senders, receivers, modality? 
+# Test 7: Do we get the correct answer with sender, receiver, no modality? 
+
+```
+
+
+```{r}
+# Test 8: Do we get the correct answer with senders, receivers, modality? 
 ```
 
 
