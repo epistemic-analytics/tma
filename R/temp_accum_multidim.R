@@ -159,7 +159,7 @@ apply_windows <- function(
 ) {
   g_vecs <- list()
   g_vecs_counter = 1
-  r_i = context[i, receiver_cols, drop = FALSE]
+  r_i = context[i, ..receiver_cols]
   
   if (i == 1) { 
     temp_vec <- context[i,]
@@ -169,7 +169,7 @@ apply_windows <- function(
   }
   
   for (j in seq(1, i-1)) {
-    s_j = context[j, sender_cols, drop = FALSE]
+    s_j = context[j, sender_cols]
     m_j = context[j, mode_column]
     
     val_to_check <- context[j, time_column] + multidim_arr[as.list(s_j), as.list(r_i), m_j, "window"]
@@ -194,10 +194,10 @@ apply_weights <- function(
 ) {
   g_w_vecs <- list()
   g_w_vecs_counter = 1 
-  r_i = context[i, receiver_cols, drop = FALSE]
+  r_i = context[i, ..receiver_cols]
   for (vec in g_vecs) {
-    s_j = vec[, sender_cols, drop = FALSE]
-    m_j = vec[, mode_column]
+    s_j = vec[, ..sender_cols]
+    m_j = vec[, ..mode_column]
     
     unweighted <- as.numeric(unname(c(vec[, codes])))  
     
@@ -250,7 +250,7 @@ accum_multidim <- function(
   receiver_cols <- result$receiver_cols
   mode_column <- result$mode_column
   
-  print(multidim_arr)
+  # print(multidim_arr)
   
   adj_vectors <- list()
   units <- context_model[["model"]][["unit.labels"]]
