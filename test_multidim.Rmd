@@ -581,6 +581,72 @@ multidim_arr <- array(0,
                   dim = dims, 
                   dimnames = dim_names)
 
+multidim_arr["Player", "L1", "Player", "poor", "chat", "weight"] <- 1
+multidim_arr["Player", "L1", "Player", "poor", "resource", "weight"] <- 1
+multidim_arr["Player", "L1", "Player", "good", "chat", "weight"] <- 1
+multidim_arr["Player", "L1", "Player", "good", "resource", "weight"] <- 1
+multidim_arr["Player", "L1", "Mentor", "poor", "chat", "weight"] <- 1
+multidim_arr["Player", "L1", "Mentor", "poor", "resource", "weight"] <- 1
+multidim_arr["Player", "L1", "Mentor", "good", "chat", "weight"] <- 1
+multidim_arr["Player", "L1", "Mentor", "good", "resource", "weight"] <- 1
+multidim_arr["Player", "L2", "Player", "poor", "chat", "weight"] <- 1
+multidim_arr["Player", "L2", "Player", "poor", "resource", "weight"] <- 1
+multidim_arr["Player", "L2", "Player", "good", "chat", "weight"] <- 1
+multidim_arr["Player", "L2", "Player", "good", "resource", "weight"] <- 1
+multidim_arr["Player", "L2", "Mentor", "poor", "chat", "weight"] <- 1
+multidim_arr["Player", "L2", "Mentor", "poor", "resource", "weight"] <- 1
+multidim_arr["Player", "L2", "Mentor", "good", "chat", "weight"] <- 1
+multidim_arr["Player", "L2", "Mentor", "good", "resource", "weight"] <- 1
+multidim_arr["Mentor", "L1", "Player", "poor", "chat", "weight"] <- 1
+multidim_arr["Mentor", "L1", "Player", "poor", "resource", "weight"] <- 1
+multidim_arr["Mentor", "L1", "Player", "good", "chat", "weight"] <- 1
+multidim_arr["Mentor", "L1", "Player", "good", "resource", "weight"] <- 1
+multidim_arr["Mentor", "L1", "Mentor", "poor", "chat", "weight"] <- 1
+multidim_arr["Mentor", "L1", "Mentor", "poor", "resource", "weight"] <- 1
+multidim_arr["Mentor", "L1", "Mentor", "good", "chat", "weight"] <- 1
+multidim_arr["Mentor", "L1", "Mentor", "good", "resource", "weight"] <- 1
+multidim_arr["Mentor", "L2", "Player", "poor", "chat", "weight"] <- 1
+multidim_arr["Mentor", "L2", "Player", "poor", "resource", "weight"] <- 1
+multidim_arr["Mentor", "L2", "Player", "good", "chat", "weight"] <- 1
+multidim_arr["Mentor", "L2", "Player", "good", "resource", "weight"] <- 1
+multidim_arr["Mentor", "L2", "Mentor", "poor", "chat", "weight"] <- 1
+multidim_arr["Mentor", "L2", "Mentor", "poor", "resource", "weight"] <- 1
+multidim_arr["Mentor", "L2", "Mentor", "good", "chat", "weight"] <- 1
+multidim_arr["Mentor", "L2", "Mentor", "good", "resource", "weight"] <- 1
+
+multidim_arr["Player", "L1", "Player", "poor", "chat", "window"] <- 360
+multidim_arr["Player", "L1", "Player", "poor", "resource", "window"] <- 360 
+multidim_arr["Player", "L1", "Player", "good", "chat", "window"] <- 360
+multidim_arr["Player", "L1", "Player", "good", "resource", "window"] <- 360
+multidim_arr["Player", "L1", "Mentor", "poor", "chat", "window"] <- 360
+multidim_arr["Player", "L1", "Mentor", "poor", "resource", "window"] <- 360
+multidim_arr["Player", "L1", "Mentor", "good", "chat", "window"] <- 360
+multidim_arr["Player", "L1", "Mentor", "good", "resource", "window"] <- 360
+multidim_arr["Player", "L2", "Player", "poor", "chat", "window"] <- 360
+multidim_arr["Player", "L2", "Player", "poor", "resource", "window"] <- 360
+multidim_arr["Player", "L2", "Player", "good", "chat", "window"] <- 360
+multidim_arr["Player", "L2", "Player", "good", "resource", "window"] <- 360
+multidim_arr["Player", "L2", "Mentor", "poor", "chat", "window"] <- 360
+multidim_arr["Player", "L2", "Mentor", "poor", "resource", "window"] <- 360
+multidim_arr["Player", "L2", "Mentor", "good", "chat", "window"] <- 360
+multidim_arr["Player", "L2", "Mentor", "good", "resource", "window"] <- 360
+multidim_arr["Mentor", "L1", "Player", "poor", "chat", "window"] <- 360
+multidim_arr["Mentor", "L1", "Player", "poor", "resource", "window"] <- 360
+multidim_arr["Mentor", "L1", "Player", "good", "chat", "window"] <- 360
+multidim_arr["Mentor", "L1", "Player", "good", "resource", "window"] <- 360
+multidim_arr["Mentor", "L1", "Mentor", "poor", "chat", "window"] <- 360
+multidim_arr["Mentor", "L1", "Mentor", "poor", "resource", "window"] <- 360
+multidim_arr["Mentor", "L1", "Mentor", "good", "chat", "window"] <- 360
+multidim_arr["Mentor", "L1", "Mentor", "good", "resource", "window"] <- 360
+multidim_arr["Mentor", "L2", "Player", "poor", "chat", "window"] <- 360
+multidim_arr["Mentor", "L2", "Player", "poor", "resource", "window"] <- 360
+multidim_arr["Mentor", "L2", "Player", "good", "chat", "window"] <- 360
+multidim_arr["Mentor", "L2", "Player", "good", "resource", "window"] <- 360
+multidim_arr["Mentor", "L2", "Mentor", "poor", "chat", "window"] <- 360
+multidim_arr["Mentor", "L2", "Mentor", "poor", "resource", "window"] <- 360
+multidim_arr["Mentor", "L2", "Mentor", "good", "chat", "window"] <- 360
+multidim_arr["Mentor", "L2", "Mentor", "good", "resource", "window"] <- 360
+
 
 result_new <- accum_multidim(
     multidim_arr, 
@@ -595,11 +661,51 @@ result_new <- accum_multidim(
     context_model
 )
 
+result_old <- tma:::accumulate_contexts (
+    x = context_model,
+    codes = codes,
+    weight.by = function(x) { x },
+    decay.function = function(x) {
+      
+        sender_role <- FULL_CONTEXT[ROWS, role]
+        sender_language <-  FULL_CONTEXT[ROWS, language]
+        receiver_role <- FULL_CONTEXT[RESPONSE_INDEX, role]
+        receiver_handwriting <- FULL_CONTEXT[RESPONSE_INDEX, handwriting]
+        modality <- FULL_CONTEXT[ROWS, modality]
+        
+        
+        if (length(modality) >= 2) {
+          print(sender_role)
+          print(sender_language)
+          print(modality)
+          
+          print(multidim_arr[sender_role, sender_language, receiver_role, receiver_handwriting, modality, "window"])
+          
+          window <- diag(multidim_arr[sender_role, sender_language, receiver_role, receiver_handwriting, modality, "window"])
+          names(window) <- modality
+  
+          weighter <- diag(multidim_arr[sender_role, sender_language, receiver_role, receiver_handwriting, modality, "weight"])
+          names(weighter) <- modality
+          weight <- (x < window) * weighter
+
+          return(weight)
+       } else {
+          weight <- (x < multidim_arr[sender_role, sender_language, receiver_role, receiver_handwriting, modality, "window"]) * multidim_arr[sender_role, sender_language, receiver_role, receiver_handwriting, modality, "weight"]
+          return(weight)
+        }
+    },
+    time.column = "timeStamp",
+    return.ena.set = FALSE
+   # mode.column = c("role", "language", "role", "handwriting", "modality")
+)
+
+
 print(result_new)
+print(result_old)
 
-# multidim_arr[matrix(tester, 1)]
-# tester: vec w/ "Player" "L1"     "Player" "poor"   "chat"   "weight"
 
+
+#'*works in the same weights case*
 ```
 
 
