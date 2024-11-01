@@ -1,3 +1,23 @@
+get_unique_values <- function(df, sender_cols, receiver_cols, mode_column) {
+  # Extract unique values for each sender column
+  unique_senders <- lapply(sender_cols, function(col) unique(df[[col]]))
+  names(unique_senders) <- sender_cols
+  
+  # Extract unique values for each receiver column
+  unique_receivers <- lapply(receiver_cols, function(col) unique(df[[col]]))
+  names(unique_receivers) <- receiver_cols
+  
+  # Extract unique values for the mode column
+  unique_modes <- unique(df[[mode_column]])
+  
+  return(list(
+    unique_senders = unique_senders,
+    unique_receivers = unique_receivers,
+    unique_modes = unique_modes
+  ))
+}
+
+
 preprocess <- function(
     multidim_arr, 
     unique_senders,
@@ -23,39 +43,49 @@ preprocess <- function(
   # Ensure standin is present for any empty columns
   if (length(sender_cols) == 0) {
     sender_cols <- "standin"
-    unique_senders <- c("standin")
+    unique_senders <- list(standin = "standin")
   }
   if (length(receiver_cols) == 0) {
     receiver_cols <- "standin"
-    unique_receivers <- c("standin")
+    unique_receivers <- list(standin = "standin")
   }
   if (length(mode_column) == 0) {
     mode_column <- "standin"
-    unique_modes <- c("standin")
+    unique_modes <- "standin"
   }
   
   # Create a new multidimensional array to hold expanded values
   weight_window_axis = c("weight", "window")
-  new_dimnames <- c(
-    lapply(sender_cols, function(col) unique_senders[[col]]),
-    lapply(receiver_cols, function(col) unique_receivers[[col]]),
-    list(modes = unique_modes),
-    list(weight_window = weight_window_axis)
-  )
-  new_dims = c(
-    sapply(sender_cols, function(col) length(unique_senders[[col]])),
-    sapply(receiver_cols, function(col) length(unique_receivers[[col]])),
-    length(unique_modes),
-    length(weight_window_axis)
-  )
-  new_multidim_arr <- array(0, dim = new_dims, dimnames = new_dimnames)
+  
+  # Construct dimension names dynamically
+  dim_names <- list()
+  for (i in seq_along(sender_cols)) {
+    dim_names[[paste0("sender_", i)]] <- unique_senders[[i]]
+  }
+  for (i in seq_along(receiver_cols)) {
+    dim_names[[paste0("receiver_", i)]] <- unique_receivers[[i]]
+  }
+  dim_names[["modes"]] <- unique_modes
+  dim_names[["weight_window"]] <- weight_window_axis
+  
+  # Construct dimensions dynamically
+  dims <- c()
+  for (i in seq_along(sender_cols)) {
+    dims <- c(dims, length(unique_senders[[i]]))
+  }
+  for (i in seq_along(receiver_cols)) {
+    dims <- c(dims, length(unique_receivers[[i]]))
+  }
+  dims <- c(dims, length(unique_modes), length(weight_window_axis))
+  
+  new_multidim_arr <- array(0, dim = dims, dimnames = dim_names)
   
   combinations <- expand.grid(
-    new_senders = do.call(paste, c(expand.grid(lapply(sender_cols, function(col) unique_senders[[col]])), sep = "_")),
-    new_receivers = do.call(paste, c(expand.grid(lapply(receiver_cols, function(col) unique_receivers[[col]])), sep = "_")),
+    new_senders = do.call(paste, c(expand.grid(unique_senders), sep = "_")),
+    new_receivers = do.call(paste, c(expand.grid(unique_receivers), sep = "_")),
     new_modes = unique_modes,
-    old_senders = do.call(paste, c(expand.grid(lapply(sender_cols, function(col) old_unique_senders[[col]])), sep = "_")),
-    old_receivers = do.call(paste, c(expand.grid(lapply(receiver_cols, function(col) old_unique_receivers[[col]])), sep = "_")),
+    old_senders = do.call(paste, c(expand.grid(old_unique_senders), sep = "_")),
+    old_receivers = do.call(paste, c(expand.grid(old_unique_receivers), sep = "_")),
     old_modes = old_unique_modes,
     stringsAsFactors = FALSE
   )
@@ -89,10 +119,17 @@ preprocess <- function(
     orig_r <- combinations$old_receivers[i]
     orig_m <- combinations$old_modes[i]
     
-    old_index_list <- Filter(Negate(is.na), list(orig_s, orig_r, orig_m))
+    # Create index lists for new and old dimensions
+    new_index_list <- c(strsplit(new_s, "_")[[1]], strsplit(new_r, "_")[[1]], new_m)
+    old_index_list <- c(strsplit(orig_s, "_")[[1]], strsplit(orig_r, "_")[[1]], orig_m)
+    print(as.list(new_index_list))
     
-    new_multidim_arr[new_s, new_r, new_m, "weight"] <- do.call(`[`, c(list(multidim_arr), old_index_list, list("weight")))
-    new_multidim_arr[new_s, new_r, new_m, "window"] <- do.call(`[`, c(list(multidim_arr), old_index_list, list("window")))
+    # Replace NA with "standin" in old index list
+    old_index_list <- lapply(old_index_list, function(x) ifelse(is.na(x), "standin", x))
+    
+    # Update the new multidimensional array
+    new_multidim_arr[as.list(new_index_list), "weight"] <- do.call(`[`, c(list(multidim_arr), as.list(old_index_list), list("weight")))
+    new_multidim_arr[as.list(new_index_list), "window"] <- do.call(`[`, c(list(multidim_arr), as.list(old_index_list), list("window")))
   }
   
   # Return the updated multidimensional array and the new column identifiers
@@ -105,6 +142,8 @@ preprocess <- function(
   
   return(result)
 }
+
+
 
 
 apply_windows <- function(

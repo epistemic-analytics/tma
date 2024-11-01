@@ -539,9 +539,62 @@ print(result_new)
 #'*works in different weights case*
 ```
 
-
+potential senders: role, language, handwriting
+potential receivers: role, language, handwriting
 ```{r}
 # Test 9: Do we get the correct answer with senders, receivers, modality? 
+source("./R/temp_accum_multidim.R")
+
+# senders: role, language
+# receivers: role, handwriting 
+# modality: modality 
+sender_cols <- list("role", "language")
+receiver_cols <- list("role", "handwriting")
+modality_column <- "modality"
+
+unique_list <- get_unique_values(mock_data, sender_cols, receiver_cols, modality_column)
+unique_senders <- unique_list[[1]]
+unique_receivers <-  unique_list[[2]]
+unique_modes <- unique_list[[3]]
+weight_window_axis = c("weight", "window")
+
+dim_names <- list()
+for (i in seq_along(sender_cols)) {
+  dim_names[[paste0("sender_", i)]] <- unique_senders[[i]]
+}
+for (i in seq_along(receiver_cols)) {
+  dim_names[[paste0("receiver_", i)]] <- unique_receivers[[i]]
+}
+dim_names[["modes"]] <- unique_modes
+dim_names[["weight_window"]] <- weight_window_axis
+
+dims <- c()
+for (i in seq_along(sender_cols)) {
+  dims <- c(dims, length(unique_senders[[i]]))
+}
+for (i in seq_along(receiver_cols)) {
+  dims <- c(dims, length(unique_receivers[[i]]))
+}
+dims <- c(dims, length(unique_modes), length(weight_window_axis))
+
+multidim_arr <- array(0, 
+                  dim = dims, 
+                  dimnames = dim_names)
+
+
+result_new <- accum_multidim(
+    multidim_arr, 
+    unique_senders = unique_senders, 
+    unique_receivers = unique_receivers,
+    unique_modes = unique_modes,
+    sender_cols = sender_cols,
+    receiver_cols = receiver_cols,
+    time_column,
+    mode_column = mode_column,
+    codes,
+    context_model
+)
+
 
 ```
 
