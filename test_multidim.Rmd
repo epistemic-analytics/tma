@@ -661,6 +661,12 @@ result_new <- accum_multidim(
     context_model
 )
 
+get_hyperdiagonal <- function(array) {
+  dims <- dim(array)
+  if (any(dims != dims[1])) stop("Array must be square along each dimension")
+  unlist(lapply(seq_len(dims[1]), function(i) array[rep(i, length(dims))]))
+}
+
 result_old <- tma:::accumulate_contexts (
     x = context_model,
     codes = codes,
@@ -675,17 +681,10 @@ result_old <- tma:::accumulate_contexts (
         
         
         if (length(modality) >= 2) {
-          print(sender_role)
-          print(sender_language)
-          print(modality)
-          
-          print(multidim_arr[sender_role, sender_language, receiver_role, receiver_handwriting, modality, "window"])
-          
-          window <- diag(multidim_arr[sender_role, sender_language, receiver_role, receiver_handwriting, modality, "window"])
-          names(window) <- modality
+          window <- get_hyperdiagonal(multidim_arr[sender_role, sender_language, receiver_role, receiver_handwriting, modality, "window"])
   
-          weighter <- diag(multidim_arr[sender_role, sender_language, receiver_role, receiver_handwriting, modality, "weight"])
-          names(weighter) <- modality
+          weighter <-  get_hyperdiagonal(multidim_arr[sender_role, sender_language, receiver_role, receiver_handwriting, modality, "weight"])
+          
           weight <- (x < window) * weighter
 
           return(weight)
@@ -701,7 +700,7 @@ result_old <- tma:::accumulate_contexts (
 
 
 print(result_new)
-print(result_old)
+print(result_old$connection.counts)
 
 
 
