@@ -74,9 +74,11 @@ preprocess <- function(
     # modality + sender
     (combinations$new_senders ==  combinations$old_senders & combinations$new_receivers == "standin" & combinations$new_modes == combinations$old_modes) | 
     # modality + receiver
-    (combinations$new_senders == "standin" & combinations$new_receivers == combinations$new_receivers & combinations$new_modes == combinations$old_modes) | 
+    (combinations$new_senders == "standin" & combinations$new_receivers == combinations$old_receivers & combinations$new_modes == combinations$old_modes) | 
+    # sender + receiver
+    (combinations$new_senders == combinations$old_senders & combinations$new_receivers == combinations$old_receivers & combinations$new_modes == "standin") | 
     # modality + sender + receiver
-    (combinations$new_senders == combinations$old_senders & combinations$new_receivers == combinations$new_receivers & combinations$new_modes == combinations$old_modes)) 
+    (combinations$new_senders == combinations$old_senders & combinations$new_receivers == combinations$old_receivers & combinations$new_modes == combinations$old_modes)) 
     ,
   ]
   
@@ -181,7 +183,7 @@ apply_weights <- function(
     
     unweighted <- as.numeric(unname(c(vec[,..codes])))  # ensure we only get codes specified
     
-    # print(multidim_arr[[s_j, r_i, m_j, "weight"]]) is getting correct weight 
+    # print(multidim_arr[[s_j, r_i, m_j, "weight"]]) # is getting correct weight
     g_w_vec = multidim_arr[[s_j, r_i, m_j, "weight"]] * unweighted
     
     g_w_vecs[[g_w_vecs_counter]] <- g_w_vec
@@ -265,9 +267,9 @@ accum_multidim <- function(
   units <- context_model[["model"]][["unit.labels"]] # assuming TMA generating contexts
   # For each unit
   for (unit in units) {
-    #if (as.character(unit) == as.character(units[[1]]) | (as.character(unit) == (as.character(units[[3]])))) {
-    #  next
-    #}
+    # if (as.character(unit) == as.character(units[[1]]) | (as.character(unit) == (as.character(units[[2]])))) {
+    #   next
+    # }
     # List to store adjacency vectors for this unit
     adj_vector <- list()
     
@@ -300,6 +302,8 @@ accum_multidim <- function(
         # Query multidimensional array to reweight g^w_vec = w^{srm} * g_vec
         g_w_vecs <- apply_weights(multidim_arr, sender_cols, receiver_cols, mode_column, codes, i, context,
                                   g_vecs) 
+        
+       #  print(g_w_vecs)
 
         
         # Sum all g^w_vec together as g^{ws}_vec
