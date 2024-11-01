@@ -9,7 +9,6 @@ library(tma)
 ```{r}
 # Load mock data and source program
 mock_data <- read_csv("./vignettes/mock_data_edited.csv")
-source("./R/accum_multidim.R")
 ```
 
 ```{r}
@@ -26,73 +25,52 @@ context_model <- tma:::contexts(
   units = unit_cols,
   hoo_rules = HOO_rules_model
 )
+
+time_column = "timeStamp"
 ```
 
 potential senders: role, language, handwriting
 potential receivers: role, language, handwriting
-```{r}
-# Test 1: Make a  multidim arr. with 1 sender, 1 receiver, 1 modality with both weights and windows filled in
-# Does accum_multidim.R run? 
-source("./R/accum_multidim.R")
-# sender_cols = list("role") 
-# receiver_cols = list("language")
-# mode_column = list("modality")
-# for now, don't have list
-sender_cols = "role"
-receiver_cols = "language"
-mode_column = "modality"
-time_column = "timeStamp"
 
-# unique_senders = pull(unique(mock_data[,sender_cols[[1]]]))
-# unique_receivers =  pull(unique(mock_data[,receiver_cols[[1]]]))
-# unique_modes = pull(unique(mock_data[,mode_column[[1]]]))
-unique_senders = pull(unique(mock_data[,sender_cols]))
-unique_receivers =  pull(unique(mock_data[,receiver_cols]))
-unique_modes = pull(unique(mock_data[,mode_column]))
+```{r}
+# Test 1: Do we get the correct standin matrix when specifying just a modality?
+source("./R/temp_accum_multidim.R")
+
+sender_cols = list("role")
+receiver_cols = list("language")
+mode_column = "modality"
+
+unique_list <- get_unique_values(mock_data, sender_cols, receiver_cols, mode_column)
+unique_senders <- unique_list[[1]]
+unique_receivers <- unique_list[[2]]
+unique_modes <- unique_list[[3]]
 weight_window_axis = c("weight", "window")
 
-dim_names <- list(
-  senders = unique_senders,
-  receivers = unique_receivers,
-  modes = unique_modes,
-  weight_window = weight_window_axis
-)
+dim_names <- list()
+# for (i in seq_along(sender_cols)) {
+#   dim_names[[paste0("sender_", i)]] <- unique_senders[[i]]
+# }
+# for (i in seq_along(receiver_cols)) {
+#   dim_names[[paste0("receiver_", i)]] <- unique_receivers[[i]]
+# }
+dim_names[["modes"]] <- unique_modes
+dim_names[["weight_window"]] <- weight_window_axis
 
-multidim_arr <- array(200, 
-                  dim = c(length(unique_senders), 
-                          length(unique_receivers), 
-                          length(unique_modes), 
-                          length(weight_window_axis)), 
-                  dimnames = dim_names)
+dims <- c()
+# for (i in seq_along(sender_cols)) {
+#   dims <- c(dims, length(unique_senders[[i]]))
+# }
+# for (i in seq_along(receiver_cols)) {
+#   dims <- c(dims, length(unique_receivers[[i]]))
+# }
+dims <- c(dims, length(unique_modes), length(weight_window_axis))
+# dims <- c(dims, length(weight_window_axis))
 
-
-result_1 <- accum_multidim(
-    multidim_arr, 
-    unique_senders,
-    unique_receivers,
-    unique_modes,
-    sender_cols,
-    receiver_cols,
-    time_column,
-    mode_column,
-    codes,
-    context_model
-)
-print(result_1)
-# Passed!
-```
-
-```{r}
-source("./R/accum_multidim.R")
-# Test 2: Do we get the correct standin matrix when specifying just a modality?
-dim_names <- list(
-  modes = unique_modes,
-  weight_window = weight_window_axis
-)
 multidim_arr <- array(0, 
-                  dim = c(length(unique_modes), 
-                        length(weight_window_axis)), 
+                  dim = dims, 
                   dimnames = dim_names)
+
+
 multidim_arr["chat", "weight"] <- 1
 multidim_arr["resource", "weight"] <- 2
 multidim_arr["chat", "window"] <- 360
@@ -140,17 +118,40 @@ print(result_new)
 
 ```{r}
 # Test 3: Do we get the correct answer with just a sender? 
-source("./R/accum_multidim.R")
-unique_senders = pull(unique(mock_data[,sender_cols]))
+source("./R/temp_accum_multidim.R")
 
+sender_cols = list("role")
+receiver_cols = list("language")
+mode_column = "modality"
 
-dim_names <- list(
-  senders = unique_senders,
-  weight_window = weight_window_axis
-)
+unique_list <- get_unique_values(mock_data, sender_cols, receiver_cols, mode_column)
+unique_senders <- unique_list[[1]]
+unique_receivers <- unique_list[[2]]
+unique_modes <- unique_list[[3]]
+weight_window_axis = c("weight", "window")
+
+dim_names <- list()
+for (i in seq_along(sender_cols)) {
+  dim_names[[paste0("sender_", i)]] <- unique_senders[[i]]
+}
+# for (i in seq_along(receiver_cols)) {
+#   dim_names[[paste0("receiver_", i)]] <- unique_receivers[[i]]
+# }
+# dim_names[["modes"]] <- unique_modes
+dim_names[["weight_window"]] <- weight_window_axis
+
+dims <- c()
+for (i in seq_along(sender_cols)) {
+  dims <- c(dims, length(unique_senders[[i]]))
+}
+# for (i in seq_along(receiver_cols)) {
+#   dims <- c(dims, length(unique_receivers[[i]]))
+# }
+# dims <- c(dims, length(unique_modes), length(weight_window_axis))
+dims <- c(dims, length(weight_window_axis))
+
 multidim_arr <- array(0, 
-                  dim = c(length(unique_senders), 
-                        length(weight_window_axis)), 
+                  dim = dims, 
                   dimnames = dim_names)
 
 multidim_arr["Mentor", "weight"] <- 1
@@ -198,16 +199,42 @@ print(result_new)
 
 ```{r}
 # Test 4: Do we get the correct answer with just a receiver? 
-source("./R/accum_multidim.R")
+source("./R/temp_accum_multidim.R")
 
-dim_names <- list(
-  receivers = unique_receivers,
-  weight_window = weight_window_axis
-)
+sender_cols = list("role")
+receiver_cols = list("language")
+mode_column = "modality"
+
+unique_list <- get_unique_values(mock_data, sender_cols, receiver_cols, mode_column)
+unique_senders <- unique_list[[1]]
+unique_receivers <- unique_list[[2]]
+unique_modes <- unique_list[[3]]
+weight_window_axis = c("weight", "window")
+
+dim_names <- list()
+# for (i in seq_along(sender_cols)) {
+#   dim_names[[paste0("sender_", i)]] <- unique_senders[[i]]
+# }
+for (i in seq_along(receiver_cols)) {
+  dim_names[[paste0("receiver_", i)]] <- unique_receivers[[i]]
+}
+# dim_names[["modes"]] <- unique_modes
+dim_names[["weight_window"]] <- weight_window_axis
+
+dims <- c()
+# for (i in seq_along(sender_cols)) {
+#   dims <- c(dims, length(unique_senders[[i]]))
+# }
+for (i in seq_along(receiver_cols)) {
+  dims <- c(dims, length(unique_receivers[[i]]))
+}
+# dims <- c(dims, length(unique_modes), length(weight_window_axis))
+dims <- c(dims, length(weight_window_axis))
+
 multidim_arr <- array(0, 
-                  dim = c(length(unique_receivers), 
-                        length(weight_window_axis)), 
+                  dim = dims, 
                   dimnames = dim_names)
+
 multidim_arr["L1", "weight"] <- 1
 multidim_arr["L2", "weight"] <- 5
 multidim_arr["L1", "window"] <- 360
@@ -251,18 +278,39 @@ print(result_new)
 
 ```{r}
 # Test 5: Do we get the correct answer with sender, no receiver, modality? 
-source("./R/accum_multidim.R")
+source("./R/temp_accum_multidim.R")
 
-dim_names <- list(
-  senders = unique_senders,
-  modes = unique_modes,
-  weight_window = weight_window_axis
-)
+sender_cols = list("role")
+receiver_cols = list("language")
+mode_column = "modality"
+
+unique_list <- get_unique_values(mock_data, sender_cols, receiver_cols, mode_column)
+unique_senders <- unique_list[[1]]
+unique_receivers <- unique_list[[2]]
+unique_modes <- unique_list[[3]]
+weight_window_axis = c("weight", "window")
+
+dim_names <- list()
+for (i in seq_along(sender_cols)) {
+  dim_names[[paste0("sender_", i)]] <- unique_senders[[i]]
+}
+# for (i in seq_along(receiver_cols)) {
+#   dim_names[[paste0("receiver_", i)]] <- unique_receivers[[i]]
+# }
+dim_names[["modes"]] <- unique_modes
+dim_names[["weight_window"]] <- weight_window_axis
+
+dims <- c()
+for (i in seq_along(sender_cols)) {
+  dims <- c(dims, length(unique_senders[[i]]))
+}
+# for (i in seq_along(receiver_cols)) {
+#   dims <- c(dims, length(unique_receivers[[i]]))
+# }
+dims <- c(dims, length(unique_modes), length(weight_window_axis))
 
 multidim_arr <- array(0, 
-                  dim = c(length(unique_senders), 
-                          length(unique_modes),
-                        length(weight_window_axis)), 
+                  dim = dims, 
                   dimnames = dim_names)
 
 multidim_arr["Mentor", "chat", "weight"] <- 3
@@ -326,18 +374,39 @@ print(result_new)
 
 ```{r}
 # Test 6: Do we get the correct answer with no sender, receiver, modality? 
-source("./R/accum_multidim.R")
+source("./R/temp_accum_multidim.R")
 
-dim_names <- list(
-  receivers = unique_receivers,
-  modes = unique_modes,
-  weight_window = weight_window_axis
-)
+sender_cols = list("role")
+receiver_cols = list("language")
+mode_column = "modality"
+
+unique_list <- get_unique_values(mock_data, sender_cols, receiver_cols, mode_column)
+unique_senders <- unique_list[[1]]
+unique_receivers <- unique_list[[2]]
+unique_modes <- unique_list[[3]]
+weight_window_axis = c("weight", "window")
+
+dim_names <- list()
+# for (i in seq_along(sender_cols)) {
+#   dim_names[[paste0("sender_", i)]] <- unique_senders[[i]]
+# }
+for (i in seq_along(receiver_cols)) {
+  dim_names[[paste0("receiver_", i)]] <- unique_receivers[[i]]
+}
+dim_names[["modes"]] <- unique_modes
+dim_names[["weight_window"]] <- weight_window_axis
+
+dims <- c()
+# for (i in seq_along(sender_cols)) {
+#   dims <- c(dims, length(unique_senders[[i]]))
+# }
+for (i in seq_along(receiver_cols)) {
+  dims <- c(dims, length(unique_receivers[[i]]))
+}
+dims <- c(dims, length(unique_modes), length(weight_window_axis))
 
 multidim_arr <- array(0, 
-                  dim = c(length(unique_receivers), 
-                          length(unique_modes),
-                        length(weight_window_axis)), 
+                  dim = dims, 
                   dimnames = dim_names)
 
 multidim_arr["L1", "chat", "weight"] <- 5
@@ -390,18 +459,40 @@ print(result_new)
 
 ```{r}
 # Test 7: Do we get the correct answer with sender, receiver, no modality? 
-source("./R/accum_multidim.R")
+source("./R/temp_accum_multidim.R")
 
-dim_names <- list(
-  senders = unique_senders,
-  receivers = unique_receivers,
-  weight_window = weight_window_axis
-)
+sender_cols = list("role")
+receiver_cols = list("language")
+mode_column = "modality"
+
+unique_list <- get_unique_values(mock_data, sender_cols, receiver_cols, mode_column)
+unique_senders <- unique_list[[1]]
+unique_receivers <- unique_list[[2]]
+unique_modes <- unique_list[[3]]
+weight_window_axis = c("weight", "window")
+
+dim_names <- list()
+for (i in seq_along(sender_cols)) {
+  dim_names[[paste0("sender_", i)]] <- unique_senders[[i]]
+}
+for (i in seq_along(receiver_cols)) {
+  dim_names[[paste0("receiver_", i)]] <- unique_receivers[[i]]
+}
+# dim_names[["modes"]] <- unique_modes
+dim_names[["weight_window"]] <- weight_window_axis
+
+dims <- c()
+for (i in seq_along(sender_cols)) {
+  dims <- c(dims, length(unique_senders[[i]]))
+}
+for (i in seq_along(receiver_cols)) {
+  dims <- c(dims, length(unique_receivers[[i]]))
+}
+# dims <- c(dims, length(unique_modes), length(weight_window_axis))
+dims <- c(dims, length(weight_window_axis))
 
 multidim_arr <- array(0, 
-                  dim = c(length(unique_senders), 
-                          length(unique_receivers),
-                        length(weight_window_axis)), 
+                  dim = dims, 
                   dimnames = dim_names)
 
 multidim_arr["Mentor", "L1", "weight"] <- 1
@@ -452,20 +543,39 @@ print(result_new)
 ```
 ```{r}
 # Test 8: Do we get the correct answer with sender, receiver, modality? 
-source("./R/accum_multidim.R")
+source("./R/temp_accum_multidim.R")
 
-dim_names <- list(
-  senders = unique_senders,
-  receivers = unique_receivers,
-  modality = unique_modes,
-  weight_window = weight_window_axis
-)
+sender_cols = list("role")
+receiver_cols = list("language")
+mode_column = "modality"
+
+unique_list <- get_unique_values(mock_data, sender_cols, receiver_cols, mode_column)
+unique_senders <- unique_list[[1]]
+unique_receivers <-  unique_list[[2]]
+unique_modes <- unique_list[[3]]
+weight_window_axis = c("weight", "window")
+
+dim_names <- list()
+for (i in seq_along(sender_cols)) {
+  dim_names[[paste0("sender_", i)]] <- unique_senders[[i]]
+}
+for (i in seq_along(receiver_cols)) {
+  dim_names[[paste0("receiver_", i)]] <- unique_receivers[[i]]
+}
+dim_names[["modes"]] <- unique_modes
+dim_names[["weight_window"]] <- weight_window_axis
+
+dims <- c()
+for (i in seq_along(sender_cols)) {
+  dims <- c(dims, length(unique_senders[[i]]))
+}
+for (i in seq_along(receiver_cols)) {
+  dims <- c(dims, length(unique_receivers[[i]]))
+}
+dims <- c(dims, length(unique_modes), length(weight_window_axis))
 
 multidim_arr <- array(0, 
-                  dim = c(length(unique_senders), 
-                          length(unique_receivers),
-                          length(unique_modes),
-                        length(weight_window_axis)), 
+                  dim = dims, 
                   dimnames = dim_names)
 
 multidim_arr["Mentor", "L1", "chat", "weight"] <- 5
@@ -550,9 +660,9 @@ source("./R/temp_accum_multidim.R")
 # modality: modality 
 sender_cols <- list("role", "language")
 receiver_cols <- list("role", "handwriting")
-modality_column <- "modality"
+mode_column <- "modality"
 
-unique_list <- get_unique_values(mock_data, sender_cols, receiver_cols, modality_column)
+unique_list <- get_unique_values(mock_data, sender_cols, receiver_cols, mode_column)
 unique_senders <- unique_list[[1]]
 unique_receivers <-  unique_list[[2]]
 unique_modes <- unique_list[[3]]
@@ -584,67 +694,67 @@ multidim_arr <- array(0,
 multidim_arr["Player", "L1", "Player", "poor", "chat", "weight"] <- 1
 multidim_arr["Player", "L1", "Player", "poor", "resource", "weight"] <- 1
 multidim_arr["Player", "L1", "Player", "good", "chat", "weight"] <- 1
-multidim_arr["Player", "L1", "Player", "good", "resource", "weight"] <- 1
+multidim_arr["Player", "L1", "Player", "good", "resource", "weight"] <- 8
 multidim_arr["Player", "L1", "Mentor", "poor", "chat", "weight"] <- 1
 multidim_arr["Player", "L1", "Mentor", "poor", "resource", "weight"] <- 1
 multidim_arr["Player", "L1", "Mentor", "good", "chat", "weight"] <- 1
-multidim_arr["Player", "L1", "Mentor", "good", "resource", "weight"] <- 1
-multidim_arr["Player", "L2", "Player", "poor", "chat", "weight"] <- 1
-multidim_arr["Player", "L2", "Player", "poor", "resource", "weight"] <- 1
+multidim_arr["Player", "L1", "Mentor", "good", "resource", "weight"] <- 7
+multidim_arr["Player", "L2", "Player", "poor", "chat", "weight"] <- 7
+multidim_arr["Player", "L2", "Player", "poor", "resource", "weight"] <- 4
 multidim_arr["Player", "L2", "Player", "good", "chat", "weight"] <- 1
 multidim_arr["Player", "L2", "Player", "good", "resource", "weight"] <- 1
 multidim_arr["Player", "L2", "Mentor", "poor", "chat", "weight"] <- 1
-multidim_arr["Player", "L2", "Mentor", "poor", "resource", "weight"] <- 1
-multidim_arr["Player", "L2", "Mentor", "good", "chat", "weight"] <- 1
-multidim_arr["Player", "L2", "Mentor", "good", "resource", "weight"] <- 1
+multidim_arr["Player", "L2", "Mentor", "poor", "resource", "weight"] <- 3
+multidim_arr["Player", "L2", "Mentor", "good", "chat", "weight"] <- 3
+multidim_arr["Player", "L2", "Mentor", "good", "resource", "weight"] <- 12
 multidim_arr["Mentor", "L1", "Player", "poor", "chat", "weight"] <- 1
-multidim_arr["Mentor", "L1", "Player", "poor", "resource", "weight"] <- 1
+multidim_arr["Mentor", "L1", "Player", "poor", "resource", "weight"] <- 10
 multidim_arr["Mentor", "L1", "Player", "good", "chat", "weight"] <- 1
-multidim_arr["Mentor", "L1", "Player", "good", "resource", "weight"] <- 1
+multidim_arr["Mentor", "L1", "Player", "good", "resource", "weight"] <- 9
 multidim_arr["Mentor", "L1", "Mentor", "poor", "chat", "weight"] <- 1
 multidim_arr["Mentor", "L1", "Mentor", "poor", "resource", "weight"] <- 1
-multidim_arr["Mentor", "L1", "Mentor", "good", "chat", "weight"] <- 1
-multidim_arr["Mentor", "L1", "Mentor", "good", "resource", "weight"] <- 1
-multidim_arr["Mentor", "L2", "Player", "poor", "chat", "weight"] <- 1
+multidim_arr["Mentor", "L1", "Mentor", "good", "chat", "weight"] <- 7
+multidim_arr["Mentor", "L1", "Mentor", "good", "resource", "weight"] <- 7
+multidim_arr["Mentor", "L2", "Player", "poor", "chat", "weight"] <- 7
 multidim_arr["Mentor", "L2", "Player", "poor", "resource", "weight"] <- 1
-multidim_arr["Mentor", "L2", "Player", "good", "chat", "weight"] <- 1
-multidim_arr["Mentor", "L2", "Player", "good", "resource", "weight"] <- 1
+multidim_arr["Mentor", "L2", "Player", "good", "chat", "weight"] <- 6
+multidim_arr["Mentor", "L2", "Player", "good", "resource", "weight"] <- 2
 multidim_arr["Mentor", "L2", "Mentor", "poor", "chat", "weight"] <- 1
-multidim_arr["Mentor", "L2", "Mentor", "poor", "resource", "weight"] <- 1
-multidim_arr["Mentor", "L2", "Mentor", "good", "chat", "weight"] <- 1
-multidim_arr["Mentor", "L2", "Mentor", "good", "resource", "weight"] <- 1
+multidim_arr["Mentor", "L2", "Mentor", "poor", "resource", "weight"] <- 3
+multidim_arr["Mentor", "L2", "Mentor", "good", "chat", "weight"] <- 5
+multidim_arr["Mentor", "L2", "Mentor", "good", "resource", "weight"] <- 5
 
 multidim_arr["Player", "L1", "Player", "poor", "chat", "window"] <- 360
-multidim_arr["Player", "L1", "Player", "poor", "resource", "window"] <- 360 
+multidim_arr["Player", "L1", "Player", "poor", "resource", "window"] <- 10 
 multidim_arr["Player", "L1", "Player", "good", "chat", "window"] <- 360
-multidim_arr["Player", "L1", "Player", "good", "resource", "window"] <- 360
+multidim_arr["Player", "L1", "Player", "good", "resource", "window"] <- 310
 multidim_arr["Player", "L1", "Mentor", "poor", "chat", "window"] <- 360
-multidim_arr["Player", "L1", "Mentor", "poor", "resource", "window"] <- 360
+multidim_arr["Player", "L1", "Mentor", "poor", "resource", "window"] <- 300
 multidim_arr["Player", "L1", "Mentor", "good", "chat", "window"] <- 360
-multidim_arr["Player", "L1", "Mentor", "good", "resource", "window"] <- 360
+multidim_arr["Player", "L1", "Mentor", "good", "resource", "window"] <- 320
 multidim_arr["Player", "L2", "Player", "poor", "chat", "window"] <- 360
-multidim_arr["Player", "L2", "Player", "poor", "resource", "window"] <- 360
+multidim_arr["Player", "L2", "Player", "poor", "resource", "window"] <- 350
 multidim_arr["Player", "L2", "Player", "good", "chat", "window"] <- 360
-multidim_arr["Player", "L2", "Player", "good", "resource", "window"] <- 360
-multidim_arr["Player", "L2", "Mentor", "poor", "chat", "window"] <- 360
-multidim_arr["Player", "L2", "Mentor", "poor", "resource", "window"] <- 360
-multidim_arr["Player", "L2", "Mentor", "good", "chat", "window"] <- 360
-multidim_arr["Player", "L2", "Mentor", "good", "resource", "window"] <- 360
-multidim_arr["Mentor", "L1", "Player", "poor", "chat", "window"] <- 360
-multidim_arr["Mentor", "L1", "Player", "poor", "resource", "window"] <- 360
-multidim_arr["Mentor", "L1", "Player", "good", "chat", "window"] <- 360
-multidim_arr["Mentor", "L1", "Player", "good", "resource", "window"] <- 360
-multidim_arr["Mentor", "L1", "Mentor", "poor", "chat", "window"] <- 360
-multidim_arr["Mentor", "L1", "Mentor", "poor", "resource", "window"] <- 360
-multidim_arr["Mentor", "L1", "Mentor", "good", "chat", "window"] <- 360
-multidim_arr["Mentor", "L1", "Mentor", "good", "resource", "window"] <- 360
+multidim_arr["Player", "L2", "Player", "good", "resource", "window"] <- 189
+multidim_arr["Player", "L2", "Mentor", "poor", "chat", "window"] <- 121
+multidim_arr["Player", "L2", "Mentor", "poor", "resource", "window"] <- 782
+multidim_arr["Player", "L2", "Mentor", "good", "chat", "window"] <- 333
+multidim_arr["Player", "L2", "Mentor", "good", "resource", "window"] <- 343
+multidim_arr["Mentor", "L1", "Player", "poor", "chat", "window"] <- 845
+multidim_arr["Mentor", "L1", "Player", "poor", "resource", "window"] <- 800
+multidim_arr["Mentor", "L1", "Player", "good", "chat", "window"] <- 500
+multidim_arr["Mentor", "L1", "Player", "good", "resource", "window"] <- 20
+multidim_arr["Mentor", "L1", "Mentor", "poor", "chat", "window"] <- 70
+multidim_arr["Mentor", "L1", "Mentor", "poor", "resource", "window"] <- 10
+multidim_arr["Mentor", "L1", "Mentor", "good", "chat", "window"] <- 20
+multidim_arr["Mentor", "L1", "Mentor", "good", "resource", "window"] <- 100
 multidim_arr["Mentor", "L2", "Player", "poor", "chat", "window"] <- 360
-multidim_arr["Mentor", "L2", "Player", "poor", "resource", "window"] <- 360
+multidim_arr["Mentor", "L2", "Player", "poor", "resource", "window"] <- 200
 multidim_arr["Mentor", "L2", "Player", "good", "chat", "window"] <- 360
-multidim_arr["Mentor", "L2", "Player", "good", "resource", "window"] <- 360
+multidim_arr["Mentor", "L2", "Player", "good", "resource", "window"] <- 350
 multidim_arr["Mentor", "L2", "Mentor", "poor", "chat", "window"] <- 360
-multidim_arr["Mentor", "L2", "Mentor", "poor", "resource", "window"] <- 360
-multidim_arr["Mentor", "L2", "Mentor", "good", "chat", "window"] <- 360
+multidim_arr["Mentor", "L2", "Mentor", "poor", "resource", "window"] <- 270
+multidim_arr["Mentor", "L2", "Mentor", "good", "chat", "window"] <- 180
 multidim_arr["Mentor", "L2", "Mentor", "good", "resource", "window"] <- 360
 
 
@@ -703,8 +813,8 @@ print(result_new)
 print(result_old$connection.counts)
 
 
-
 #'*works in the same weights case*
+#'doesn't work in different weights case? have to walk through by hand, it seems...
 ```
 
 

@@ -121,14 +121,11 @@ preprocess <- function(
     
     new_index_list <- c(strsplit(new_s, "_")[[1]], strsplit(new_r, "_")[[1]], new_m)
     old_index_list <- c(strsplit(orig_s, "_")[[1]], strsplit(orig_r, "_")[[1]], orig_m)
-    
-    old_index_list <- lapply(old_index_list, function(x) ifelse(is.na(x), "standin", x))
+    old_index_list <- old_index_list[!is.na(old_index_list) & old_index_list != "NA"]
     
     weight_new_index_list <- c(new_index_list, "weight")
-    # print(weight_new_index_list)
     window_new_index_list <- c(new_index_list, "window")
     
-    # print(matrix(weight_new_index_list, 1))
     new_multidim_arr[matrix(as.vector(weight_new_index_list), 1)] <- do.call(`[`, c(list(multidim_arr), as.list(old_index_list), list("weight")))
     new_multidim_arr[matrix(as.vector(window_new_index_list), 1)] <- do.call(`[`, c(list(multidim_arr), as.list(old_index_list), list("window")))
   }
@@ -143,7 +140,6 @@ preprocess <- function(
   
   return(result)
 }
-
 
 
 
