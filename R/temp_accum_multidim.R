@@ -119,17 +119,18 @@ preprocess <- function(
     orig_r <- combinations$old_receivers[i]
     orig_m <- combinations$old_modes[i]
     
-    # Create index lists for new and old dimensions
     new_index_list <- c(strsplit(new_s, "_")[[1]], strsplit(new_r, "_")[[1]], new_m)
     old_index_list <- c(strsplit(orig_s, "_")[[1]], strsplit(orig_r, "_")[[1]], orig_m)
-    print(as.list(new_index_list))
     
-    # Replace NA with "standin" in old index list
     old_index_list <- lapply(old_index_list, function(x) ifelse(is.na(x), "standin", x))
     
-    # Update the new multidimensional array
-    new_multidim_arr[as.list(new_index_list), "weight"] <- do.call(`[`, c(list(multidim_arr), as.list(old_index_list), list("weight")))
-    new_multidim_arr[as.list(new_index_list), "window"] <- do.call(`[`, c(list(multidim_arr), as.list(old_index_list), list("window")))
+    weight_new_index_list <- c(new_index_list, "weight")
+    # print(weight_new_index_list)
+    window_new_index_list <- c(new_index_list, "window")
+    
+    # print(matrix(weight_new_index_list, 1))
+    new_multidim_arr[matrix(as.vector(weight_new_index_list), 1)] <- do.call(`[`, c(list(multidim_arr), as.list(old_index_list), list("weight")))
+    new_multidim_arr[matrix(as.vector(window_new_index_list), 1)] <- do.call(`[`, c(list(multidim_arr), as.list(old_index_list), list("window")))
   }
   
   # Return the updated multidimensional array and the new column identifiers
@@ -248,6 +249,8 @@ accum_multidim <- function(
   sender_cols <- result$sender_cols
   receiver_cols <- result$receiver_cols
   mode_column <- result$mode_column
+  
+  print(multidim_arr)
   
   adj_vectors <- list()
   units <- context_model[["model"]][["unit.labels"]]
