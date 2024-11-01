@@ -159,7 +159,13 @@ apply_windows <- function(
 ) {
   g_vecs <- list()
   g_vecs_counter = 1
-  r_i = context[i, ..receiver_cols]
+  
+  r_i = c()
+  
+  for (k in 1:length(receiver_cols)) {
+    current_col <- receiver_cols[[k]]
+    r_i <- c(r_i, pull(context[i, ..current_col]))
+  }
   
   if (i == 1) { 
     temp_vec <- context[i,]
@@ -169,11 +175,15 @@ apply_windows <- function(
   }
   
   for (j in seq(1, i-1)) {
-    s_j = context[j, sender_cols]
-    m_j = context[j, mode_column]
+    s_j <- c()
+    for (k in 1:length(sender_cols)) {
+      current_col <- sender_cols[[k]]
+      s_j <- c(s_j, pull(context[j, ..current_col]))
+    }
+    m_j = as.vector(unlist(context[j, ..mode_column]))
     
-    val_to_check <- context[j, time_column] + multidim_arr[as.list(s_j), as.list(r_i), m_j, "window"]
-    if (val_to_check >= context[i, time_column]) {
+    val_to_check <- context[j, ..time_column] + multidim_arr[matrix(c(s_j, r_i, m_j, "window"), 1)]
+    if (val_to_check >= context[i, ..time_column]) {
       g_vecs[[g_vecs_counter]] <- context[j,]
       g_vecs_counter = g_vecs_counter + 1 
     }
@@ -194,14 +204,22 @@ apply_weights <- function(
 ) {
   g_w_vecs <- list()
   g_w_vecs_counter = 1 
-  r_i = context[i, ..receiver_cols]
+  r_i <- c()
+  for (k in 1:length(receiver_cols)) {
+    current_col <- receiver_cols[[k]]
+    r_i <- c(r_i, pull(context[i, ..current_col]))
+  }
   for (vec in g_vecs) {
-    s_j = vec[, ..sender_cols]
-    m_j = vec[, ..mode_column]
+    s_j <- c()
+    for (k in 1:length(sender_cols)) {
+      current_col <- sender_cols[[k]]
+      s_j <- c(s_j, pull(context[vec, ..current_col]))
+    }
+    m_j = as.vector(unlist(vec[, ..mode_column]))
     
-    unweighted <- as.numeric(unname(c(vec[, codes])))  
+    unweighted <- as.numeric(unname(c(vec[, ..codes])))  
     
-    g_w_vec = multidim_arr[as.list(s_j), as.list(r_i), m_j, "weight"] * unweighted
+    g_w_vec = multidim_arr[matrix(c(s_j, r_i, m_j, "weight"), 1)] * unweighted
     
     g_w_vecs[[g_w_vecs_counter]] <- g_w_vec
     g_w_vecs_counter = g_w_vecs_counter + 1 
@@ -280,11 +298,19 @@ accum_multidim <- function(
         
         g_ws_vec <- Reduce("+", g_w_vecs)
         
-        s_i <- context[i, sender_cols, drop = FALSE]
-        r_i <- context[i, receiver_cols, drop = FALSE]
-        m_i <- context[i, mode_column]
-        w_rr = multidim_arr[as.list(s_i), as.list(r_i), m_i, "weight"]
-        r_vec <- as.numeric(unname(c(r_vec[, codes])))
+        s_i <- c()
+        for (k in 1:length(sender_cols)) {
+          current_col <- sender_cols[[k]]
+          s_i <- c(s_i, pull(context[i, ..current_col]))
+        }
+        r_i <- c()
+        for (k in 1:length(receiver_cols)) {
+          current_col <- receiver_cols[[k]]
+          r_i <- c(r_i, pull(context[i, ..current_col]))
+        }
+        m_i <- as.vector(unlist(context[i, ..mode_column]))
+        w_rr = multidim_arr[matrix(c(s_i, r_i, m_i, "weight"), 1)]
+        r_vec <- as.numeric(unname(c(r_vec[, ..codes])))
         g_ws_vec <- as.numeric(g_ws_vec)
         
         counting_matrix = (g_ws_vec %*% t(r_vec)) + 0.5 * w_rr * f_diag(r_vec %*% t(r_vec))

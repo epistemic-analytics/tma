@@ -595,7 +595,10 @@ result_new <- accum_multidim(
     context_model
 )
 
+print(result_new)
 
+# multidim_arr[matrix(tester, 1)]
+# tester: vec w/ "Player" "L1"     "Player" "poor"   "chat"   "weight"
 
 ```
 
