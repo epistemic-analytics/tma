@@ -1,3 +1,4 @@
+# Pull unique sender, receiver, and modality values from a dataframe
 get_unique_values <- function(df, sender_cols, receiver_cols, mode_column) {
   # Extract unique values for each sender column
   unique_senders <- lapply(sender_cols, function(col) unique(df[[col]]))
@@ -17,7 +18,9 @@ get_unique_values <- function(df, sender_cols, receiver_cols, mode_column) {
   ))
 }
 
-
+# If sender_cols, receiver_cols, or mode_column are empty, have our standin. Be sure to fill in 
+# standin as expected in multidim_arr. 
+# We do this so we don't fail when they don't specify senders/receivers/mode
 preprocess <- function(
     multidim_arr, 
     unique_senders,
@@ -68,7 +71,6 @@ preprocess <- function(
   dim_names[["modes"]] <- unique_modes
   dim_names[["weight_window"]] <- weight_window_axis
   
-  # Construct dimensions dynamically
   dims <- c()
   for (i in seq_along(sender_cols)) {
     dims <- c(dims, length(unique_senders[[i]]))
@@ -142,7 +144,8 @@ preprocess <- function(
 }
 
 
-
+# Returns ground vectors to consider for a response line
+# This should return the actual ground vectors from the context i.e. not just the codes
 apply_windows <- function(
     multidim_arr, 
     sender_cols,
@@ -156,13 +159,14 @@ apply_windows <- function(
   g_vecs <- list()
   g_vecs_counter = 1
   
+  # ground is at j, response is at i
   r_i = c()
-  
   for (k in 1:length(receiver_cols)) {
     current_col <- receiver_cols[[k]]
     r_i <- c(r_i, pull(context[i, ..current_col]))
   }
   
+  # first line is response line--since we aren't including response lines, just provide a dummy vec w/ 0s @ codes
   if (i == 1) { 
     temp_vec <- context[i,]
     temp_vec[, codes] <- 0
@@ -178,6 +182,7 @@ apply_windows <- function(
     }
     m_j = as.vector(unlist(context[j, ..mode_column]))
     
+    # Verify t_i + w_{s_j, r_i, m_j} \geq t_j
     val_to_check <- context[j, ..time_column] + multidim_arr[matrix(c(s_j, r_i, m_j, "window"), 1)]
     if (val_to_check >= context[i, ..time_column]) {
       g_vecs[[g_vecs_counter]] <- context[j,]
@@ -188,6 +193,8 @@ apply_windows <- function(
   return(g_vecs)
 }
 
+# Applies weights to ground vectors for a response line 
+# This should return the weighted ground vectors with just the codes
 apply_weights <- function(
     multidim_arr, 
     sender_cols,
@@ -200,6 +207,7 @@ apply_weights <- function(
 ) {
   g_w_vecs <- list()
   g_w_vecs_counter = 1 
+  # ground is at j, response is at i
   r_i <- c()
   for (k in 1:length(receiver_cols)) {
     current_col <- receiver_cols[[k]]
@@ -213,6 +221,7 @@ apply_weights <- function(
     }
     m_j = as.vector(unlist(vec[, ..mode_column]))
     
+    # ensure we only get codes specified
     unweighted <- as.numeric(unname(c(vec[, ..codes])))  
     
     g_w_vec = multidim_arr[matrix(c(s_j, r_i, m_j, "weight"), 1)] * unweighted
@@ -237,6 +246,27 @@ f_diag <- function(
   return(mat)
 }
 
+#' accum_multidim
+#'
+#' @param multidim_arr Input multidimensional array. This should be in the format
+#' [sender, receiver, modality, weight/window]
+#' @param sender_cols Sender columns
+#' @param receiver_cols Receiver columns
+#' @param time_column Time column in contexts
+#' @param mode_column Modality column in contexts
+#' @param codes Codes of interest
+#' @param context_model TMA context model containing contexts for each unit of analysis
+#' @param decay Which decay function to use. By default, this is a simple window 
+#' @param calculate_adj_vectors_using How to compute adj vectors. By default, this is matmul(g^T, r).
+#' @param adj_vec_transform How to transform adj. vecs e.g. binarization. By default, this is empty  
+#' @param accumulate_unit_vectors_by How to compute final adjacency vector from adjacency vectors
+#' accross all of a unit's utterances; by default, this is colSums 
+#' @param normalization How to normalize. Can be \ell_2 or NA
+#' @param summarize_ground_using How to combine ground into one vec. By default, this is colSums
+#' @param return_ena_set Whether or not to return an ENA set. By default, this is ONA
+#' 
+#' @return T/ONA (or T/ENA) accumulation
+#@export
 accum_multidim <- function(
     multidim_arr, 
     unique_senders,
@@ -248,6 +278,7 @@ accum_multidim <- function(
     mode_column,
     codes,
     context_model,
+    # Nothing below this line is implemented in terms of arguments
     decay = decay(simple_window),
     calculate_adj_vectors_using = inner_product_ground_response,
     adj_vec_transform = NA,
@@ -269,17 +300,24 @@ accum_multidim <- function(
   adj_vectors <- list()
   units <- context_model[["model"]][["unit.labels"]]
   for (unit in units) {
+    # List to store adjacency vectors for this unit
     adj_vector <- list()
     
+    # Ensure context has column "standin" with values "standin" for all lines
     context <- context_model[["model"]][["contexts"]][[unit]]
     context[,"standin"] = "standin"
     
+    # List to store connection matrices before accumulation for this unit
     counting_matrices <- list()
     counting_matrices_counter = 1
     
+    # For each context, get unit's lines in that context (r_vec)
     for (i in seq(1, nrow(context))) { 
       r_vec = context[i,] 
+      # If this response vector isn't our units, skip
       if (r_vec$QEUNIT == unit) {
+        # Get all lines *strictly* before this line, which are individual g_vec, and only get those that project
+        # far enough
         g_vecs <- apply_windows(multidim_arr, sender_cols, receiver_cols, time_column, mode_column, 
                                 i, context, codes)
         
@@ -289,11 +327,14 @@ accum_multidim <- function(
           g_vecs[[1]] <- temp
         }
         
+        # Query multidimensional array to reweight g^w_vec = w^{srm} * g_vec
         g_w_vecs <- apply_weights(multidim_arr, sender_cols, receiver_cols, mode_column, codes, i, context,
                                   g_vecs) 
         
+        # Sum all g^w_vec together as g^{ws}_vec
         g_ws_vec <- Reduce("+", g_w_vecs)
         
+        # Compute counting matrix = g^{ws}_vec r_vec^T + 0.5w_{resp}^{srm} * f_diag(r_vec r_vec^T)
         s_i <- c()
         for (k in 1:length(sender_cols)) {
           current_col <- sender_cols[[k]]
@@ -316,10 +357,13 @@ accum_multidim <- function(
       }
     }
     
+    # Sum all counting matrices to get Omega matrix 
     omega_matrix = Reduce("+", counting_matrices)
     rownames(omega_matrix) = codes
     colnames(omega_matrix) = codes
     
+    # Make into adjacency vector
+    # Just do ONA version. need to keep upper triangle + binarize if using ENA
     row_col_combinations <- expand.grid(rownames(omega_matrix), colnames(omega_matrix))
     adj_vector_names <- paste(row_col_combinations[,1], "&", row_col_combinations[,2])
     
@@ -335,8 +379,10 @@ accum_multidim <- function(
       normed_adj_vector <- adj_vector
     }
     
+    # Save unit's adjacency vec
     adj_vectors[[unit]] <- normed_adj_vector
   }
   
+  # Return accumulation (adjacency vecs for all units)
   return(adj_vectors)
 }
