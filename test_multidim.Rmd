@@ -814,7 +814,12 @@ print(result_old$connection.counts)
 
 
 #'*works in the same weights case*
-#'doesn't work in different weights case? have to walk through by hand, it seems...
+#'have to walk through by hand, it seems... old TMA backend confirmed to be producing wrong result
+#' User 1: A & C = 2, all else 0. good
+#' User 2: A & B = 3, A & C = 1, C & B = 2.5, B & C = 2.5. good
+#' User 3: A & A = 3, B & A = 3, C & A = 4, A & C = 4, B & C = 3. good
+#'
+#'
 ```
 
 
