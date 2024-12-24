@@ -15,11 +15,12 @@ accum_multidim(
   mode_column,
   codes,
   context_model,
+  duration_column = 0,
+  norm_by = "No",
   decay = decay(simple_window),
   calculate_adj_vectors_using = inner_product_ground_response,
   adj_vec_transform = NA,
   accumulate_unit_vectors_by = colSums,
-  norm_by = "No",
   summarize_ground_using = colSums,
   return_ena_set = FALSE,
   ...
@@ -27,7 +28,7 @@ accum_multidim(
 }
 \arguments{
 \item{multidim_arr}{Input multidimensional array. This should be in the format
-[sender, receiver, modality, weight/window]}
+[sender, receiver, modality, weight/window] (and will be b/c of how we initialize it above)}
 
 \item{sender_cols}{Sender columns}
 

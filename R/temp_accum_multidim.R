@@ -9,7 +9,11 @@ get_unique_values <- function(df, sender_cols, receiver_cols, mode_column) {
   names(unique_receivers) <- receiver_cols
   
   # Extract unique values for the mode column
-  unique_modes <- unique(df[[mode_column]])
+  if (length(mode_column) == 0) {
+    unique_modes <- list()
+  } else {
+    unique_modes <- unique(df[[mode_column]])
+  }
   
   return(list(
     unique_senders = unique_senders,
@@ -17,6 +21,113 @@ get_unique_values <- function(df, sender_cols, receiver_cols, mode_column) {
     unique_modes = unique_modes
   ))
 }
+
+
+# Function to generate multidim arr
+make_multidim_arr <- function(df, 
+                  sender_cols, 
+                  receiver_cols, 
+                  mode_column, 
+                  default_window,
+                  default_weight) {
+  
+  unique_list = get_unique_values(df, sender_cols, receiver_cols, mode_column)
+  weight_window_axis = c("weight", "window")
+  
+  # Pull out unique senders, receivers, and modes from unique_list
+  unique_senders <- unique_list$unique_senders
+  unique_receivers <- unique_list$unique_receivers
+  unique_modes <- unique_list$unique_modes
+  
+  # Set dimension indices to unique values
+  dim_names <- list()
+  for (i in seq_along(sender_cols)) {
+    dim_names[[paste0("sender_", i)]] <- unique_senders[[i]]
+  }
+  for (i in seq_along(receiver_cols)) {
+    dim_names[[paste0("receiver_", i)]] <- unique_receivers[[i]]
+  }
+  if (length(unique_modes) > 0) {
+    dim_names[["modes"]] <- unique_modes
+  }
+  dim_names[["weight_window"]] <- weight_window_axis
+  
+  # Set dims accordingly s.t. our array is [S, R, M, weight/window]
+  dims <- c()
+  for (i in seq_along(sender_cols)) {
+    dims <- c(dims, length(unique_senders[[i]]))
+  }
+  for (i in seq_along(receiver_cols)) {
+    dims <- c(dims, length(unique_receivers[[i]]))
+  }
+  if (length(unique_modes > 0)) { 
+    dims <- c(dims, length(unique_modes), length(weight_window_axis))
+  } else {
+    dims <- c(dims, length(weight_window_axis))
+  }
+  
+
+  # Init multidimensional array; include sender, receiver, mode columns; default weight; default window as attributes 
+  multidim_arr <- array(0, 
+                        dim = dims, 
+                        dimnames = dim_names)
+  
+  attr(multidim_arr, "sender_cols") <- sender_cols
+  attr(multidim_arr, "receiver_cols") <- receiver_cols
+  attr(multidim_arr, "mode_column") <- mode_column
+  attr(multidim_arr, "default_window") <- default_window
+  attr(multidim_arr, "default_weight") <- default_weight
+  
+  # print(multidim_arr)
+  
+  ## Ensure default window and default weight in multidim_arr 
+  
+  combinations <- expand.grid(
+    senders = if (length(unique_senders) > 0) {
+      do.call(paste, c(expand.grid(unique_senders), sep = "_"))
+    } else {
+      "None"  # Placeholder for empty senders
+    },
+    receivers = if (length(unique_receivers) > 0) {
+      do.call(paste, c(expand.grid(unique_receivers), sep = "_"))
+    } else {
+      "None"  # Placeholder for empty receivers
+    },
+    modes = if (length(unique_modes) > 0) { unique_modes 
+    } else { 
+       "None" # Placeholder for empty modes 
+    },
+    stringsAsFactors = FALSE
+  )
+  
+  
+  # remove NAs
+  combinations <- unique(combinations[rowSums(is.na(combinations)) < ncol(combinations), ])
+  
+  # print(combinations)
+
+  
+  for (i in seq_len(nrow(combinations))) {
+    sender <- combinations$senders[i]
+    receiver <- combinations$receivers[i]
+    modality <- combinations$modes[i]
+    
+    sender_parts <- if (sender == "None") character(0) else strsplit(sender, "_")[[1]]
+    receiver_parts <- if (receiver == "None") character(0) else strsplit(receiver, "_")[[1]]
+    modality_parts <- if (modality == "None") character(0) else modality
+    index_list <- c(sender_parts, receiver_parts, modality_parts)
+
+    weight_new_index_list <- c(index_list, "weight")
+    window_new_index_list <- c(index_list, "window")
+
+    multidim_arr[matrix(as.vector(weight_new_index_list), 1)] <- default_weight
+    multidim_arr[matrix(as.vector(window_new_index_list), 1)] <- default_window
+  }
+  
+  return(multidim_arr)
+}
+
+
 
 # If sender_cols, receiver_cols, or mode_column are empty, have our standin. Be sure to fill in 
 # standin as expected in multidim_arr. 
@@ -30,6 +141,8 @@ preprocess <- function(
     receiver_cols,
     mode_column
 ) {
+  # TODO: This is redundant, but to make everything work, pull out all args from multidim_arr metadata
+  
   old_unique_senders <- unique_senders
   old_unique_receivers <- unique_receivers
   old_unique_modes <- unique_modes
@@ -140,6 +253,7 @@ preprocess <- function(
     mode_column = mode_column
   )
   
+  
   return(result)
 }
 
@@ -249,7 +363,7 @@ f_diag <- function(
 #' accum_multidim
 #'
 #' @param multidim_arr Input multidimensional array. This should be in the format
-#' [sender, receiver, modality, weight/window]
+#' [sender, receiver, modality, weight/window] (and will be b/c of how we initialize it above)
 #' @param sender_cols Sender columns
 #' @param receiver_cols Receiver columns
 #' @param time_column Time column in contexts
@@ -269,27 +383,29 @@ f_diag <- function(
 #@export
 accum_multidim <- function(
     multidim_arr, 
-    unique_senders,
-    unique_receivers,
-    unique_modes,
-    sender_cols,
-    receiver_cols,
+    unique_senders, # TODO: no need
+    unique_receivers, # TODO: no need
+    unique_modes, # TODO: no need
+    sender_cols, # TODO: no need
+    receiver_cols, # TODO: no need
     time_column,
-    mode_column,
-    codes,
+    mode_column, # TODO: no need
+    codes, 
     context_model,
-    # Nothing below this line is implemented in terms of arguments
+    # Nothing below this line is implemented 
+    duration_column = 0, # TODO: implement
+    norm_by = "No", # TODO: implement l1 normalization
     decay = decay(simple_window),
     calculate_adj_vectors_using = inner_product_ground_response,
     adj_vec_transform = NA,
     accumulate_unit_vectors_by = colSums,
-    norm_by = "No",
     summarize_ground_using = colSums,
     return_ena_set = FALSE,
     ...
 ) {
   result <- preprocess(multidim_arr, unique_senders, unique_receivers, unique_modes, 
                        sender_cols, receiver_cols, mode_column)
+  
   multidim_arr <- result$multidim_arr
   sender_cols <- result$sender_cols
   receiver_cols <- result$receiver_cols

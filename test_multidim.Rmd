@@ -1,3 +1,4 @@
+## 0. Dependencies 
 
 ```{r}
 # Load libraries
@@ -13,6 +14,85 @@ mock_data <- read_csv("./vignettes/mock_data_edited.csv")
 
 ```{r}
 mock_data <- mock_data %>% filter(chatGroup == "PAM") # just keep PAM for now
+```
+
+## 1. Test make_multidim_arr function 
+```{r}
+# no sender, no receiver, modality
+source("./R/temp_accum_multidim.R")
+mode_column <- "modality"
+tester <- make_multidim_arr(mock_data, sender_cols = list(), receiver_cols = list(), mode_column, default_window = 1, default_weight = 2) 
+print(tester) # this works
+```
+
+```{r}
+# sender, no receiver, no modality
+source("./R/temp_accum_multidim.R")
+sender_cols <- list("role")
+tester <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = list(), mode_column = list(), default_window = 1, default_weight = 2) 
+print(tester) # this works
+```
+
+```{r}
+# no sender, receiver, no modality
+source("./R/temp_accum_multidim.R")
+receiver_cols <- list("language")
+tester <- make_multidim_arr(mock_data, sender_cols = list(), receiver_cols = receiver_cols, mode_column = list(), default_window = 1, default_weight = 2) 
+print(tester) # this works
+```
+
+```{r}
+# sender, no receiver, modality
+source("./R/temp_accum_multidim.R")
+mode_column <- "modality"
+sender_cols <- list("role")
+tester <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = list(), mode_column, default_window = 1, default_weight = 2) 
+print(tester) # this works
+```
+
+```{r}
+# no sender, receiver, modality
+source("./R/temp_accum_multidim.R")
+mode_column <- "modality"
+receiver_cols <- list("language")
+tester <- make_multidim_arr(mock_data, sender_cols = list(), receiver_cols = receiver_cols, mode_column, default_window = 1, default_weight = 2) 
+print(tester) # this works 
+```
+
+```{r}
+# sender, receiver, no modality
+source("./R/temp_accum_multidim.R")
+sender_cols <- list("role")
+receiver_cols <- list("language")
+tester <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = list(), default_window = 1, default_weight = 2) 
+print(tester) # this works
+```
+
+```{r}
+# sender, receiver, modality
+source("./R/temp_accum_multidim.R")
+sender_cols <- list("role")
+receiver_cols <- list("language")
+mode_column <- "modality"
+
+tester <- make_multidim_arr(mock_data, sender_cols, receiver_cols, mode_column, default_window = 1, default_weight = 2)
+print(tester) # this works
+```
+
+```{r}
+# senders, receivers, modality
+source("./R/temp_accum_multidim.R")
+sender_cols <- list("role", "language")
+receiver_cols <- list("role", "handwriting")
+mode_column <- "modality"
+
+tester <- make_multidim_arr(mock_data, sender_cols, receiver_cols, mode_column, default_window = 1, default_weight = 2)
+print(tester) # this works 
+```
+
+## 2. Test accum_multidim function on mock dataset
+
+```{r}
 # Initialize TMA units and contexts
 unit_cols <- c("userID", "condition")
 codes <- c("A", "B", "C")
@@ -117,7 +197,7 @@ print(result_new)
 
 
 ```{r}
-# Test 3: Do we get the correct answer with just a sender? 
+# Test 2: Do we get the correct answer with just a sender? 
 source("./R/temp_accum_multidim.R")
 
 sender_cols = list("role")
@@ -198,7 +278,7 @@ print(result_new)
 ```
 
 ```{r}
-# Test 4: Do we get the correct answer with just a receiver? 
+# Test 3: Do we get the correct answer with just a receiver? 
 source("./R/temp_accum_multidim.R")
 
 sender_cols = list("role")
@@ -277,7 +357,7 @@ print(result_new)
 ```
 
 ```{r}
-# Test 5: Do we get the correct answer with sender, no receiver, modality? 
+# Test 4: Do we get the correct answer with sender, no receiver, modality? 
 source("./R/temp_accum_multidim.R")
 
 sender_cols = list("role")
@@ -373,7 +453,7 @@ print(result_new)
 ```
 
 ```{r}
-# Test 6: Do we get the correct answer with no sender, receiver, modality? 
+# Test 5: Do we get the correct answer with no sender, receiver, modality? 
 source("./R/temp_accum_multidim.R")
 
 sender_cols = list("role")
@@ -458,7 +538,7 @@ print(result_new)
 ```
 
 ```{r}
-# Test 7: Do we get the correct answer with sender, receiver, no modality? 
+# Test 6: Do we get the correct answer with sender, receiver, no modality? 
 source("./R/temp_accum_multidim.R")
 
 sender_cols = list("role")
@@ -541,8 +621,9 @@ print(result_new)
 #'*works in same weights/windows case* 
 #'*works in different weights/windows case*
 ```
+
 ```{r}
-# Test 8: Do we get the correct answer with sender, receiver, modality? 
+# Test 7: Do we get the correct answer with sender, receiver, modality? 
 source("./R/temp_accum_multidim.R")
 
 sender_cols = list("role")
@@ -652,7 +733,7 @@ print(result_new)
 potential senders: role, language, handwriting
 potential receivers: role, language, handwriting
 ```{r}
-# Test 9: Do we get the correct answer with senders, receivers, modality? 
+# Test 8: Do we get the correct answer with senders, receivers, modality? 
 source("./R/temp_accum_multidim.R")
 
 # senders: role, language
@@ -690,6 +771,13 @@ dims <- c(dims, length(unique_modes), length(weight_window_axis))
 multidim_arr <- array(0, 
                   dim = dims, 
                   dimnames = dim_names)
+
+function(sender_cols, receiver_cols, modality_cols, df, default_weight, default_window)
+  
+
+  
+
+  
 
 multidim_arr["Player", "L1", "Player", "poor", "chat", "weight"] <- 1
 multidim_arr["Player", "L1", "Player", "poor", "resource", "weight"] <- 1
@@ -822,6 +910,11 @@ print(result_old$connection.counts)
 #'
 ```
 
+
+## 3. Test accum_multidim function on transomdal ENA dataset 
+```{r}
+# TODO 
+```
 
 
 
