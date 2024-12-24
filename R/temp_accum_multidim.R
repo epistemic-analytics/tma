@@ -467,7 +467,12 @@ accum_multidim <- function(
         r_vec <- as.numeric(unname(c(r_vec[, ..codes])))
         g_ws_vec <- as.numeric(g_ws_vec)
         
-        counting_matrix = (g_ws_vec %*% t(r_vec)) + 0.5 * w_rr * f_diag(r_vec %*% t(r_vec))
+        if (return_ena_set == FALSE) { # ONA 
+          counting_matrix = (g_ws_vec %*% t(r_vec)) + 0.5 * w_rr * f_diag(r_vec %*% t(r_vec))
+        } else { # ENA (w_rr * rr^T + (qr^T + rq^T))
+          counting_matrix = w_rr * (r_vec %*% t(r_vec)) + (g_ws_vec %*% t(r_vec) + r_vec %*% t(g_ws_vec)) 
+        }
+        
         counting_matrices[[counting_matrices_counter]] = counting_matrix
         
         counting_matrices_counter = counting_matrices_counter + 1
@@ -479,17 +484,25 @@ accum_multidim <- function(
     rownames(omega_matrix) = codes
     colnames(omega_matrix) = codes
     
-    # Make into adjacency vector
-    
-    # ONA version
-    row_col_combinations <- expand.grid(rownames(omega_matrix), colnames(omega_matrix))
-    adj_vector_names <- paste(row_col_combinations[,1], "&", row_col_combinations[,2])
-    
-    adj_vector <- omega_matrix[cbind(match(row_col_combinations[, 1], rownames(omega_matrix)), 
-                                     match(row_col_combinations[, 2], colnames(omega_matrix)))]
-    
-    adj_vector <- setNames(adj_vector, adj_vector_names)
-    
+    if (return_ena_set == FALSE) { # ONA
+      # Make into adjacency vector
+      row_col_combinations <- expand.grid(rownames(omega_matrix), colnames(omega_matrix))
+      adj_vector_names <- paste(row_col_combinations[,1], "&", row_col_combinations[,2])
+      
+      adj_vector <- omega_matrix[cbind(match(row_col_combinations[, 1], rownames(omega_matrix)), 
+                                       match(row_col_combinations[, 2], colnames(omega_matrix)))]
+      
+      adj_vector <- setNames(adj_vector, adj_vector_names)
+    } else { 
+      upper_indices <- which(upper.tri(omega_matrix, diag = FALSE)) 
+      adj_vector <- omega_matrix[upper_indices]
+      upper_rows <- rownames(omega_matrix)[row(omega_matrix)[upper_indices]]
+      upper_cols <- colnames(omega_matrix)[col(omega_matrix)[upper_indices]]
+      adj_vector_names <- paste(upper_rows, "&", upper_cols)
+      
+      adj_vector <- setNames(adj_vector, adj_vector_names)
+    }
+  
     if (norm_by == "ell_2") {
       l2_adj_vector <- sqrt(sum(adj_vector^2))
       normed_adj_vector <- adj_vector / l2_adj_vector

@@ -633,8 +633,101 @@ print(result_old$connection.counts)
 #'
 ```
 
+## 2.5 Brief test of T/ENA
+```{r}
+source("./R/temp_accum_multidim.R")
 
-## 3. Test accum_multidim function on transomdal ENA dataset 
+# senders: role, language
+# receivers: role, handwriting 
+# modality: modality 
+sender_cols <- list("role", "language")
+receiver_cols <- list("role", "handwriting")
+mode_column <- "modality"
+
+multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, 0, 0)
+
+
+multidim_arr["Player", "L1", "Player", "poor", "chat", "weight"] <- 1
+multidim_arr["Player", "L1", "Player", "poor", "resource", "weight"] <- 1
+multidim_arr["Player", "L1", "Player", "good", "chat", "weight"] <- 1
+multidim_arr["Player", "L1", "Player", "good", "resource", "weight"] <- 8
+multidim_arr["Player", "L1", "Mentor", "poor", "chat", "weight"] <- 1
+multidim_arr["Player", "L1", "Mentor", "poor", "resource", "weight"] <- 1
+multidim_arr["Player", "L1", "Mentor", "good", "chat", "weight"] <- 1
+multidim_arr["Player", "L1", "Mentor", "good", "resource", "weight"] <- 7
+multidim_arr["Player", "L2", "Player", "poor", "chat", "weight"] <- 7
+multidim_arr["Player", "L2", "Player", "poor", "resource", "weight"] <- 4
+multidim_arr["Player", "L2", "Player", "good", "chat", "weight"] <- 1
+multidim_arr["Player", "L2", "Player", "good", "resource", "weight"] <- 1
+multidim_arr["Player", "L2", "Mentor", "poor", "chat", "weight"] <- 1
+multidim_arr["Player", "L2", "Mentor", "poor", "resource", "weight"] <- 3
+multidim_arr["Player", "L2", "Mentor", "good", "chat", "weight"] <- 3
+multidim_arr["Player", "L2", "Mentor", "good", "resource", "weight"] <- 12
+multidim_arr["Mentor", "L1", "Player", "poor", "chat", "weight"] <- 1
+multidim_arr["Mentor", "L1", "Player", "poor", "resource", "weight"] <- 10
+multidim_arr["Mentor", "L1", "Player", "good", "chat", "weight"] <- 1
+multidim_arr["Mentor", "L1", "Player", "good", "resource", "weight"] <- 9
+multidim_arr["Mentor", "L1", "Mentor", "poor", "chat", "weight"] <- 1
+multidim_arr["Mentor", "L1", "Mentor", "poor", "resource", "weight"] <- 1
+multidim_arr["Mentor", "L1", "Mentor", "good", "chat", "weight"] <- 7
+multidim_arr["Mentor", "L1", "Mentor", "good", "resource", "weight"] <- 7
+multidim_arr["Mentor", "L2", "Player", "poor", "chat", "weight"] <- 7
+multidim_arr["Mentor", "L2", "Player", "poor", "resource", "weight"] <- 1
+multidim_arr["Mentor", "L2", "Player", "good", "chat", "weight"] <- 6
+multidim_arr["Mentor", "L2", "Player", "good", "resource", "weight"] <- 2
+multidim_arr["Mentor", "L2", "Mentor", "poor", "chat", "weight"] <- 1
+multidim_arr["Mentor", "L2", "Mentor", "poor", "resource", "weight"] <- 3
+multidim_arr["Mentor", "L2", "Mentor", "good", "chat", "weight"] <- 5
+multidim_arr["Mentor", "L2", "Mentor", "good", "resource", "weight"] <- 5
+
+multidim_arr["Player", "L1", "Player", "poor", "chat", "window"] <- 360
+multidim_arr["Player", "L1", "Player", "poor", "resource", "window"] <- 10 
+multidim_arr["Player", "L1", "Player", "good", "chat", "window"] <- 360
+multidim_arr["Player", "L1", "Player", "good", "resource", "window"] <- 310
+multidim_arr["Player", "L1", "Mentor", "poor", "chat", "window"] <- 360
+multidim_arr["Player", "L1", "Mentor", "poor", "resource", "window"] <- 300
+multidim_arr["Player", "L1", "Mentor", "good", "chat", "window"] <- 360
+multidim_arr["Player", "L1", "Mentor", "good", "resource", "window"] <- 320
+multidim_arr["Player", "L2", "Player", "poor", "chat", "window"] <- 360
+multidim_arr["Player", "L2", "Player", "poor", "resource", "window"] <- 350
+multidim_arr["Player", "L2", "Player", "good", "chat", "window"] <- 360
+multidim_arr["Player", "L2", "Player", "good", "resource", "window"] <- 189
+multidim_arr["Player", "L2", "Mentor", "poor", "chat", "window"] <- 121
+multidim_arr["Player", "L2", "Mentor", "poor", "resource", "window"] <- 782
+multidim_arr["Player", "L2", "Mentor", "good", "chat", "window"] <- 333
+multidim_arr["Player", "L2", "Mentor", "good", "resource", "window"] <- 343
+multidim_arr["Mentor", "L1", "Player", "poor", "chat", "window"] <- 845
+multidim_arr["Mentor", "L1", "Player", "poor", "resource", "window"] <- 800
+multidim_arr["Mentor", "L1", "Player", "good", "chat", "window"] <- 500
+multidim_arr["Mentor", "L1", "Player", "good", "resource", "window"] <- 20
+multidim_arr["Mentor", "L1", "Mentor", "poor", "chat", "window"] <- 70
+multidim_arr["Mentor", "L1", "Mentor", "poor", "resource", "window"] <- 10
+multidim_arr["Mentor", "L1", "Mentor", "good", "chat", "window"] <- 20
+multidim_arr["Mentor", "L1", "Mentor", "good", "resource", "window"] <- 100
+multidim_arr["Mentor", "L2", "Player", "poor", "chat", "window"] <- 360
+multidim_arr["Mentor", "L2", "Player", "poor", "resource", "window"] <- 200
+multidim_arr["Mentor", "L2", "Player", "good", "chat", "window"] <- 360
+multidim_arr["Mentor", "L2", "Player", "good", "resource", "window"] <- 350
+multidim_arr["Mentor", "L2", "Mentor", "poor", "chat", "window"] <- 360
+multidim_arr["Mentor", "L2", "Mentor", "poor", "resource", "window"] <- 270
+multidim_arr["Mentor", "L2", "Mentor", "good", "chat", "window"] <- 180
+multidim_arr["Mentor", "L2", "Mentor", "good", "resource", "window"] <- 360
+
+
+result_new <- accum_multidim(
+    mock_data,
+    multidim_arr, 
+    time_column,
+    codes,
+    context_model,
+    return_ena_set = TRUE
+)
+
+print(result_new) # this looks right
+```
+
+
+## 3. Test accum_multidim function on full transomdal RS data 
 ```{r}
 # TODO 
 ```
