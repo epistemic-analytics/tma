@@ -302,7 +302,7 @@ apply_windows <- function(
     m_j = as.vector(unlist(context[j, ..mode_column]))
     
     # Verify t_i + w_{s_j, r_i, m_j} \geq t_j
-    if (length(duration_column) == 0) {
+    if (duration_column == "") {
       val_to_check <- context[j, ..time_column] + multidim_arr[matrix(c(s_j, r_i, m_j, "window"), 1)]
       if (val_to_check >= context[i, ..time_column]) {
         g_vecs[[g_vecs_counter]] <- context[j,]
@@ -400,10 +400,10 @@ accum_multidim <- function(
     time_column,
     codes, 
     context_model,
-    duration_column = list(), # TODO: implement
+    duration_column = "", 
     norm_by = "No", # TODO: implement l1 normalization
     return_ena_set = FALSE,
-    ...
+    ... # TODO: implement binarization for T/ENA
 ) {
   result <- preprocess(df, multidim_arr)
   
@@ -503,7 +503,7 @@ accum_multidim <- function(
       adj_vector <- setNames(adj_vector, adj_vector_names)
     }
   
-    if (norm_by == "ell_2") {
+    if (norm_by == "l2") {
       l2_adj_vector <- sqrt(sum(adj_vector^2))
       normed_adj_vector <- adj_vector / l2_adj_vector
     } else {

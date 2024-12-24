@@ -729,9 +729,104 @@ print(result_new) # this looks right
 
 ## 3. Test accum_multidim function on full transomdal RS data 
 ```{r}
-# TODO 
+df <- read_csv("./vignettes/RS_data_multimodal.csv")
+# mutate language column for receiver, and also fill NA
+df <- df %>% 
+  mutate(role = ifelse(is.na(role), "Player", role)) %>% 
+  mutate(modality = ifelse(is.na(modality), "chat", modality)) %>% 
+  mutate(language = sample(c("L1", "L2"), size = n(), replace = TRUE)) %>% 
+  mutate(timeStamp = as.numeric(as.POSIXct(timeStamp, format = "%Y-%m-%d %H:%M:%S", tz = "UTC"))) %>%
+  mutate(timeStamp = timeStamp + duration)
+```
+
+```{r}
+# Initialize TMA units and contexts
+unit_cols <- c("userID", "Condition")
+codes <- c("Collaboration", "Performance.Parameters", "Design.based.decision.making", "Client.and.Consultant.Requests", "Technical.Constraints", "Data")
+HOO_rules_model <- tma:::rules(
+  modality %in% "chat" & chatGroup %in% UNIT$chatGroup & Condition %in% UNIT$Condition, modality %in% "resource" & userID %in% UNIT$userID & Condition %in% UNIT$Condition
+)
+
+context_model <- tma:::contexts(
+  x = df,
+  units = unit_cols,
+  hoo_rules = HOO_rules_model
+)
+
+time_column = "timeStamp"
 ```
 
 
+```{r}
+# Do we get the correct answer with senders, receivers, modality? 
+source("./R/temp_accum_multidim.R")
 
+sender_cols = list("role")
+receiver_cols = list("language")
+mode_column = "modality"
+
+multidim_arr <- make_multidim_arr(df, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, 0, 0)
+
+multidim_arr["Mentor", "L1", "chat", "weight"] <- 5
+multidim_arr["Mentor", "L1", "resource", "weight"] <- 5
+multidim_arr["Mentor", "L2", "chat", "weight"] <- 7
+multidim_arr["Mentor", "L2", "resource", "weight"] <- 2
+
+multidim_arr["Player", "L1", "chat", "weight"] <- 3
+multidim_arr["Player", "L1", "resource", "weight"] <- 5
+multidim_arr["Player", "L2", "chat", "weight"] <- 5
+multidim_arr["Player", "L2", "resource", "weight"] <- 1
+
+multidim_arr["Mentor", "L1", "chat", "window"] <- 800
+multidim_arr["Mentor", "L1", "resource", "window"] <- 500
+multidim_arr["Mentor", "L2", "chat", "window"] <- 20
+multidim_arr["Mentor", "L2", "resource", "window"] <- 310
+
+multidim_arr["Player", "L1", "chat", "window"] <- 320
+multidim_arr["Player", "L1", "resource", "window"] <- 200
+multidim_arr["Player", "L2", "chat", "window"] <- 150
+multidim_arr["Player", "L2", "resource", "window"] <- 360
+
+
+result_new <- accum_multidim(
+    mock_data,
+    multidim_arr, 
+    time_column,
+    codes,
+    context_model
+)
+
+result_old <- tma:::accumulate_contexts (
+    x = context_model,
+    codes = codes,
+    weight.by = function(x) { x },
+    decay.function = function(x) {
+      
+        sender <- FULL_CONTEXT[ROWS, role]
+        receiver <- FULL_CONTEXT[RESPONSE_INDEX, language]
+        modality <- FULL_CONTEXT[ROWS, modality]
+        
+        
+        if (length(modality) >= 2) {
+            window <- diag(multidim_arr[sender, receiver, modality, "window"])
+            names(window) <- modality
+
+            weighter <- diag(multidim_arr[sender, receiver, modality, "weight"])
+            names(weighter) <- modality
+            weight <- (x < window) * weighter
+
+            return(weight)
+       } else {
+          weight <- (x < multidim_arr[sender, receiver, modality, "window"]) * multidim_arr[sender, receiver, modality, "weight"]
+          return(weight)
+        }
+    },
+    time.column = "timeStamp",
+    return.ena.set = FALSE
+   # mode.column = c("role", "language", "modality")
+)
+
+print(result_old$connection.counts)
+print(result_new)
+```
 

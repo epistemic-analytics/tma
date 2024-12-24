@@ -12,11 +12,6 @@ accum_multidim(
   context_model,
   duration_column = list(),
   norm_by = "No",
-  decay = decay(simple_window),
-  calculate_adj_vectors_using = inner_product_ground_response,
-  adj_vec_transform = NA,
-  accumulate_unit_vectors_by = colSums,
-  summarize_ground_using = colSums,
   return_ena_set = FALSE,
   ...
 )
@@ -31,6 +26,14 @@ accum_multidim(
 
 \item{context_model}{TMA context model containing contexts for each unit of analysis}
 
+\item{return_ena_set}{Whether or not to return an ENA set. By default, this is ONA}
+
+\item{sender_cols}{Sender columns}
+
+\item{receiver_cols}{Receiver columns}
+
+\item{mode_column}{Modality column in contexts}
+
 \item{decay}{Which decay function to use. By default, this is a simple window}
 
 \item{calculate_adj_vectors_using}{How to compute adj vectors. By default, this is matmul(g^T, r).}
@@ -40,17 +43,9 @@ accum_multidim(
 \item{accumulate_unit_vectors_by}{How to compute final adjacency vector from adjacency vectors
 accross all of a unit's utterances; by default, this is colSums}
 
-\item{summarize_ground_using}{How to combine ground into one vec. By default, this is colSums}
-
-\item{return_ena_set}{Whether or not to return an ENA set. By default, this is ONA}
-
-\item{sender_cols}{Sender columns}
-
-\item{receiver_cols}{Receiver columns}
-
-\item{mode_column}{Modality column in contexts}
-
 \item{normalization}{How to normalize. Can be \ell_2 or NA}
+
+\item{summarize_ground_using}{How to combine ground into one vec. By default, this is colSums}
 }
 \value{
 T/ONA (or T/ENA) accumulation
