@@ -133,15 +133,19 @@ make_multidim_arr <- function(df,
 # standin as expected in multidim_arr. 
 # We do this so we don't fail when they don't specify senders/receivers/mode
 preprocess <- function(
-    multidim_arr, 
-    unique_senders,
-    unique_receivers,
-    unique_modes,
-    sender_cols,
-    receiver_cols,
-    mode_column
+    df, 
+    multidim_arr
 ) {
-  # TODO: This is redundant, but to make everything work, pull out all args from multidim_arr metadata
+  # Get sender, receiver, and mode columns + unique values from multidim_arr
+  sender_cols <- attr(multidim_arr, "sender_cols")
+  receiver_cols <- attr(multidim_arr, "receiver_cols")
+  mode_column <- attr(multidim_arr, "mode_column")
+  
+  unique_list = get_unique_values(df, sender_cols, receiver_cols, mode_column)
+  # Pull out unique senders, receivers, and modes from unique_list
+  unique_senders <- unique_list$unique_senders
+  unique_receivers <- unique_list$unique_receivers
+  unique_modes <- unique_list$unique_modes
   
   old_unique_senders <- unique_senders
   old_unique_receivers <- unique_receivers
@@ -382,18 +386,13 @@ f_diag <- function(
 #' @return T/ONA (or T/ENA) accumulation
 #@export
 accum_multidim <- function(
+    df, # original df; needed to get unique_senders, unique_receivers, unique_modes in preprocess
     multidim_arr, 
-    unique_senders, # TODO: no need
-    unique_receivers, # TODO: no need
-    unique_modes, # TODO: no need
-    sender_cols, # TODO: no need
-    receiver_cols, # TODO: no need
     time_column,
-    mode_column, # TODO: no need
     codes, 
     context_model,
     # Nothing below this line is implemented 
-    duration_column = 0, # TODO: implement
+    duration_column = list(), # TODO: implement
     norm_by = "No", # TODO: implement l1 normalization
     decay = decay(simple_window),
     calculate_adj_vectors_using = inner_product_ground_response,
@@ -403,8 +402,7 @@ accum_multidim <- function(
     return_ena_set = FALSE,
     ...
 ) {
-  result <- preprocess(multidim_arr, unique_senders, unique_receivers, unique_modes, 
-                       sender_cols, receiver_cols, mode_column)
+  result <- preprocess(df, multidim_arr)
   
   multidim_arr <- result$multidim_arr
   sender_cols <- result$sender_cols

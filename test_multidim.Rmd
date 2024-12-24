@@ -116,40 +116,9 @@ potential receivers: role, language, handwriting
 # Test 1: Do we get the correct standin matrix when specifying just a modality?
 source("./R/temp_accum_multidim.R")
 
-sender_cols = list("role")
-receiver_cols = list("language")
 mode_column = "modality"
 
-unique_list <- get_unique_values(mock_data, sender_cols, receiver_cols, mode_column)
-unique_senders <- unique_list[[1]]
-unique_receivers <- unique_list[[2]]
-unique_modes <- unique_list[[3]]
-weight_window_axis = c("weight", "window")
-
-dim_names <- list()
-# for (i in seq_along(sender_cols)) {
-#   dim_names[[paste0("sender_", i)]] <- unique_senders[[i]]
-# }
-# for (i in seq_along(receiver_cols)) {
-#   dim_names[[paste0("receiver_", i)]] <- unique_receivers[[i]]
-# }
-dim_names[["modes"]] <- unique_modes
-dim_names[["weight_window"]] <- weight_window_axis
-
-dims <- c()
-# for (i in seq_along(sender_cols)) {
-#   dims <- c(dims, length(unique_senders[[i]]))
-# }
-# for (i in seq_along(receiver_cols)) {
-#   dims <- c(dims, length(unique_receivers[[i]]))
-# }
-dims <- c(dims, length(unique_modes), length(weight_window_axis))
-# dims <- c(dims, length(weight_window_axis))
-
-multidim_arr <- array(0, 
-                  dim = dims, 
-                  dimnames = dim_names)
-
+multidim_arr <- make_multidim_arr(mock_data, sender_cols = list(), receiver_cols = list(), mode_column, 0, 0)
 
 multidim_arr["chat", "weight"] <- 1
 multidim_arr["resource", "weight"] <- 2
@@ -157,14 +126,9 @@ multidim_arr["chat", "window"] <- 360
 multidim_arr["resource", "window"] <- 180
 
 result_new <- accum_multidim(
+    mock_data,
     multidim_arr, 
-    unique_senders = list(),
-    unique_receivers = list(),
-    unique_modes,
-    sender_cols = list(),
-    receiver_cols = list(),
     time_column,
-    mode_column,
     codes,
     context_model
 )
@@ -201,38 +165,8 @@ print(result_new)
 source("./R/temp_accum_multidim.R")
 
 sender_cols = list("role")
-receiver_cols = list("language")
-mode_column = "modality"
 
-unique_list <- get_unique_values(mock_data, sender_cols, receiver_cols, mode_column)
-unique_senders <- unique_list[[1]]
-unique_receivers <- unique_list[[2]]
-unique_modes <- unique_list[[3]]
-weight_window_axis = c("weight", "window")
-
-dim_names <- list()
-for (i in seq_along(sender_cols)) {
-  dim_names[[paste0("sender_", i)]] <- unique_senders[[i]]
-}
-# for (i in seq_along(receiver_cols)) {
-#   dim_names[[paste0("receiver_", i)]] <- unique_receivers[[i]]
-# }
-# dim_names[["modes"]] <- unique_modes
-dim_names[["weight_window"]] <- weight_window_axis
-
-dims <- c()
-for (i in seq_along(sender_cols)) {
-  dims <- c(dims, length(unique_senders[[i]]))
-}
-# for (i in seq_along(receiver_cols)) {
-#   dims <- c(dims, length(unique_receivers[[i]]))
-# }
-# dims <- c(dims, length(unique_modes), length(weight_window_axis))
-dims <- c(dims, length(weight_window_axis))
-
-multidim_arr <- array(0, 
-                  dim = dims, 
-                  dimnames = dim_names)
+multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = list(), mode_column = list(), 0, 0)
 
 multidim_arr["Mentor", "weight"] <- 1
 multidim_arr["Player", "weight"] <- 2
@@ -240,14 +174,9 @@ multidim_arr["Mentor", "window"] <- 360
 multidim_arr["Player", "window"] <- 180
 
 result_new <- accum_multidim(
+    mock_data, 
     multidim_arr, 
-    unique_senders = unique_senders,
-    unique_receivers = list(),
-    unique_modes = list(),
-    sender_cols = sender_cols,
-    receiver_cols = list(),
     time_column,
-    mode_column = list(),
     codes,
     context_model
 )
@@ -281,39 +210,9 @@ print(result_new)
 # Test 3: Do we get the correct answer with just a receiver? 
 source("./R/temp_accum_multidim.R")
 
-sender_cols = list("role")
 receiver_cols = list("language")
-mode_column = "modality"
 
-unique_list <- get_unique_values(mock_data, sender_cols, receiver_cols, mode_column)
-unique_senders <- unique_list[[1]]
-unique_receivers <- unique_list[[2]]
-unique_modes <- unique_list[[3]]
-weight_window_axis = c("weight", "window")
-
-dim_names <- list()
-# for (i in seq_along(sender_cols)) {
-#   dim_names[[paste0("sender_", i)]] <- unique_senders[[i]]
-# }
-for (i in seq_along(receiver_cols)) {
-  dim_names[[paste0("receiver_", i)]] <- unique_receivers[[i]]
-}
-# dim_names[["modes"]] <- unique_modes
-dim_names[["weight_window"]] <- weight_window_axis
-
-dims <- c()
-# for (i in seq_along(sender_cols)) {
-#   dims <- c(dims, length(unique_senders[[i]]))
-# }
-for (i in seq_along(receiver_cols)) {
-  dims <- c(dims, length(unique_receivers[[i]]))
-}
-# dims <- c(dims, length(unique_modes), length(weight_window_axis))
-dims <- c(dims, length(weight_window_axis))
-
-multidim_arr <- array(0, 
-                  dim = dims, 
-                  dimnames = dim_names)
+multidim_arr <- make_multidim_arr(mock_data, sender_cols = list(), receiver_cols = receiver_cols, mode_column = list(), 0, 0)
 
 multidim_arr["L1", "weight"] <- 1
 multidim_arr["L2", "weight"] <- 5
@@ -321,14 +220,9 @@ multidim_arr["L1", "window"] <- 360
 multidim_arr["L2", "window"] <- 180
 
 result_new <- accum_multidim(
+    mock_data, 
     multidim_arr, 
-    unique_senders = list(),
-    unique_receivers = unique_receivers,
-    unique_modes = list(),
-    sender_cols = list(),
-    receiver_cols = receiver_cols,
     time_column,
-    mode_column = list(),
     codes,
     context_model
 )
@@ -361,37 +255,9 @@ print(result_new)
 source("./R/temp_accum_multidim.R")
 
 sender_cols = list("role")
-receiver_cols = list("language")
 mode_column = "modality"
 
-unique_list <- get_unique_values(mock_data, sender_cols, receiver_cols, mode_column)
-unique_senders <- unique_list[[1]]
-unique_receivers <- unique_list[[2]]
-unique_modes <- unique_list[[3]]
-weight_window_axis = c("weight", "window")
-
-dim_names <- list()
-for (i in seq_along(sender_cols)) {
-  dim_names[[paste0("sender_", i)]] <- unique_senders[[i]]
-}
-# for (i in seq_along(receiver_cols)) {
-#   dim_names[[paste0("receiver_", i)]] <- unique_receivers[[i]]
-# }
-dim_names[["modes"]] <- unique_modes
-dim_names[["weight_window"]] <- weight_window_axis
-
-dims <- c()
-for (i in seq_along(sender_cols)) {
-  dims <- c(dims, length(unique_senders[[i]]))
-}
-# for (i in seq_along(receiver_cols)) {
-#   dims <- c(dims, length(unique_receivers[[i]]))
-# }
-dims <- c(dims, length(unique_modes), length(weight_window_axis))
-
-multidim_arr <- array(0, 
-                  dim = dims, 
-                  dimnames = dim_names)
+multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = list(), mode_column = mode_column, 0, 0)
 
 multidim_arr["Mentor", "chat", "weight"] <- 3
 multidim_arr["Mentor", "resource", "weight"] <- 1
@@ -405,14 +271,9 @@ multidim_arr["Player", "resource", "window"] <- 360
 
 
 result_new <- accum_multidim(
+    mock_data,
     multidim_arr, 
-    unique_senders = unique_senders,
-    unique_receivers = list(),
-    unique_modes = unique_modes,
-    sender_cols = sender_cols,
-    receiver_cols = list(),
     time_column,
-    mode_column = mode_column,
     codes,
     context_model
 )
@@ -456,38 +317,10 @@ print(result_new)
 # Test 5: Do we get the correct answer with no sender, receiver, modality? 
 source("./R/temp_accum_multidim.R")
 
-sender_cols = list("role")
 receiver_cols = list("language")
 mode_column = "modality"
 
-unique_list <- get_unique_values(mock_data, sender_cols, receiver_cols, mode_column)
-unique_senders <- unique_list[[1]]
-unique_receivers <- unique_list[[2]]
-unique_modes <- unique_list[[3]]
-weight_window_axis = c("weight", "window")
-
-dim_names <- list()
-# for (i in seq_along(sender_cols)) {
-#   dim_names[[paste0("sender_", i)]] <- unique_senders[[i]]
-# }
-for (i in seq_along(receiver_cols)) {
-  dim_names[[paste0("receiver_", i)]] <- unique_receivers[[i]]
-}
-dim_names[["modes"]] <- unique_modes
-dim_names[["weight_window"]] <- weight_window_axis
-
-dims <- c()
-# for (i in seq_along(sender_cols)) {
-#   dims <- c(dims, length(unique_senders[[i]]))
-# }
-for (i in seq_along(receiver_cols)) {
-  dims <- c(dims, length(unique_receivers[[i]]))
-}
-dims <- c(dims, length(unique_modes), length(weight_window_axis))
-
-multidim_arr <- array(0, 
-                  dim = dims, 
-                  dimnames = dim_names)
+multidim_arr <- make_multidim_arr(mock_data, sender_cols = list(), receiver_cols = receiver_cols, mode_column = mode_column, 0, 0)
 
 multidim_arr["L1", "chat", "weight"] <- 5
 multidim_arr["L1", "resource", "weight"] <- 1
@@ -499,16 +332,10 @@ multidim_arr["L1", "resource", "window"] <- 360
 multidim_arr["L2", "chat", "window"] <- 60
 multidim_arr["L2", "resource", "window"] <- 120
 
-
 result_new <- accum_multidim(
+    mock_data,
     multidim_arr, 
-    unique_senders = list(), 
-    unique_receivers = unique_receivers,
-    unique_modes = unique_modes,
-    sender_cols = list(),
-    receiver_cols = receiver_cols,
     time_column,
-    mode_column = mode_column,
     codes,
     context_model
 )
@@ -543,37 +370,8 @@ source("./R/temp_accum_multidim.R")
 
 sender_cols = list("role")
 receiver_cols = list("language")
-mode_column = "modality"
 
-unique_list <- get_unique_values(mock_data, sender_cols, receiver_cols, mode_column)
-unique_senders <- unique_list[[1]]
-unique_receivers <- unique_list[[2]]
-unique_modes <- unique_list[[3]]
-weight_window_axis = c("weight", "window")
-
-dim_names <- list()
-for (i in seq_along(sender_cols)) {
-  dim_names[[paste0("sender_", i)]] <- unique_senders[[i]]
-}
-for (i in seq_along(receiver_cols)) {
-  dim_names[[paste0("receiver_", i)]] <- unique_receivers[[i]]
-}
-# dim_names[["modes"]] <- unique_modes
-dim_names[["weight_window"]] <- weight_window_axis
-
-dims <- c()
-for (i in seq_along(sender_cols)) {
-  dims <- c(dims, length(unique_senders[[i]]))
-}
-for (i in seq_along(receiver_cols)) {
-  dims <- c(dims, length(unique_receivers[[i]]))
-}
-# dims <- c(dims, length(unique_modes), length(weight_window_axis))
-dims <- c(dims, length(weight_window_axis))
-
-multidim_arr <- array(0, 
-                  dim = dims, 
-                  dimnames = dim_names)
+multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = list(), 0, 0)
 
 multidim_arr["Mentor", "L1", "weight"] <- 1
 multidim_arr["Mentor", "L2", "weight"] <- 5
@@ -586,14 +384,9 @@ multidim_arr["Player", "L1", "window"] <- 250
 multidim_arr["Player", "L2", "window"] <- 200
 
 result_new <- accum_multidim(
+    mock_data,
     multidim_arr, 
-    unique_senders = unique_senders, 
-    unique_receivers = unique_receivers,
-    unique_modes = list(),
-    sender_cols = sender_cols,
-    receiver_cols = receiver_cols,
     time_column,
-    mode_column = list(),
     codes,
     context_model
 )
@@ -630,34 +423,7 @@ sender_cols = list("role")
 receiver_cols = list("language")
 mode_column = "modality"
 
-unique_list <- get_unique_values(mock_data, sender_cols, receiver_cols, mode_column)
-unique_senders <- unique_list[[1]]
-unique_receivers <-  unique_list[[2]]
-unique_modes <- unique_list[[3]]
-weight_window_axis = c("weight", "window")
-
-dim_names <- list()
-for (i in seq_along(sender_cols)) {
-  dim_names[[paste0("sender_", i)]] <- unique_senders[[i]]
-}
-for (i in seq_along(receiver_cols)) {
-  dim_names[[paste0("receiver_", i)]] <- unique_receivers[[i]]
-}
-dim_names[["modes"]] <- unique_modes
-dim_names[["weight_window"]] <- weight_window_axis
-
-dims <- c()
-for (i in seq_along(sender_cols)) {
-  dims <- c(dims, length(unique_senders[[i]]))
-}
-for (i in seq_along(receiver_cols)) {
-  dims <- c(dims, length(unique_receivers[[i]]))
-}
-dims <- c(dims, length(unique_modes), length(weight_window_axis))
-
-multidim_arr <- array(0, 
-                  dim = dims, 
-                  dimnames = dim_names)
+multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, 0, 0)
 
 multidim_arr["Mentor", "L1", "chat", "weight"] <- 5
 multidim_arr["Mentor", "L1", "resource", "weight"] <- 5
@@ -681,14 +447,9 @@ multidim_arr["Player", "L2", "resource", "window"] <- 360
 
 
 result_new <- accum_multidim(
+    mock_data,
     multidim_arr, 
-    unique_senders = unique_senders, 
-    unique_receivers = unique_receivers,
-    unique_modes = unique_modes,
-    sender_cols = sender_cols,
-    receiver_cols = receiver_cols,
     time_column,
-    mode_column = mode_column,
     codes,
     context_model
 )
@@ -743,41 +504,8 @@ sender_cols <- list("role", "language")
 receiver_cols <- list("role", "handwriting")
 mode_column <- "modality"
 
-unique_list <- get_unique_values(mock_data, sender_cols, receiver_cols, mode_column)
-unique_senders <- unique_list[[1]]
-unique_receivers <-  unique_list[[2]]
-unique_modes <- unique_list[[3]]
-weight_window_axis = c("weight", "window")
+multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, 0, 0)
 
-dim_names <- list()
-for (i in seq_along(sender_cols)) {
-  dim_names[[paste0("sender_", i)]] <- unique_senders[[i]]
-}
-for (i in seq_along(receiver_cols)) {
-  dim_names[[paste0("receiver_", i)]] <- unique_receivers[[i]]
-}
-dim_names[["modes"]] <- unique_modes
-dim_names[["weight_window"]] <- weight_window_axis
-
-dims <- c()
-for (i in seq_along(sender_cols)) {
-  dims <- c(dims, length(unique_senders[[i]]))
-}
-for (i in seq_along(receiver_cols)) {
-  dims <- c(dims, length(unique_receivers[[i]]))
-}
-dims <- c(dims, length(unique_modes), length(weight_window_axis))
-
-multidim_arr <- array(0, 
-                  dim = dims, 
-                  dimnames = dim_names)
-
-function(sender_cols, receiver_cols, modality_cols, df, default_weight, default_window)
-  
-
-  
-
-  
 
 multidim_arr["Player", "L1", "Player", "poor", "chat", "weight"] <- 1
 multidim_arr["Player", "L1", "Player", "poor", "resource", "weight"] <- 1
@@ -847,14 +575,9 @@ multidim_arr["Mentor", "L2", "Mentor", "good", "resource", "window"] <- 360
 
 
 result_new <- accum_multidim(
+    mock_data,
     multidim_arr, 
-    unique_senders = unique_senders, 
-    unique_receivers = unique_receivers,
-    unique_modes = unique_modes,
-    sender_cols = sender_cols,
-    receiver_cols = receiver_cols,
     time_column,
-    mode_column = mode_column,
     codes,
     context_model
 )

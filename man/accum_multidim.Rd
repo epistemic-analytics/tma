@@ -5,17 +5,12 @@
 \title{accum_multidim}
 \usage{
 accum_multidim(
+  df,
   multidim_arr,
-  unique_senders,
-  unique_receivers,
-  unique_modes,
-  sender_cols,
-  receiver_cols,
   time_column,
-  mode_column,
   codes,
   context_model,
-  duration_column = 0,
+  duration_column = list(),
   norm_by = "No",
   decay = decay(simple_window),
   calculate_adj_vectors_using = inner_product_ground_response,
@@ -30,13 +25,7 @@ accum_multidim(
 \item{multidim_arr}{Input multidimensional array. This should be in the format
 [sender, receiver, modality, weight/window] (and will be b/c of how we initialize it above)}
 
-\item{sender_cols}{Sender columns}
-
-\item{receiver_cols}{Receiver columns}
-
 \item{time_column}{Time column in contexts}
-
-\item{mode_column}{Modality column in contexts}
 
 \item{codes}{Codes of interest}
 
@@ -54,6 +43,12 @@ accross all of a unit's utterances; by default, this is colSums}
 \item{summarize_ground_using}{How to combine ground into one vec. By default, this is colSums}
 
 \item{return_ena_set}{Whether or not to return an ENA set. By default, this is ONA}
+
+\item{sender_cols}{Sender columns}
+
+\item{receiver_cols}{Receiver columns}
+
+\item{mode_column}{Modality column in contexts}
 
 \item{normalization}{How to normalize. Can be \ell_2 or NA}
 }
