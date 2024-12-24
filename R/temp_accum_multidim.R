@@ -269,6 +269,7 @@ apply_windows <- function(
     sender_cols,
     receiver_cols,
     time_column,
+    duration_column,
     mode_column,
     i, 
     context, 
@@ -301,10 +302,18 @@ apply_windows <- function(
     m_j = as.vector(unlist(context[j, ..mode_column]))
     
     # Verify t_i + w_{s_j, r_i, m_j} \geq t_j
-    val_to_check <- context[j, ..time_column] + multidim_arr[matrix(c(s_j, r_i, m_j, "window"), 1)]
-    if (val_to_check >= context[i, ..time_column]) {
-      g_vecs[[g_vecs_counter]] <- context[j,]
-      g_vecs_counter = g_vecs_counter + 1 
+    if (length(duration_column) == 0) {
+      val_to_check <- context[j, ..time_column] + multidim_arr[matrix(c(s_j, r_i, m_j, "window"), 1)]
+      if (val_to_check >= context[i, ..time_column]) {
+        g_vecs[[g_vecs_counter]] <- context[j,]
+        g_vecs_counter = g_vecs_counter + 1 
+      }
+    } else {
+      val_to_check <- context[j, ..time_column] + context[j, ..duration_column] + multidim_arr[matrix(c(s_j, r_i, m_j, "window"), 1)]
+      if (val_to_check >= (context[i, ..time_column] + context[j, ..duration_column])) {
+        g_vecs[[g_vecs_counter]] <- context[j,]
+        g_vecs_counter = g_vecs_counter + 1 
+      }
     }
   }
   
@@ -391,14 +400,8 @@ accum_multidim <- function(
     time_column,
     codes, 
     context_model,
-    # Nothing below this line is implemented 
     duration_column = list(), # TODO: implement
     norm_by = "No", # TODO: implement l1 normalization
-    decay = decay(simple_window),
-    calculate_adj_vectors_using = inner_product_ground_response,
-    adj_vec_transform = NA,
-    accumulate_unit_vectors_by = colSums,
-    summarize_ground_using = colSums,
     return_ena_set = FALSE,
     ...
 ) {
@@ -432,7 +435,7 @@ accum_multidim <- function(
       if (r_vec$QEUNIT == unit) {
         # Get all lines *strictly* before this line, which are individual g_vec, and only get those that project
         # far enough
-        g_vecs <- apply_windows(multidim_arr, sender_cols, receiver_cols, time_column, mode_column, 
+        g_vecs <- apply_windows(multidim_arr, sender_cols, receiver_cols, time_column, duration_column, mode_column, 
                                 i, context, codes)
         
         if (length(g_vecs) == 0) {
@@ -477,7 +480,8 @@ accum_multidim <- function(
     colnames(omega_matrix) = codes
     
     # Make into adjacency vector
-    # Just do ONA version. need to keep upper triangle + binarize if using ENA
+    
+    # ONA version
     row_col_combinations <- expand.grid(rownames(omega_matrix), colnames(omega_matrix))
     adj_vector_names <- paste(row_col_combinations[,1], "&", row_col_combinations[,2])
     
