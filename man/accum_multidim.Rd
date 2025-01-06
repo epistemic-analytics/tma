@@ -10,7 +10,7 @@ accum_multidim(
   time_column,
   codes,
   context_model,
-  duration_column = list(),
+  duration_column = "",
   norm_by = "No",
   return_ena_set = FALSE,
   ...
