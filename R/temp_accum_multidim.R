@@ -278,44 +278,86 @@ apply_windows <- function(
   g_vecs <- list()
   g_vecs_counter = 1
   
-  # ground is at j, response is at i
-  r_i = c()
-  for (k in 1:length(receiver_cols)) {
-    current_col <- receiver_cols[[k]]
-    r_i <- c(r_i, pull(context[i, ..current_col]))
-  }
-  
   # first line is response line--since we aren't including response lines, just provide a dummy vec w/ 0s @ codes
-  if (i == 1) { 
-    temp_vec <- context[i,]
+  # if (i == 1) { 
+  if (nrow(context) == 1) { 
+    temp_vec <- context[.N,]
     temp_vec[, codes] <- 0
-    g_vecs[[g_vecs_counter]] <- temp_vec
-    return(g_vecs)
+    # g_vecs[[g_vecs_counter]] <- temp_vec
+    # return(g_vecs)
+    return(temp_vec)
   }
   
-  for (j in seq(1, i-1)) {
-    s_j <- c()
-    for (k in 1:length(sender_cols)) {
-      current_col <- sender_cols[[k]]
-      s_j <- c(s_j, pull(context[j, ..current_col]))
-    }
-    m_j = as.vector(unlist(context[j, ..mode_column]))
-    
-    # Verify t_i + w_{s_j, r_i, m_j} \geq t_j
-    if (duration_column == "") {
-      val_to_check <- context[j, ..time_column] + multidim_arr[matrix(c(s_j, r_i, m_j, "window"), 1)]
-      if (val_to_check >= context[i, ..time_column]) {
-        g_vecs[[g_vecs_counter]] <- context[j,]
-        g_vecs_counter = g_vecs_counter + 1 
-      }
-    } else {
-      val_to_check <- context[j, ..time_column] + context[j, ..duration_column] + multidim_arr[matrix(c(s_j, r_i, m_j, "window"), 1)]
-      if (val_to_check >= (context[i, ..time_column] + context[j, ..duration_column])) {
-        g_vecs[[g_vecs_counter]] <- context[j,]
-        g_vecs_counter = g_vecs_counter + 1 
-      }
-    }
-  }
+  # ground is at j, response is at i
+  # r_i = c()
+  # for (k in 1:length(receiver_cols)) {
+  #   current_col <- receiver_cols[[k]]
+  #   r_i <- c(r_i, context[i,][[current_col]]);
+  # }
+  # r_i <- unlist(context[i, ..receiver_cols]);
+  context_response_row <- context[.N];
+  r_i <- unlist(context_response_row[, ..receiver_cols]);
+  
+  response_row_time_val <- context_response_row[[time_column]];
+  
+  context_ground_rows <- context[QEID != i];
+  # context_sender_cols <- context_ground_rows[, ..sender_cols];
+  # context_mode_col <- context_ground_rows[, ..mode_column];
+  # for (j in seq(1, i-1)) {
+  # for (j in seq(1, nrow(context_ground_rows))) {
+  #   # s_j <- c()
+  #   # for (k in 1:length(sender_cols)) {
+  #   #   current_col <- sender_cols[[k]]
+  #   #   s_j <- c(s_j, context[j,][[current_col]]);
+  #   # }
+  #   s_j <- unlist(context_sender_cols[j, ])
+  #   m_j = as.vector(unlist(context_mode_col[j, ]))
+  #   
+  #   # Verify t_i + w_{s_j, r_i, m_j} \geq t_j
+  #   multidim_arr_val <- multidim_arr[matrix(c(s_j, r_i, m_j, "window"), 1)];
+  #   add_to_gvec <- FALSE;
+  #   
+  #   ground_row_time_val <- context_ground_rows[j, ..time_column];
+  #   if (duration_column == "") {
+  #     val_to_check <- ground_row_time_val + multidim_arr_val;
+  #     add_to_gvec <- (val_to_check >= response_row_time_val);
+  #   } 
+  #   
+  #   else {
+  #     ground_row_duration_val <- context[j, ..duration_column];
+  #     val_to_check <- ground_row_time_val + ground_row_duration_val + multidim_arr_val;
+  #     add_to_gvec <- val_to_check >= (response_row_time_val + ground_row_duration_val);
+  #   }
+  #   
+  #   if(isTRUE(add_to_gvec)) {
+  #     g_vecs[[g_vecs_counter]] <- context[j,]
+  #     g_vecs_counter = g_vecs_counter + 1 
+  #   }
+  # }
+  
+  # g_vecs <- context_ground_rows[,{
+  #   s_j <- unlist(.SD[, ..sender_cols])
+  #   m_j <- .SD[[..mode_column]]
+  #   multidim_arr_val <- multidim_arr[matrix(c(s_j, r_i, m_j, "window"), 1)];
+  #   ground_time <- .SD[[..time_column]]
+  #   if(duration_column == "") {
+  #     val_to_check <- ground_time + multidim_arr_val;
+  #     .SD[val_to_check >= response_row_time_val]
+  #   }
+  #   else {
+  #     ground_row_duration_val <- .SD[[..duration_column]];
+  #     val_to_check <- ground_time + ground_row_duration_val + multidim_arr_val;
+  #     .SD[val_to_check >= (response_row_time_val + ground_row_duration_val)]
+  #   }
+  # }, by = QEID]
+  # 
+  # print(g_vecs)
+  
+  g_vecs <- context_ground_rows[,{
+    sm_mat <- as.matrix(.SD[, c(sender_cols, mode_column), with = FALSE])
+    mult_arr_mat <- cbind(sm_mat[,1:length(sender_cols)], mult_arr_mat, sm_mat[,ncol(sm_mat)], "window")
+    .SD[as.vector(.SD[, ..time_column] + multidim_arr[mult_arr_mat] >= response_row_time_val), ]
+  }]
   
   return(g_vecs)
 }
@@ -338,15 +380,19 @@ apply_weights <- function(
   r_i <- c()
   for (k in 1:length(receiver_cols)) {
     current_col <- receiver_cols[[k]]
-    r_i <- c(r_i, pull(context[i, ..current_col]))
+    r_i <- c(r_i, context[i,][[current_col]]);
   }
-  for (vec in g_vecs) {
-    s_j <- c()
-    for (k in 1:length(sender_cols)) {
-      current_col <- sender_cols[[k]]
-      s_j <- c(s_j, pull(context[vec, ..current_col]))
-    }
-    m_j = as.vector(unlist(vec[, ..mode_column]))
+  # for (vec in g_vecs) {
+  for (vec_i in seq.int(nrow(g_vecs))) {
+    vec <- g_vecs[i,];
+    # s_j <- c()
+    # for (k in 1:length(sender_cols)) {
+    #   current_col <- sender_cols[[k]]
+    #   # s_j <- c(s_j, pull(context[vec, ..current_col]))
+    #   s_j <- c(s_j, context[vec,][[current_col]]);
+    # }
+    s_j <- unlist(vec[, ..sender_cols]);
+    m_j <- unlist(vec[, ..mode_column]);
     
     # ensure we only get codes specified
     unweighted <- as.numeric(unname(c(vec[, ..codes])))  
@@ -403,6 +449,7 @@ accum_multidim <- function(
     duration_column = "", 
     norm_by = "No", # TODO: implement l1 normalization
     return_ena_set = FALSE,
+    units = context_model[["model"]][["unit.labels"]],
     ... # TODO: implement binarization for T/ENA
 ) {
   result <- preprocess(df, multidim_arr)
@@ -415,7 +462,7 @@ accum_multidim <- function(
   # print(multidim_arr)
   
   adj_vectors <- list()
-  units <- context_model[["model"]][["unit.labels"]]
+  # units <- context_model[["model"]][["unit.labels"]]
   for (unit in units) {
     # List to store adjacency vectors for this unit
     adj_vector <- list()
@@ -429,14 +476,23 @@ accum_multidim <- function(
     counting_matrices_counter = 1
     
     # For each context, get unit's lines in that context (r_vec)
-    for (i in seq(1, nrow(context))) { 
-      r_vec = context[i,] 
+    # for (i in seq(1, nrow(context))) { 
+    context_unit_rows <- context[QEUNIT == unit];
+    for (i in seq(1, nrow(context_unit_rows))) { 
+      r_vec = context_unit_rows[i,] 
+      
       # If this response vector isn't our units, skip
-      if (r_vec$QEUNIT == unit) {
+      # if (r_vec$QEUNIT == unit) {
         # Get all lines *strictly* before this line, which are individual g_vec, and only get those that project
         # far enough
-        g_vecs <- apply_windows(multidim_arr, sender_cols, receiver_cols, time_column, duration_column, mode_column, 
-                                i, context, codes)
+        r_vec_qeid <- context_unit_rows$QEID[i];
+        context_before_r_vec <- context[QEID <= r_vec_qeid];
+        
+        g_vecs <- apply_windows(multidim_arr, 
+                                sender_cols, receiver_cols, 
+                                time_column, duration_column, mode_column, 
+                                r_vec_qeid, context_before_r_vec, 
+                                codes);
         
         if (length(g_vecs) == 0) {
           temp <- r_vec
@@ -455,12 +511,14 @@ accum_multidim <- function(
         s_i <- c()
         for (k in 1:length(sender_cols)) {
           current_col <- sender_cols[[k]]
-          s_i <- c(s_i, pull(context[i, ..current_col]))
+          # s_i <- c(s_i, pull(context[i, ..current_col]))
+          s_i <- c(s_i, context[i,][[current_col]]);
         }
         r_i <- c()
         for (k in 1:length(receiver_cols)) {
           current_col <- receiver_cols[[k]]
-          r_i <- c(r_i, pull(context[i, ..current_col]))
+          # r_i <- c(r_i, pull(context[i, ..current_col]))
+          r_i <- c(r_i, context[i,][[current_col]]);
         }
         m_i <- as.vector(unlist(context[i, ..mode_column]))
         w_rr = multidim_arr[matrix(c(s_i, r_i, m_i, "weight"), 1)]
@@ -474,9 +532,8 @@ accum_multidim <- function(
         }
         
         counting_matrices[[counting_matrices_counter]] = counting_matrix
-        
         counting_matrices_counter = counting_matrices_counter + 1
-      }
+      # }
     }
     
     # Sum all counting matrices to get Omega matrix 
@@ -493,7 +550,8 @@ accum_multidim <- function(
                                        match(row_col_combinations[, 2], colnames(omega_matrix)))]
       
       adj_vector <- setNames(adj_vector, adj_vector_names)
-    } else { 
+    }
+    else { 
       upper_indices <- which(upper.tri(omega_matrix, diag = FALSE)) 
       adj_vector <- omega_matrix[upper_indices]
       upper_rows <- rownames(omega_matrix)[row(omega_matrix)[upper_indices]]
@@ -506,7 +564,8 @@ accum_multidim <- function(
     if (norm_by == "l2") {
       l2_adj_vector <- sqrt(sum(adj_vector^2))
       normed_adj_vector <- adj_vector / l2_adj_vector
-    } else {
+    } 
+    else {
       normed_adj_vector <- adj_vector
     }
     
