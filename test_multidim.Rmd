@@ -756,7 +756,6 @@ context_model <- tma:::contexts(
 time_column = "timeStamp"
 ```
 
-
 ```{r}
 # Do we get the correct answer with senders, receivers, modality? 
 source("./R/temp_accum_multidim.R")
