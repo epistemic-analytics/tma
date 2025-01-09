@@ -275,18 +275,8 @@ apply_windows <- function(
     context, 
     codes 
 ) {
-  g_vecs <- list()
-  g_vecs_counter = 1
-  
-  # first line is response line--since we aren't including response lines, just provide a dummy vec w/ 0s @ codes
-  # if (i == 1) { 
-  if (nrow(context) == 1) { 
-    temp_vec <- context[.N,]
-    temp_vec[, codes] <- 0
-    # g_vecs[[g_vecs_counter]] <- temp_vec
-    # return(g_vecs)
-    return(temp_vec)
-  }
+  # g_vecs <- list()
+  # g_vecs_counter = 1
   
   # ground is at j, response is at i
   # r_i = c()
@@ -295,12 +285,7 @@ apply_windows <- function(
   #   r_i <- c(r_i, context[i,][[current_col]]);
   # }
   # r_i <- unlist(context[i, ..receiver_cols]);
-  context_response_row <- context[.N];
-  r_i <- unlist(context_response_row[, ..receiver_cols]);
   
-  response_row_time_val <- context_response_row[[time_column]];
-  
-  context_ground_rows <- context[QEID != i];
   # context_sender_cols <- context_ground_rows[, ..sender_cols];
   # context_mode_col <- context_ground_rows[, ..mode_column];
   # for (j in seq(1, i-1)) {
@@ -353,11 +338,48 @@ apply_windows <- function(
   # 
   # print(g_vecs)
   
+  # first line is response line--since we aren't including response lines, just provide a dummy vec w/ 0s @ codes
+  # if (i == 1) { 
+  if (nrow(context) == 1) { 
+    temp_vec <- context[.N,]
+    temp_vec[, codes] <- 0
+    # g_vecs[[g_vecs_counter]] <- temp_vec
+    # return(g_vecs)
+    print(temp_vec)
+    return(temp_vec)
+  }
+  
+  # get response row; r_i is receiver values 
+  context_response_row <- context[.N]; 
+  r_i <- unlist(context_response_row[, ..receiver_cols]);
+  
+  response_row_time_val <- context_response_row[[time_column]]; # get timestamp in response row 
+  
+  context_ground_rows <- context[QEID != i]; # get potential ground rows 
+  
   g_vecs <- context_ground_rows[,{
-    sm_mat <- as.matrix(.SD[, c(sender_cols, mode_column), with = FALSE])
-    mult_arr_mat <- cbind(sm_mat[,1:length(sender_cols)], mult_arr_mat, sm_mat[,ncol(sm_mat)], "window")
-    .SD[as.vector(.SD[, ..time_column] + multidim_arr[mult_arr_mat] >= response_row_time_val), ]
+    # matrix with sender and modality values for all relevant ground rows
+    sm_mat <- as.matrix(.SD[, c(unlist(sender_cols), mode_column), with = FALSE]) 
+
+    # initialize receivers col 
+    receivers <- as.matrix(rep(r_i, nrow(sm_mat)))
+    
+    # get matrix used to query multidim arr 
+    mult_arr_mat <- cbind(sm_mat[,1:length(sender_cols)], receivers, sm_mat[,ncol(sm_mat)], "window")
+    
+   #  print(multidim_arr[mult_arr_mat])
+   #  print(.SD[[time_column]] + multidim_arr[mult_arr_mat])
+    # print(response_row_time_val)
+    
+   #  print(as.vector((.SD[[time_column]] + multidim_arr[mult_arr_mat]) >= response_row_time_val))
+    
+    # ensure vectors project forward in time far enough that they are kept in the ground 
+    .SD[as.vector((.SD[[time_column]] + multidim_arr[mult_arr_mat]) >= response_row_time_val), ]
+
+    # print(.SD[as.vector((.SD[[time_column]] + multidim_arr[mult_arr_mat]) >= response_row_time_val), ])
+   
   }]
+  
   
   return(g_vecs)
 }
@@ -374,34 +396,56 @@ apply_weights <- function(
     context,
     g_vecs 
 ) {
-  g_w_vecs <- list()
-  g_w_vecs_counter = 1 
-  # ground is at j, response is at i
-  r_i <- c()
-  for (k in 1:length(receiver_cols)) {
-    current_col <- receiver_cols[[k]]
-    r_i <- c(r_i, context[i,][[current_col]]);
-  }
+  # we have ground vectors w/ metadata
+  # 
+  
+  # print(g_vecs)
+  
+  
+  # g_w_vecs <- list()
+  # g_w_vecs_counter = 1 
+  # # ground is at j, response is at i
+  # r_i <- c()
+  # for (k in 1:length(receiver_cols)) {
+  #   current_col <- receiver_cols[[k]]
+  #   r_i <- c(r_i, context[i,][[current_col]]);
+  # }
   # for (vec in g_vecs) {
-  for (vec_i in seq.int(nrow(g_vecs))) {
-    vec <- g_vecs[i,];
-    # s_j <- c()
-    # for (k in 1:length(sender_cols)) {
-    #   current_col <- sender_cols[[k]]
-    #   # s_j <- c(s_j, pull(context[vec, ..current_col]))
-    #   s_j <- c(s_j, context[vec,][[current_col]]);
-    # }
-    s_j <- unlist(vec[, ..sender_cols]);
-    m_j <- unlist(vec[, ..mode_column]);
-    
-    # ensure we only get codes specified
-    unweighted <- as.numeric(unname(c(vec[, ..codes])))  
-    
-    g_w_vec = multidim_arr[matrix(c(s_j, r_i, m_j, "weight"), 1)] * unweighted
-    
-    g_w_vecs[[g_w_vecs_counter]] <- g_w_vec
-    g_w_vecs_counter = g_w_vecs_counter + 1 
-  }
+  # # for (vec_i in seq.int(nrow(g_vecs))) {
+  #   #   vec <- g_vecs[i,];
+  #   print(vec)
+  #   s_j <- c()
+  #   for (k in 1:length(sender_cols)) {
+  #     current_col <- sender_cols[[k]]
+  #     # s_j <- c(s_j, pull(context[vec, ..current_col]))
+  #     s_j <- c(s_j, context[vec,][[current_col]]);
+  #   }
+  #   # s_j <- unlist(vec[, ..sender_cols]);
+  #   m_j <- unlist(vec[, ..mode_column]);
+  #   
+  #   # ensure we only get codes specified
+  #   unweighted <- as.numeric(unname(c(vec[, ..codes])))  
+  #   
+  #   g_w_vec = multidim_arr[matrix(c(s_j, r_i, m_j, "weight"), 1)] * unweighted
+  #   
+  #   g_w_vecs[[g_w_vecs_counter]] <- g_w_vec
+  #   g_w_vecs_counter = g_w_vecs_counter + 1 
+  # }
+  
+  # get response row and senders
+  context_response_row <- context[.N]; 
+  r_i <- unlist(context_response_row[, ..receiver_cols]);
+
+  g_w_vecs <- g_vecs[,{
+    # get senders and modes in g_vecs
+    sm_mat <- as.matrix(.SD[, c(unlist(sender_cols), mode_column), with = FALSE]) 
+    # initialize receivers col 
+    receivers <- as.matrix(rep(r_i, nrow(sm_mat)))
+    # get matrix used to query multidim arr 
+    mult_arr_mat <- cbind(sm_mat[,1:length(sender_cols)], receivers, sm_mat[,ncol(sm_mat)], "weight")
+    # apply weights
+    .SD[,c(get("codes"))] * multidim_arr[mult_arr_mat]
+  }]
   
   return(g_w_vecs)
 }
@@ -505,7 +549,7 @@ accum_multidim <- function(
                                   g_vecs) 
         
         # Sum all g^w_vec together as g^{ws}_vec
-        g_ws_vec <- Reduce("+", g_w_vecs)
+        g_ws_vec <- colSums(g_w_vecs)
         
         # Compute counting matrix = g^{ws}_vec r_vec^T + 0.5w_{resp}^{srm} * f_diag(r_vec r_vec^T)
         s_i <- c()
@@ -533,7 +577,6 @@ accum_multidim <- function(
         
         counting_matrices[[counting_matrices_counter]] = counting_matrix
         counting_matrices_counter = counting_matrices_counter + 1
-      # }
     }
     
     # Sum all counting matrices to get Omega matrix 

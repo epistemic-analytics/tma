@@ -445,6 +445,10 @@ multidim_arr["Player", "L1", "resource", "window"] <- 200
 multidim_arr["Player", "L2", "chat", "window"] <- 150
 multidim_arr["Player", "L2", "resource", "window"] <- 360
 
+```
+
+```{r}
+
 
 result_new <- accum_multidim(
     mock_data,
@@ -788,12 +792,16 @@ multidim_arr["Player", "L2", "resource", "window"] <- 360
 
 
 result_new <- accum_multidim(
-    mock_data,
+    df,
     multidim_arr, 
     time_column,
     codes,
     context_model
 )
+
+```
+
+```{r}
 
 result_old <- tma:::accumulate_contexts (
     x = context_model,
