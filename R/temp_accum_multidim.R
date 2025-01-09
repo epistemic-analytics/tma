@@ -345,13 +345,27 @@ apply_windows <- function(
     temp_vec[, codes] <- 0
     # g_vecs[[g_vecs_counter]] <- temp_vec
     # return(g_vecs)
-    print(temp_vec)
+    # print(temp_vec)
     return(temp_vec)
   }
   
   # get response row; r_i is receiver values 
   context_response_row <- context[.N]; 
+  receiver_cols <- as.character(as.vector(receiver_cols))
   r_i <- unlist(context_response_row[, ..receiver_cols]);
+  
+  # if (length(receiver_cols) > 1) {
+  #   r_i <- unlist(context_response_row[, ..receiver_cols]);
+  # } else {
+  #   r_i <- unlist(context_response_row[[receiver_cols]]);
+  # }
+
+  # # r_i <- unlist(context_response_row[, ..receiver_cols]);
+  # r_i <- c()
+  # for (k in 1:length(receiver_cols)) {
+  #   current_col <- receiver_cols[[k]]
+  #   r_i <- c(r_i, context[i,][[current_col]]);
+  # }
   
   response_row_time_val <- context_response_row[[time_column]]; # get timestamp in response row 
   
@@ -361,26 +375,28 @@ apply_windows <- function(
     # matrix with sender and modality values for all relevant ground rows
     sm_mat <- as.matrix(.SD[, c(unlist(sender_cols), mode_column), with = FALSE]) 
 
-    # initialize receivers col 
-    receivers <- as.matrix(rep(r_i, nrow(sm_mat)))
+    # initialize receivers cols of the querying matrix
+    receivers <- list()
+    for (k in 1:length(receiver_cols)) { 
+      receivers[[k]] <- as.matrix(rep(r_i[[k]], nrow(sm_mat)))
+    }
+    
+    receivers <- do.call(cbind, receivers)
     
     # get matrix used to query multidim arr 
-    mult_arr_mat <- cbind(sm_mat[,1:length(sender_cols)], receivers, sm_mat[,ncol(sm_mat)], "window")
-    
-   #  print(multidim_arr[mult_arr_mat])
-   #  print(.SD[[time_column]] + multidim_arr[mult_arr_mat])
-    # print(response_row_time_val)
-    
-   #  print(as.vector((.SD[[time_column]] + multidim_arr[mult_arr_mat]) >= response_row_time_val))
+    if (nrow(sm_mat) == 1) { 
+      mult_arr_mat <- cbind(t(as.matrix(sm_mat[,1:length(sender_cols)])), receivers, sm_mat[,ncol(sm_mat)], "window")
+    } else {
+      mult_arr_mat <- cbind(sm_mat[,1:length(sender_cols)], receivers, sm_mat[,ncol(sm_mat)], "window")
+    }
     
     # ensure vectors project forward in time far enough that they are kept in the ground 
     .SD[as.vector((.SD[[time_column]] + multidim_arr[mult_arr_mat]) >= response_row_time_val), ]
 
-    # print(.SD[as.vector((.SD[[time_column]] + multidim_arr[mult_arr_mat]) >= response_row_time_val), ])
    
   }]
   
-  
+  # print(g_vecs)
   return(g_vecs)
 }
 
@@ -434,15 +450,28 @@ apply_weights <- function(
   
   # get response row and senders
   context_response_row <- context[.N]; 
+  receiver_cols <- as.character(as.vector(receiver_cols))
   r_i <- unlist(context_response_row[, ..receiver_cols]);
 
   g_w_vecs <- g_vecs[,{
     # get senders and modes in g_vecs
     sm_mat <- as.matrix(.SD[, c(unlist(sender_cols), mode_column), with = FALSE]) 
-    # initialize receivers col 
-    receivers <- as.matrix(rep(r_i, nrow(sm_mat)))
+    
+    # initialize receivers cols of the querying matrix
+    receivers <- list()
+    for (k in 1:length(receiver_cols)) { 
+      receivers[[k]] <- as.matrix(rep(r_i[[k]], nrow(sm_mat)))
+    }
+    
+    receivers <- do.call(cbind, receivers)
+    
     # get matrix used to query multidim arr 
-    mult_arr_mat <- cbind(sm_mat[,1:length(sender_cols)], receivers, sm_mat[,ncol(sm_mat)], "weight")
+    if (nrow(sm_mat) == 1) { 
+      mult_arr_mat <- cbind(t(as.matrix(sm_mat[,1:length(sender_cols)])), receivers, sm_mat[,ncol(sm_mat)], "weight")
+    } else {
+      mult_arr_mat <- cbind(sm_mat[,1:length(sender_cols)], receivers, sm_mat[,ncol(sm_mat)], "weight")
+    }
+    
     # apply weights
     .SD[,c(get("codes"))] * multidim_arr[mult_arr_mat]
   }]
