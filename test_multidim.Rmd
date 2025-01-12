@@ -791,13 +791,13 @@ multidim_arr["Player", "L2", "chat", "window"] <- 150
 multidim_arr["Player", "L2", "resource", "window"] <- 360
 
 
-result_new <- suppressWarnings({accum_multidim(
+result_new <- accum_multidim(
     df,
     multidim_arr, 
     time_column,
     codes,
     context_model
-)})
+)
 # print(result_new)
 ```
 

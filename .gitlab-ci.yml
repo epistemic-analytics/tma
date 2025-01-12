@@ -2,7 +2,7 @@ stages:
   - setup
   - build
   - check
-  - test 
+  - test
   - publish
   - release
   - tag
@@ -23,15 +23,16 @@ include:
   - project: 'cran-ci/ci-templates'
     ref: main
     file: '/templates/cran/CRAN.gitlab-ci.yml'
-    
+
 test:
   stage: test
   script:
-    - R -e 'devtools::install_deps(dependencies = TRUE)'
-    - R -e 'devtools::test()'
+    - R -e 'devtools::install_deps(dependencies = TRUE)'  # Install dependencies
+    - R -e 'devtools::test()'  # Run tests
+    - ls -R tests  # List files to ensure output exists
   artifacts:
     when: always
     paths:
-      - tests/testthat.Rout
+      - tests/testthat.Rout  # Path to the output file
     reports:
-      junit: tests/testthat.Rout
+      junit: tests/testthat.Rout  # Path to the JUnit report
