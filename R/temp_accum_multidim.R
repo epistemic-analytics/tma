@@ -383,6 +383,8 @@ apply_windows <- function(
     
     receivers <- do.call(cbind, receivers)
     
+    print(sprintf("We are at %d", i))
+    
     # get matrix used to query multidim arr 
     if (nrow(sm_mat) == 1) { 
       mult_arr_mat <- cbind(t(as.matrix(sm_mat[,1:length(sender_cols)])), receivers, sm_mat[,ncol(sm_mat)], "window")
@@ -391,12 +393,24 @@ apply_windows <- function(
     }
     
     # ensure vectors project forward in time far enough that they are kept in the ground 
+    
+    # all lengths match
+    # print(length(.SD[[time_column]])) 
+    # print(length(multidim_arr[mult_arr_mat])) 
+    # 
+    # print(length(as.vector((.SD[[time_column]] + multidim_arr[mult_arr_mat]) >= response_row_time_val)))
+    # print(nrow(.SD))
+    
+    # multidim_arr[mult_arr_mat] works as expected
+    # print(multidim_arr[mult_arr_mat])
+    
     .SD[as.vector((.SD[[time_column]] + multidim_arr[mult_arr_mat]) >= response_row_time_val), ]
-
    
   }]
   
-  # print(g_vecs)
+ 
+  
+  print(as.matrix(g_vecs))
   return(g_vecs)
 }
 
@@ -565,12 +579,14 @@ accum_multidim <- function(
                                 sender_cols, receiver_cols, 
                                 time_column, duration_column, mode_column, 
                                 r_vec_qeid, context_before_r_vec, 
-                                codes);
-        
-        if (length(g_vecs) == 0) {
-          temp <- r_vec
-          temp[, codes] <- 0
-          g_vecs[[1]] <- temp
+                                codes)
+
+        # ensure there are zero connections if g_vecs is empty
+        if (nrow(g_vecs) == 0) {
+          print("here")
+          temp <- copy(r_vec)
+          temp[, (codes) := 0]
+          g_vecs <- data.table(temp)
         }
         
         # Query multidimensional array to reweight g^w_vec = w^{srm} * g_vec
@@ -598,8 +614,12 @@ accum_multidim <- function(
         r_vec <- as.numeric(unname(c(r_vec[, ..codes])))
         g_ws_vec <- as.numeric(g_ws_vec)
         
+        print(as.matrix(g_ws_vec))
+        print(as.matrix(r_vec)) # why is this zeroed out, just because g_ws_vec is empty?? 
+        
         if (return_ena_set == FALSE) { # ONA 
           counting_matrix = (g_ws_vec %*% t(r_vec)) + 0.5 * w_rr * f_diag(r_vec %*% t(r_vec))
+          print(counting_matrix)
         } else { # ENA (w_rr * rr^T + (qr^T + rq^T))
           counting_matrix = w_rr * (r_vec %*% t(r_vec)) + (g_ws_vec %*% t(r_vec) + r_vec %*% t(g_ws_vec)) 
         }
