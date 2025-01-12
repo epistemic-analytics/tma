@@ -31,6 +31,7 @@ before_script:
 test:
   stage: test
   script:
+    - R -e 'install.packages("devtools")'
     - R -e 'devtools::install_deps(dependencies = TRUE)'  # Install dependencies
     - R -e 'devtools::test()'  # Run tests
     - ls -R tests  # List files to ensure output exists
