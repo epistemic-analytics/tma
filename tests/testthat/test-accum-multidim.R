@@ -742,7 +742,7 @@ test_that("senders, receivers, modality", {
   
   testthat::expect_true(all(user2_old == user2_new))
   
-  user3_old <- as.numeric(unname(as.vector(result_old[3,3:length(colnames(result_old))])))
+  user3_old <- as.numeric(unname(as.vector(result_old[3,2:length(colnames(result_old))])))
   user3_new <- as.numeric(unname(as.vector(df["User3::FirstHalf", ])))
   
   testthat::expect_true(all(user3_old == user3_new))

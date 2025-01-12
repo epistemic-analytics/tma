@@ -314,8 +314,6 @@ apply_windows <- function(
       mult_arr_mat <- cbind(sm_mat[,1:length(sender_cols)], receivers, sm_mat[,ncol(sm_mat)], "window")
     }
     
-    print(mult_arr_mat)
-    
     # ensure vectors project forward in time far enough that they are kept in the ground 
     .SD[as.vector((.SD[[time_column]] + multidim_arr[mult_arr_mat]) >= response_row_time_val), ]
    
@@ -342,8 +340,6 @@ apply_weights <- function(
   receiver_cols <- as.character(as.vector(receiver_cols))
   r_i <- unlist(context_response_row[, ..receiver_cols]);
   
-  print(r_i)
-  
   # get weighting vector
   sm_mat <- as.matrix(g_vecs[, c(unlist(sender_cols), mode_column), with = FALSE]) 
   receivers <- list()
@@ -358,7 +354,6 @@ apply_weights <- function(
     mult_arr_mat <- cbind(sm_mat[,1:length(sender_cols)], receivers, sm_mat[,ncol(sm_mat)], "weight")
   }
   weight_vec <-  multidim_arr[mult_arr_mat]
-  print(mult_arr_mat)
   
   # apply to all g_vecs
   g_w_vecs <- as.matrix(g_vecs[,..codes]) * weight_vec
@@ -478,16 +473,8 @@ accum_multidim <- function(
       r_vec <- as.numeric(unname(c(r_vec[, ..codes])))
       g_ws_vec <- as.numeric(g_ws_vec)
       
-      print(sprintf("We are at QEID: %d", r_vec_qeid))
-     
-      print(g_ws_vec)
-      print(r_vec)
-      
       if (return_ena_set == FALSE) { # ONA 
         counting_matrix = (g_ws_vec %*% t(r_vec)) + 0.5 * w_rr * f_diag(r_vec %*% t(r_vec))
-        
-        print(counting_matrix)
-        
       } else { # ENA (w_rr * rr^T + (qr^T + rq^T))
         counting_matrix = w_rr * (r_vec %*% t(r_vec)) + (g_ws_vec %*% t(r_vec) + r_vec %*% t(g_ws_vec)) 
       }
