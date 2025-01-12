@@ -24,6 +24,13 @@ get_unique_values <- function(df, sender_cols, receiver_cols, mode_column) {
 
 
 # Function to generate multidim arr
+#' @param sender_cols Sender columns
+#' @param receiver_cols Receiver columns
+#' @param mode_column Mode column
+#' @param default_window Default window
+#' @param default_weight Default weight
+#' @return A multidim array with [S, R, M, weight/window], with NO standins
+#'@export
 make_multidim_arr <- function(df, 
                   sender_cols, 
                   receiver_cols, 
@@ -78,8 +85,6 @@ make_multidim_arr <- function(df,
   attr(multidim_arr, "default_window") <- default_window
   attr(multidim_arr, "default_weight") <- default_weight
   
-  # print(multidim_arr)
-  
   ## Ensure default window and default weight in multidim_arr 
   
   combinations <- expand.grid(
@@ -103,9 +108,6 @@ make_multidim_arr <- function(df,
   
   # remove NAs
   combinations <- unique(combinations[rowSums(is.na(combinations)) < ncol(combinations), ])
-  
-  # print(combinations)
-
   
   for (i in seq_len(nrow(combinations))) {
     sender <- combinations$senders[i]
@@ -312,6 +314,8 @@ apply_windows <- function(
       mult_arr_mat <- cbind(sm_mat[,1:length(sender_cols)], receivers, sm_mat[,ncol(sm_mat)], "window")
     }
     
+    print(mult_arr_mat)
+    
     # ensure vectors project forward in time far enough that they are kept in the ground 
     .SD[as.vector((.SD[[time_column]] + multidim_arr[mult_arr_mat]) >= response_row_time_val), ]
    
@@ -338,6 +342,8 @@ apply_weights <- function(
   receiver_cols <- as.character(as.vector(receiver_cols))
   r_i <- unlist(context_response_row[, ..receiver_cols]);
   
+  print(r_i)
+  
   # get weighting vector
   sm_mat <- as.matrix(g_vecs[, c(unlist(sender_cols), mode_column), with = FALSE]) 
   receivers <- list()
@@ -345,15 +351,17 @@ apply_weights <- function(
     receivers[[k]] <- as.matrix(rep(r_i[[k]], nrow(sm_mat)))
   }
   receivers <- do.call(cbind, receivers)
+  
   if (nrow(sm_mat) == 1) { 
-    mult_arr_mat <- cbind(t(as.matrix(sm_mat[,1:length(sender_cols)])), receivers, sm_mat[,ncol(sm_mat)], "weight")
+    mult_arr_mat <- cbind(t(as.matrix(sm_mat[,1:length(sender_cols)])), receivers, sm_mat[, ncol(sm_mat)], "weight")
   } else {
     mult_arr_mat <- cbind(sm_mat[,1:length(sender_cols)], receivers, sm_mat[,ncol(sm_mat)], "weight")
   }
   weight_vec <-  multidim_arr[mult_arr_mat]
+  print(mult_arr_mat)
   
   # apply to all g_vecs
-  g_w_vecs <- as.matrix(g_vecs[,..codes]) * matrix(weight_vec, nrow = nrow(g_vecs[, ..codes]), ncol = ncol(g_vecs[, ..codes]), byrow = TRUE)
+  g_w_vecs <- as.matrix(g_vecs[,..codes]) * weight_vec
   
   return(g_w_vecs)
 }
@@ -365,7 +373,6 @@ f_diag <- function(
   if (!is.matrix(mat) || nrow(mat) != ncol(mat)) {
     stop("Input must be a square matrix.")
   }
-  
   
   diag(mat) <- 0
   return(mat)
@@ -411,8 +418,6 @@ accum_multidim <- function(
   receiver_cols <- result$receiver_cols
   mode_column <- result$mode_column
   
-  # print(multidim_arr)
-  
   adj_vectors <- list()
   # units <- context_model[["model"]][["unit.labels"]]
   for (unit in units) {
@@ -452,7 +457,7 @@ accum_multidim <- function(
       }
       
       # Query multidimensional array to reweight g^w_vec = w^{srm} * g_vec
-      g_w_vecs <- apply_weights(multidim_arr, sender_cols, receiver_cols, mode_column, codes, context, g_vecs) 
+      g_w_vecs <- apply_weights(multidim_arr, sender_cols, receiver_cols, mode_column, codes, context_before_r_vec, g_vecs) 
       
       # Sum all g^w_vec together as g^{ws}_vec
       g_ws_vec <- colSums(g_w_vecs)
@@ -473,9 +478,16 @@ accum_multidim <- function(
       r_vec <- as.numeric(unname(c(r_vec[, ..codes])))
       g_ws_vec <- as.numeric(g_ws_vec)
       
+      print(sprintf("We are at QEID: %d", r_vec_qeid))
+     
+      print(g_ws_vec)
+      print(r_vec)
+      
       if (return_ena_set == FALSE) { # ONA 
         counting_matrix = (g_ws_vec %*% t(r_vec)) + 0.5 * w_rr * f_diag(r_vec %*% t(r_vec))
+        
         print(counting_matrix)
+        
       } else { # ENA (w_rr * rr^T + (qr^T + rq^T))
         counting_matrix = w_rr * (r_vec %*% t(r_vec)) + (g_ws_vec %*% t(r_vec) + r_vec %*% t(g_ws_vec)) 
       }
