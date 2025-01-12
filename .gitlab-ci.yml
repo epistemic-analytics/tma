@@ -24,6 +24,10 @@ include:
     ref: main
     file: '/templates/cran/CRAN.gitlab-ci.yml'
 
+before_script:
+  - apt-get update -y
+  - apt-get install -y r-base  # Install R in the ruby image
+  
 test:
   stage: test
   script:
