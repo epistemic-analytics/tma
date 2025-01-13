@@ -1,5 +1,9 @@
 # Pull unique sender, receiver, and modality values from a dataframe
-get_unique_values <- function(df, sender_cols, receiver_cols, mode_column) {
+get_unique_values <- function(
+  df, 
+  sender_cols, receiver_cols, 
+  mode_column
+) {
   # Extract unique values for each sender column
   unique_senders <- lapply(sender_cols, function(col) unique(df[[col]]))
   names(unique_senders) <- sender_cols
@@ -15,11 +19,13 @@ get_unique_values <- function(df, sender_cols, receiver_cols, mode_column) {
     unique_modes <- unique(df[[mode_column]])
   }
   
-  return(list(
+  ret_list <- list(
     unique_senders = unique_senders,
     unique_receivers = unique_receivers,
     unique_modes = unique_modes
-  ))
+  )
+  
+  return(ret_list);
 }
 
 
@@ -39,12 +45,15 @@ make_multidim_arr <- function(df,
                   default_weight) {
   
   unique_list = get_unique_values(df, sender_cols, receiver_cols, mode_column)
-  weight_window_axis = c("weight", "window")
+  weight_window_axis <- c("weight", "window");
   
   # Pull out unique senders, receivers, and modes from unique_list
   unique_senders <- unique_list$unique_senders
-  unique_receivers <- unique_list$unique_receivers
-  unique_modes <- unique_list$unique_modes
+  unique_receivers <- unique_list$unique_receivers;
+  unique_modes <- if(is.factor(unique_list$unique_modes))
+      as.numeric(unique_list$unique_modes)
+    else unique_list$unique_modes
+  ;
   
   # Set dimension indices to unique values
   dim_names <- list()
@@ -61,71 +70,75 @@ make_multidim_arr <- function(df,
   
   # Set dims accordingly s.t. our array is [S, R, M, weight/window]
   dims <- c()
-  for (i in seq_along(sender_cols)) {
-    dims <- c(dims, length(unique_senders[[i]]))
-  }
-  for (i in seq_along(receiver_cols)) {
-    dims <- c(dims, length(unique_receivers[[i]]))
-  }
+  # for (i in seq_along(sender_cols)) {
+  #   dims <- c(dims, length(unique_senders[[i]]))
+  # }
+  # for (i in seq_along(receiver_cols)) {
+  #   dims <- c(dims, length(unique_receivers[[i]]))
+  # }
+  dims <- c(sapply(unique_senders, length), sapply(unique_receivers, length))
+  
   if (length(unique_modes > 0)) { 
-    dims <- c(dims, length(unique_modes), length(weight_window_axis))
-  } else {
-    dims <- c(dims, length(weight_window_axis))
+    dims <- c(dims, length(unique_modes))
   }
   
+  dims <- c(dims, length(weight_window_axis))
 
   # Init multidimensional array; include sender, receiver, mode columns; default weight; default window as attributes 
-  multidim_arr <- array(0, 
-                        dim = dims, 
-                        dimnames = dim_names)
-  
+  # multidim_arr <- array(0, dim = dims, dimnames = dim_names)
+  multidim_arr <- array(
+    matrix(c(default_weight, default_window), byrow=T, ncol = 2, nrow = 2), 
+    dim = dims, dimnames = dim_names
+  );
   attr(multidim_arr, "sender_cols") <- sender_cols
   attr(multidim_arr, "receiver_cols") <- receiver_cols
   attr(multidim_arr, "mode_column") <- mode_column
   attr(multidim_arr, "default_window") <- default_window
   attr(multidim_arr, "default_weight") <- default_weight
   
-  ## Ensure default window and default weight in multidim_arr 
+  # print(multidim_arr)
   
-  combinations <- expand.grid(
-    senders = if (length(unique_senders) > 0) {
-      do.call(paste, c(expand.grid(unique_senders), sep = "_"))
-    } else {
-      "None"  # Placeholder for empty senders
-    },
-    receivers = if (length(unique_receivers) > 0) {
-      do.call(paste, c(expand.grid(unique_receivers), sep = "_"))
-    } else {
-      "None"  # Placeholder for empty receivers
-    },
-    modes = if (length(unique_modes) > 0) { unique_modes 
-    } else { 
-       "None" # Placeholder for empty modes 
-    },
-    stringsAsFactors = FALSE
-  )
-  
-  
-  # remove NAs
-  combinations <- unique(combinations[rowSums(is.na(combinations)) < ncol(combinations), ])
-  
-  for (i in seq_len(nrow(combinations))) {
-    sender <- combinations$senders[i]
-    receiver <- combinations$receivers[i]
-    modality <- combinations$modes[i]
-    
-    sender_parts <- if (sender == "None") character(0) else strsplit(sender, "_")[[1]]
-    receiver_parts <- if (receiver == "None") character(0) else strsplit(receiver, "_")[[1]]
-    modality_parts <- if (modality == "None") character(0) else modality
-    index_list <- c(sender_parts, receiver_parts, modality_parts)
-
-    weight_new_index_list <- c(index_list, "weight")
-    window_new_index_list <- c(index_list, "window")
-
-    multidim_arr[matrix(as.vector(weight_new_index_list), 1)] <- default_weight
-    multidim_arr[matrix(as.vector(window_new_index_list), 1)] <- default_window
-  }
-  
+  # ## Ensure default window and default weight in multidim_arr 
+  # combinations <- expand.grid(
+  #   senders = if (length(unique_senders) > 0) {
+  #     do.call(paste, c(expand.grid(unique_senders), sep = "_"))
+  #   } else {
+  #     "None"  # Placeholder for empty senders
+  #   },
+  #   receivers = if (length(unique_receivers) > 0) {
+  #     do.call(paste, c(expand.grid(unique_receivers), sep = "_"))
+  #   } else {
+  #     "None"  # Placeholder for empty receivers
+  #   },
+  #   modes = if (length(unique_modes) > 0) { 
+  #      unique_modes
+  #   } else { 
+  #      "None" # Placeholder for empty modes 
+  #   },
+  #   stringsAsFactors = FALSE
+  # )
+  # 
+  # 
+  # # remove NAs
+  # combinations <- unique(combinations[rowSums(is.na(combinations)) < ncol(combinations), ])
+  # 
+  # for (i in seq_len(nrow(combinations))) {
+  #   sender <- combinations$senders[i]
+  #   receiver <- combinations$receivers[i]
+  #   modality <- combinations$modes[i]
+  #   
+  #   sender_parts <- if (sender == "None") character(0) else strsplit(sender, "_")[[1]]
+  #   receiver_parts <- if (receiver == "None") character(0) else strsplit(receiver, "_")[[1]]
+  #   modality_parts <- if (modality == "None") character(0) else modality
+  #   index_list <- c(sender_parts, receiver_parts, modality_parts)
+  # 
+  #   weight_new_index_list <- c(index_list, "weight")
+  #   window_new_index_list <- c(index_list, "window")
+  # 
+  #   multidim_arr[matrix(as.vector(weight_new_index_list), 1)] <- default_weight
+  #   multidim_arr[matrix(as.vector(window_new_index_list), 1)] <- default_window
+  # }
+  # 
   return(multidim_arr)
 }
 
@@ -304,18 +317,18 @@ apply_windows <- function(
     for (k in 1:length(receiver_cols)) { 
       receivers[[k]] <- as.matrix(rep(r_i[[k]], nrow(sm_mat)))
     }
-    
     receivers <- do.call(cbind, receivers)
     
     # get matrix used to query multidim arr 
-    if (nrow(sm_mat) == 1) { 
+    if (nrow(sm_mat) == 1) {
       mult_arr_mat <- cbind(t(as.matrix(sm_mat[,1:length(sender_cols)])), receivers, sm_mat[,ncol(sm_mat)], "window")
     } else {
       mult_arr_mat <- cbind(sm_mat[,1:length(sender_cols)], receivers, sm_mat[,ncol(sm_mat)], "window")
     }
     
     # ensure vectors project forward in time far enough that they are kept in the ground 
-    .SD[as.vector((.SD[[time_column]] + multidim_arr[mult_arr_mat]) >= response_row_time_val), ]
+    .SD[as.vector((.SD[[time_column]] + as.numeric(multidim_arr[mult_arr_mat])) >= response_row_time_val), ]
+
    
   }]
   
@@ -519,7 +532,47 @@ accum_multidim <- function(
     # Save unit's adjacency vec
     adj_vectors[[unit]] <- normed_adj_vector
   }
+
+  context_model$rotation <- structure(list(
+    codes = codes,
+    adjacency.key = structure(
+      sapply(adj_vector_names, function(x) strsplit(x, " & ")[[1]], simplify = TRUE),
+      dimnames = list( NULL, adj_vector_names)
+    )
+  ), class = c("ena.rotation.set", "list"));
   
+  
+  meta_cols <- context_model$`_function.params`$units.by;
+  connection_counts <- data.table::rbindlist(lapply(names(context_model$model$contexts), function(ctx) {
+    ctx_model <- context_model$model$contexts[[ctx]]
+    ctx_unit <- attr(ctx_model, "tma.unit")
+    ctx_adj <- adj_vectors[[ctx]];
+    ctx_adj_dt <- as.data.table(matrix(ctx_adj, byrow = TRUE, nrow = 1, dimnames = list(NULL, adj_vector_names)))
+  }));
+  connection_counts <- connection_counts[, lapply(.SD, reclass, "ena.co.occurrence"), .SDcols = adj_vector_names];
+  connection_counts$QEUNIT <- context_model$model$unit.labels;
+  connection_counts <- cbind(connection_counts, data.table::rbindlist(lapply(context_model$model$contexts, attr, "tma.unit")))
+  
+  for(jj in c("QEUNIT", meta_cols)) {
+    data.table::set(connection_counts, j = jj, value = reclass(connection_counts[[jj]], "ena.metadata"));
+  }
+  # data.table::set(connection_counts, j = "QEUNIT", value = reclass(connection_counts$QEUNIT, "ena.metadata"));
+  
+  #data.table::rbindlist(lapply(context_model$model$contexts, attr, "tma.unit"));
+  
+  data.table::setcolorder(connection_counts, c("QEUNIT", meta_cols, adj_vector_names));
+  
+  context_model$connection.counts <- connection_counts;
+  
+  class(context_model$connection.counts) <- c("ena.connections", "ena.matrix", "data.table", "data.frame");
+  # class(context_model$meta.data) = c("ena.matrix", class(context_model$meta.data));
+  
+  context_model$model$row.connection.counts <- structure(
+    data.table::copy(context_model$connection.counts),
+    class = c("row.connections", "ena.matrix", "data.table", "data.frame")
+  );
+  
+    
   # Return accumulation (adjacency vecs for all units)
-  return(adj_vectors)
+  return(context_model)
 }
