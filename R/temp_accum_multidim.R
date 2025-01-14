@@ -366,7 +366,7 @@ apply_weights <- function(
   } else {
     mult_arr_mat <- cbind(sm_mat[,1:length(sender_cols)], receivers, sm_mat[,ncol(sm_mat)], "weight")
   }
-  weight_vec <-  multidim_arr[mult_arr_mat]
+  weight_vec <-  as.numeric(multidim_arr[mult_arr_mat])
   
   # apply to all g_vecs
   g_w_vecs <- as.matrix(g_vecs[,..codes]) * weight_vec
@@ -481,7 +481,7 @@ accum_multidim <- function(
       r_response <- unlist(r_vec[, ..receiver_cols]);
       m_response <- unlist(r_vec[, ..mode_column]);
     
-      w_rr = multidim_arr[matrix(c(s_response, r_response, m_response, "weight"), 1)]
+      w_rr = as.numeric(multidim_arr[matrix(c(s_response, r_response, m_response, "weight"), 1)])
 
       r_vec <- as.numeric(unname(c(r_vec[, ..codes])))
       g_ws_vec <- as.numeric(g_ws_vec)
@@ -550,17 +550,17 @@ accum_multidim <- function(
     ctx_adj_dt <- as.data.table(matrix(ctx_adj, byrow = TRUE, nrow = 1, dimnames = list(NULL, adj_vector_names)))
   }));
   connection_counts <- connection_counts[, lapply(.SD, reclass, "ena.co.occurrence"), .SDcols = adj_vector_names];
-  connection_counts$QEUNIT <- context_model$model$unit.labels;
+  connection_counts$ENA_UNIT <- context_model$model$unit.labels;
   connection_counts <- cbind(connection_counts, data.table::rbindlist(lapply(context_model$model$contexts, attr, "tma.unit")))
   
-  for(jj in c("QEUNIT", meta_cols)) {
+  for(jj in c("ENA_UNIT", meta_cols)) {
     data.table::set(connection_counts, j = jj, value = reclass(connection_counts[[jj]], "ena.metadata"));
   }
   # data.table::set(connection_counts, j = "QEUNIT", value = reclass(connection_counts$QEUNIT, "ena.metadata"));
   
   #data.table::rbindlist(lapply(context_model$model$contexts, attr, "tma.unit"));
   
-  data.table::setcolorder(connection_counts, c("QEUNIT", meta_cols, adj_vector_names));
+  data.table::setcolorder(connection_counts, c("ENA_UNIT", meta_cols, adj_vector_names));
   
   context_model$connection.counts <- connection_counts;
   
