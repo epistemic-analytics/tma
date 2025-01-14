@@ -1,3 +1,5 @@
+
+
 # Pull unique sender, receiver, and modality values from a dataframe
 get_unique_values <- function(
   df, 
@@ -30,13 +32,14 @@ get_unique_values <- function(
 
 
 # Function to generate multidim arr
+#' @title accum_multidim
 #' @param sender_cols Sender columns
 #' @param receiver_cols Receiver columns
 #' @param mode_column Mode column
 #' @param default_window Default window
 #' @param default_weight Default weight
 #' @return A multidim array with [S, R, M, weight/window], with NO standins
-#'@export
+#' @export 
 make_multidim_arr <- function(df, 
                   sender_cols, 
                   receiver_cols, 
@@ -386,7 +389,7 @@ f_diag <- function(
   return(mat)
 }
 
-#' accum_multidim
+#' @title accum_multidim
 #'
 #' @param multidim_arr Input multidimensional array. This should be in the format
 #' [sender, receiver, modality, weight/window] (and will be b/c of how we initialize it above)
@@ -406,7 +409,7 @@ f_diag <- function(
 #' @param return_ena_set Whether or not to return an ENA set. By default, this is ONA
 #' 
 #' @return T/ONA (or T/ENA) accumulation
-#@export
+#' @export
 accum_multidim <- function(
     df, # original df; needed to get unique_senders, unique_receivers, unique_modes in preprocess
     multidim_arr, 
