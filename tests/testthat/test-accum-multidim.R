@@ -1,9 +1,8 @@
 testthat::context("Test accumulation with multidimensional array")
-
+data(test_mockdata, package = "tma")
+mock_data <- test_mockdata;
 
 test_that("no senders, no receivers, modality", {
-  
-  mock_data <- read.csv("../../vignettes/mock_data_edited.csv")
   mock_data <- mock_data[mock_data$chatGroup == "PAM",]
   
   # Initialize TMA units and contexts
@@ -60,23 +59,17 @@ test_that("no senders, no receivers, modality", {
   
   user1_old <- as.numeric(unname(as.vector(result_old$connection.counts[1,4:length(colnames(result_old$connection.counts))])))
   user1_new <- as.numeric(unname(as.vector(result_new$connection.counts[1,4:length(colnames(result_new$connection.counts))])))
-  
-  testthat::expect_true(all(user1_old == user1_new))
-  
   user2_old <- as.numeric(unname(as.vector(result_old$connection.counts[2,4:length(colnames(result_old$connection.counts))])))
   user2_new <- as.numeric(unname(as.vector(result_new$connection.counts[2,4:length(colnames(result_new$connection.counts))])))
-  
-  testthat::expect_true(all(user2_old == user2_new))
-  
   user3_old <- as.numeric(unname(as.vector(result_old$connection.counts[3,4:length(colnames(result_old$connection.counts))])))
   user3_new <- as.numeric(unname(as.vector(result_new$connection.counts[3,4:length(colnames(result_new$connection.counts))])))
   
-  testthat::expect_true(all(user3_old == user3_new))
+  testthat::expect_equal(user1_old, user1_new)
+  testthat::expect_equal(user2_old, user2_new)
+  testthat::expect_equal(user3_old, user3_new)
 })
 
 test_that("sender, no receivers, no modality", {
-  
-  mock_data <- read.csv("../../vignettes/mock_data_edited.csv")
   mock_data <- mock_data[mock_data$chatGroup == "PAM",]
   
   # Initialize TMA units and contexts
@@ -95,7 +88,6 @@ test_that("sender, no receivers, no modality", {
   time_column = "timeStamp"
   
   # Get old TMA results
-  
   result_old <- tma:::accumulate_contexts (
     x = context_model,
     codes = codes,
@@ -149,8 +141,6 @@ test_that("sender, no receivers, no modality", {
 })
 
 test_that("no senders, receiver, no modality", {
-  
-  mock_data <- read.csv("../../vignettes/mock_data_edited.csv")
   mock_data <- mock_data[mock_data$chatGroup == "PAM",]
   
   # Initialize TMA units and contexts
@@ -202,30 +192,25 @@ test_that("no senders, receiver, no modality", {
     codes,
     context_model
   )
-  
 
   # Compare vectors across all 3 units 
   
   user1_old <- as.numeric(unname(as.vector(result_old$connection.counts[1,4:length(colnames(result_old$connection.counts))])))
   user1_new <- as.numeric(unname(as.vector(result_new$connection.counts[1,4:length(colnames(result_new$connection.counts))])))
   
-  testthat::expect_true(all(user1_old == user1_new))
-  
   user2_old <- as.numeric(unname(as.vector(result_old$connection.counts[2,4:length(colnames(result_old$connection.counts))])))
   user2_new <- as.numeric(unname(as.vector(result_new$connection.counts[2,4:length(colnames(result_new$connection.counts))])))
-  
-  testthat::expect_true(all(user2_old == user2_new))
   
   user3_old <- as.numeric(unname(as.vector(result_old$connection.counts[3,4:length(colnames(result_old$connection.counts))])))
   user3_new <- as.numeric(unname(as.vector(result_new$connection.counts[3,4:length(colnames(result_new$connection.counts))])))
   
-  testthat::expect_true(all(user3_old == user3_new))
+  testthat::expect_equal(user1_old, user1_new)
+  testthat::expect_equal(user2_old, user2_new)
+  testthat::expect_equal(user3_old, user3_new)
   
 })
 
 test_that("sender, no receiver, modality", {
-  
-  mock_data <- read.csv("../../vignettes/mock_data_edited.csv")
   mock_data <- mock_data[mock_data$chatGroup == "PAM",]
   
   # Initialize TMA units and contexts
@@ -319,8 +304,6 @@ test_that("sender, no receiver, modality", {
 })
 
 test_that("no sender, receiver, modality", {
-  
-  mock_data <- read.csv("../../vignettes/mock_data_edited.csv")
   mock_data <- mock_data[mock_data$chatGroup == "PAM",]
   
   # Initialize TMA units and contexts
@@ -401,8 +384,6 @@ test_that("no sender, receiver, modality", {
 })
 
 test_that("sender, receiver, no modality", {
-  
-  mock_data <- read.csv("../../vignettes/mock_data_edited.csv")
   mock_data <- mock_data[mock_data$chatGroup == "PAM",]
   
   # Initialize TMA units and contexts
@@ -486,8 +467,6 @@ test_that("sender, receiver, no modality", {
 })
 
 test_that("sender, receiver, modality", {
-  
-  mock_data <- read.csv("../../vignettes/mock_data_edited.csv")
   mock_data <- mock_data[mock_data$chatGroup == "PAM",]
   
   # Initialize TMA units and contexts
@@ -592,8 +571,6 @@ test_that("sender, receiver, modality", {
 })
 
 test_that("senders, receivers, modality", {
-  
-  mock_data <- read.csv("../../vignettes/mock_data_edited.csv")
   mock_data <- mock_data[mock_data$chatGroup == "PAM",]
   
   # Initialize TMA units and contexts

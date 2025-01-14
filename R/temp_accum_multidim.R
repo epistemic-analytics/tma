@@ -311,28 +311,38 @@ apply_windows <- function(
   
   context_ground_rows <- context[QEID != r_vec_qeid]; # get potential ground rows 
   
+  # print(paste("R qeid: ", r_vec_qeid));
+  # print(context_ground_rows)
   g_vecs <- context_ground_rows[,{
     # matrix with sender and modality values for all relevant ground rows
     sm_mat <- as.matrix(.SD[, c(unlist(sender_cols), mode_column), with = FALSE]) 
 
     # initialize receivers cols of the querying matrix
-    receivers <- list()
-    for (k in 1:length(receiver_cols)) { 
-      receivers[[k]] <- as.matrix(rep(r_i[[k]], nrow(sm_mat)))
-    }
-    receivers <- do.call(cbind, receivers)
+    # receivers <- list()
+    # for (k in 1:length(receiver_cols)) {
+    #   receivers[[k]] <- as.matrix(rep(r_i[[k]], nrow(sm_mat)))
+    # }
+    # receivers <- do.call(cbind, receivers)
+    receivers <- matrix(r_i, nrow = .N, ncol = length(r_i), byrow = TRUE);
     
     # get matrix used to query multidim arr 
-    if (nrow(sm_mat) == 1) {
-      mult_arr_mat <- cbind(t(as.matrix(sm_mat[,1:length(sender_cols)])), receivers, sm_mat[,ncol(sm_mat)], "window")
-    } else {
-      mult_arr_mat <- cbind(sm_mat[,1:length(sender_cols)], receivers, sm_mat[,ncol(sm_mat)], "window")
-    }
+    # if (nrow(sm_mat) == 1) {
+    #   mult_arr_mat <- cbind(t(as.matrix(sm_mat[,1:length(sender_cols)])), receivers, sm_mat[,ncol(sm_mat)], "window")
+    # } else {
+    #   mult_arr_mat <- cbind(sm_mat[,1:length(sender_cols)], receivers, sm_mat[,ncol(sm_mat)], "window")
+    # }
+    # mult_arr_mat <- cbind(sm_mat[,1:length(sender_cols), drop = F], receivers, sm_mat[, ncol(sm_mat), drop = FALSE], "window");
+    mult_arr_mat <- data.table:::cbind.data.table(.SD[, c(sender_cols, mode_column), with = FALSE], receivers, "window")
+    si <- seq_along(sender_cols);
+    # browser()
+    data.table::setcolorder(mult_arr_mat, c(si, seq_along(receiver_cols) + length(sender_cols) + 1, length(sender_cols) + 1, ncol(mult_arr_mat)))
+    mult_arr_mat <- as.matrix(mult_arr_mat);
     
+    # print(.SD)
+    # print(mult_arr_mat)
+    # print(response_row_time_val)
     # ensure vectors project forward in time far enough that they are kept in the ground 
-    .SD[as.vector((.SD[[time_column]] + as.numeric(multidim_arr[mult_arr_mat])) >= response_row_time_val), ]
-
-   
+    .SD[as.vector((.SD[[time_column]] + as.numeric(multidim_arr[mult_arr_mat])) >= response_row_time_val), ];
   }]
   
   return(g_vecs)
@@ -445,6 +455,7 @@ accum_multidim <- function(
     
     # For each context, get unit's lines in that context (r_vec)
     context_unit_rows <- context[QEUNIT == unit];
+    # print(paste("unit: ", unit));
     for (i in seq(1, nrow(context_unit_rows))) { # NOTE: now, i is the index within the rows corresponding to the units i.e. if the unit speaks 4 times in context, 1, ..., 4; NOT the absolute index in the context
       
       r_vec = context_unit_rows[i,] 
