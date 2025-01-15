@@ -579,7 +579,9 @@ accum_multidim <- function(
   context_model$connection.counts <- connection_counts;
   
   class(context_model$connection.counts) <- c("ena.connections", "ena.matrix", "data.table", "data.frame");
-  # class(context_model$meta.data) = c("ena.matrix", class(context_model$meta.data));
+  
+  context_model$meta.data <- context_model$connection.counts[, sapply(context_model$connection.counts, is, "ena.metadata"), with = FALSE];
+  class(context_model$meta.data) = c("ena.matrix", class(context_model$meta.data));
   
   context_model$model$row.connection.counts <- structure(
     data.table::copy(context_model$connection.counts),
