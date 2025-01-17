@@ -14,6 +14,7 @@ accum_multidim(
   norm_by = "No",
   return_ena_set = FALSE,
   units = context_model[["model"]][["unit.labels"]],
+  time_unit = "auto",
   ...
 )
 }

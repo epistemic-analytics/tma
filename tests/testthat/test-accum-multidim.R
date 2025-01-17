@@ -40,7 +40,7 @@ test_that("no senders, no receivers, modality", {
   # Get new TMA results 
   mode_column = "modality"
   
-  multidim_arr <- make_multidim_arr(mock_data, sender_cols = list(), receiver_cols = list(), mode_column, 0, 0)
+  multidim_arr <- make_multidim_arr(mock_data, sender_cols = c(), receiver_cols = c(), mode_column, 0, 0)
   
   multidim_arr["chat", "weight"] <- 1
   multidim_arr["resource", "weight"] <- 2
@@ -105,7 +105,7 @@ test_that("sender, no receivers, no modality", {
   )
 
   # Get new TMA results
-  sender_cols = list("role")
+  sender_cols = c("role")
   
   multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = list(), mode_column = list(), 0, 0)
   
@@ -176,7 +176,7 @@ test_that("no senders, receiver, no modality", {
   )
   
   # Get new TMA results
-  receiver_cols = list("language")
+  receiver_cols = c("language")
   
   multidim_arr <- make_multidim_arr(mock_data, sender_cols = list(), receiver_cols = receiver_cols, mode_column = list(), 0, 0)
   
@@ -229,7 +229,7 @@ test_that("sender, no receiver, modality", {
   time_column = "timeStamp"
   
   # Get new TMA results
-  sender_cols = list("role")
+  sender_cols = c("role")
   mode_column = "modality"
   
   multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = list(), mode_column = mode_column, 0, 0)
@@ -322,7 +322,7 @@ test_that("no sender, receiver, modality", {
   time_column = "timeStamp"
   
   # Get new TMA results
-  receiver_cols = list("language")
+  receiver_cols = c("language")
   mode_column = "modality"
   
   multidim_arr <- make_multidim_arr(mock_data, sender_cols = list(), receiver_cols = receiver_cols, mode_column = mode_column, 0, 0)
@@ -404,8 +404,8 @@ test_that("sender, receiver, no modality", {
   
   
   # Get new TMA results
-  sender_cols = list("role")
-  receiver_cols = list("language")
+  sender_cols = c("role")
+  receiver_cols = c("language")
   
   multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = list(), 0, 0)
   
@@ -485,8 +485,8 @@ test_that("sender, receiver, modality", {
   time_column = "timeStamp"
   
   # Get new TMA results
-  sender_cols = list("role")
-  receiver_cols = list("language")
+  sender_cols = c("role")
+  receiver_cols = c("language")
   mode_column = "modality"
   
   multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, 0, 0)
@@ -589,8 +589,8 @@ test_that("senders, receivers, modality", {
   time_column = "timeStamp"
   
   # Get new TMA results
-  sender_cols <- list("role", "language")
-  receiver_cols <- list("role", "handwriting")
+  sender_cols <- c("role", "language")
+  receiver_cols <- c("role", "handwriting")
   mode_column <- "modality"
   
   multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, 0, 0)

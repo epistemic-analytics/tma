@@ -152,7 +152,8 @@ make_multidim_arr <- function(df,
 # We do this so we don't fail when they don't specify senders/receivers/mode
 preprocess <- function(
     df, 
-    multidim_arr
+    multidim_arr,
+    use_standin = TRUE
 ) {
   # Get sender, receiver, and mode columns + unique values from multidim_arr
   sender_cols <- attr(multidim_arr, "sender_cols")
@@ -179,17 +180,19 @@ preprocess <- function(
   }
   
   # Ensure standin is present for any empty columns
-  if (length(sender_cols) == 0) {
-    sender_cols <- "standin"
-    unique_senders <- list(standin = "standin")
-  }
-  if (length(receiver_cols) == 0) {
-    receiver_cols <- "standin"
-    unique_receivers <- list(standin = "standin")
-  }
-  if (length(mode_column) == 0) {
-    mode_column <- "standin"
-    unique_modes <- "standin"
+  if(isTRUE(use_standin)) {
+    if (length(sender_cols) == 0) {
+      sender_cols <- "standin"
+      unique_senders <- list(standin = "standin")
+    }
+    if (length(receiver_cols) == 0) {
+      receiver_cols <- "standin"
+      unique_receivers <- list(standin = "standin")
+    }
+    if (length(mode_column) == 0) {
+      mode_column <- "standin"
+      unique_modes <- "standin"
+    }
   }
   
   # Create a new multidimensional array to hold expanded values
@@ -291,7 +294,8 @@ apply_windows <- function(
     mode_column,
     r_vec_qeid, 
     context, 
-    codes 
+    codes, 
+    time_unit = 'auto'
 ) {
   
   # first line is response line--since we aren't including response lines, just provide a dummy vec w/ 0s @ codes
@@ -302,48 +306,53 @@ apply_windows <- function(
     return(temp_vec)
   }
   
-  # get response row; r_i is receiver values 
-  context_response_row <- context[.N]; 
-  receiver_cols <- as.character(as.vector(receiver_cols))
-  r_i <- unlist(context_response_row[, ..receiver_cols]);
-  
-  response_row_time_val <- context_response_row[[time_column]]; # get timestamp in response row 
-  
-  context_ground_rows <- context[QEID != r_vec_qeid]; # get potential ground rows 
-  
-  # print(paste("R qeid: ", r_vec_qeid));
-  # print(context_ground_rows)
-  g_vecs <- context_ground_rows[,{
-    # matrix with sender and modality values for all relevant ground rows
-    sm_mat <- as.matrix(.SD[, c(unlist(sender_cols), mode_column), with = FALSE]) 
-
-    # initialize receivers cols of the querying matrix
-    # receivers <- list()
-    # for (k in 1:length(receiver_cols)) {
-    #   receivers[[k]] <- as.matrix(rep(r_i[[k]], nrow(sm_mat)))
-    # }
-    # receivers <- do.call(cbind, receivers)
-    receivers <- matrix(r_i, nrow = .N, ncol = length(r_i), byrow = TRUE);
-    
-    # get matrix used to query multidim arr 
-    # if (nrow(sm_mat) == 1) {
-    #   mult_arr_mat <- cbind(t(as.matrix(sm_mat[,1:length(sender_cols)])), receivers, sm_mat[,ncol(sm_mat)], "window")
-    # } else {
-    #   mult_arr_mat <- cbind(sm_mat[,1:length(sender_cols)], receivers, sm_mat[,ncol(sm_mat)], "window")
-    # }
-    # mult_arr_mat <- cbind(sm_mat[,1:length(sender_cols), drop = F], receivers, sm_mat[, ncol(sm_mat), drop = FALSE], "window");
-    mult_arr_mat <- data.table:::cbind.data.table(.SD[, c(sender_cols, mode_column), with = FALSE], receivers, "window")
-    si <- seq_along(sender_cols);
-    # browser()
-    data.table::setcolorder(mult_arr_mat, c(si, seq_along(receiver_cols) + length(sender_cols) + 1, length(sender_cols) + 1, ncol(mult_arr_mat)))
-    mult_arr_mat <- as.matrix(mult_arr_mat);
-    
-    # print(.SD)
-    # print(mult_arr_mat)
-    # print(response_row_time_val)
-    # ensure vectors project forward in time far enough that they are kept in the ground 
-    .SD[as.vector((.SD[[time_column]] + as.numeric(multidim_arr[mult_arr_mat])) >= response_row_time_val), ];
+  # # get response row; r_i is receiver values
+  # context_response_row <- context[.N];
+  # receiver_cols <- as.character(as.vector(receiver_cols))
+  # r_i <- unlist(context_response_row[, ..receiver_cols]);
+  # response_row_time_val <- context_response_row[[time_column]]; # get timestamp in response row
+  # context_ground_rows <- context[QEID != r_vec_qeid]; # get potential ground rows
+  # g_vecs_old <- context_ground_rows[,{
+  #   # matrix with sender and modality values for all relevant ground rows
+  #   sm_mat <- as.matrix(.SD[, c(unlist(sender_cols), mode_column), with = FALSE])
+  # 
+  #   # initialize receivers cols of the querying matrix
+  #   # receivers <- list()
+  #   # for (k in 1:length(receiver_cols)) {
+  #   #   receivers[[k]] <- as.matrix(rep(r_i[[k]], nrow(sm_mat)))
+  #   # }
+  #   # receivers <- do.call(cbind, receivers)
+  #   receivers <- matrix(r_i, nrow = .N, ncol = length(r_i), byrow = TRUE, dimnames = list( NULL, names(r_i)));
+  # 
+  #   # get matrix used to query multidim arr
+  #   # if (nrow(sm_mat) == 1) {
+  #   #   mult_arr_mat <- cbind(t(as.matrix(sm_mat[,1:length(sender_cols)])), receivers, sm_mat[,ncol(sm_mat)], "window")
+  #   # } else {
+  #   #   mult_arr_mat <- cbind(sm_mat[,1:length(sender_cols)], receivers, sm_mat[,ncol(sm_mat)], "window")
+  #   # }
+  #   # mult_arr_mat <- cbind(sm_mat[,1:length(sender_cols), drop = F], receivers, sm_mat[, ncol(sm_mat), drop = FALSE], "window");
+  #   mult_arr_mat <- data.table:::cbind.data.table(.SD[, c(sender_cols, mode_column), with = FALSE], receivers, "window")
+  #   si <- seq_along(sender_cols);
+  #   data.table::setcolorder(mult_arr_mat, c(si, seq_along(receiver_cols) + length(sender_cols) + 1, length(sender_cols) + 1, ncol(mult_arr_mat)))
+  #   mult_arr_mat <- as.matrix(mult_arr_mat);
+  # 
+  #   # ensure vectors project forward in time far enough that they are kept in the ground
+  #   .SD[as.vector((.SD[[time_column]] + as.numeric(multidim_arr[mult_arr_mat])) >= response_row_time_val), ];
+  # }]
+  # browser()
+  g_vecs_i <- context[, {
+    times = .SD[[time_column]]
+    difftime(
+      times + 
+      multidim_arr[as.matrix(
+        .SD[, c(sender_cols, receiver_cols, mode_column), with = FALSE][, `:=`("window"="window")][, (receiver_cols) := .SD[.N, c(receiver_cols), with = FALSE]]
+      )],
+      times[.N],
+      time_unit
+    ) >= 0 & QEID != r_vec_qeid
   }]
+  g_vecs <- context[g_vecs_i,]
+  # browser(expr = !identical(g_vecs_old, g_vecs))
   
   return(g_vecs)
 }
@@ -383,6 +392,12 @@ apply_weights <- function(
   
   # apply to all g_vecs
   g_w_vecs <- as.matrix(g_vecs[,..codes]) * weight_vec
+  
+  # g_w_vecs <- as.matrix(g_vecs[, {
+  #   .SD[, c(codes), with = FALSE] * multidim_arr[as.matrix(
+  #     .SD[, c(sender_cols, receiver_cols, mode_column), with = FALSE][, `:=`("weight"="weight")][, (receiver_cols) := .SD[.N, c(receiver_cols), with = FALSE]]
+  #   )]
+  # }])
   
   return(g_w_vecs)
 }
@@ -430,6 +445,7 @@ accum_multidim <- function(
     norm_by = "No", # TODO: implement l1 normalization
     return_ena_set = FALSE,
     units = context_model[["model"]][["unit.labels"]],
+    time_unit = 'auto',
     ... # TODO: implement binarization for T/ENA
 ) {
   result <- preprocess(df, multidim_arr)
@@ -439,6 +455,7 @@ accum_multidim <- function(
   receiver_cols <- result$receiver_cols
   mode_column <- result$mode_column
   
+  adj_vector_names <- NULL;
   adj_vectors <- list()
   # units <- context_model[["model"]][["unit.labels"]]
   for (unit in units) {
@@ -467,9 +484,9 @@ accum_multidim <- function(
       
       g_vecs <- apply_windows(multidim_arr, 
                               sender_cols, receiver_cols, 
-                              time_column, duration_column, mode_column, 
+                              time_column, duration_column, mode_column,
                               r_vec_qeid, context_before_r_vec, 
-                              codes)
+                              codes, time_unit)
 
       # ensure there are zero connections if g_vecs is empty
       if (nrow(g_vecs) == 0) {
@@ -518,21 +535,21 @@ accum_multidim <- function(
     if (return_ena_set == FALSE) { # ONA
       # Make into adjacency vector
       row_col_combinations <- expand.grid(rownames(omega_matrix), colnames(omega_matrix))
-      adj_vector_names <- paste(row_col_combinations[,1], "&", row_col_combinations[,2])
+      adj_vector_names <<- paste(row_col_combinations[,1], "&", row_col_combinations[,2])
       
       adj_vector <- omega_matrix[cbind(match(row_col_combinations[, 1], rownames(omega_matrix)), 
                                        match(row_col_combinations[, 2], colnames(omega_matrix)))]
       
-      adj_vector <- setNames(adj_vector, adj_vector_names)
+      # adj_vector <- setNames(adj_vector, adj_vector_names)
     }
     else { 
       upper_indices <- which(upper.tri(omega_matrix, diag = FALSE)) 
       adj_vector <- omega_matrix[upper_indices]
       upper_rows <- rownames(omega_matrix)[row(omega_matrix)[upper_indices]]
       upper_cols <- colnames(omega_matrix)[col(omega_matrix)[upper_indices]]
-      adj_vector_names <- paste(upper_rows, "&", upper_cols)
+      adj_vector_names <<- paste(upper_rows, "&", upper_cols)
       
-      adj_vector <- setNames(adj_vector, adj_vector_names)
+      # adj_vector <- setNames(adj_vector, adj_vector_names)
     }
   
     if (norm_by == "l2") {
@@ -547,6 +564,15 @@ accum_multidim <- function(
     adj_vectors[[unit]] <- normed_adj_vector
   }
 
+  adj_key <- NULL
+  if(return_ena_set == FALSE) {
+    adj_key <- t(expand.grid(codes, codes))
+  }
+  else {
+    adj_key <- rENA:::namesToAdjacencyKey(codes)
+  }
+  adj_vector_names <- apply(adj_key, 2, paste, collapse = " & ")
+  
   context_model$rotation <- structure(list(
     codes = codes,
     adjacency.key = structure(
