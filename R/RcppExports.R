@@ -24,3 +24,8 @@ accumulate_networks <- function(x, code_cols, decay_function, time_col = -1L, or
     .Call(`_tma_accumulate_networks`, x, code_cols, decay_function, time_col, ordered)
 }
 
+#' @export
+apply_windows_c <- function(multidim_as_vector, dims, dims_sender, dims_receiver, dims_mode, context_matrix, unit_rows, codes, times) {
+    .Call(`_tma_apply_windows_c`, multidim_as_vector, dims, dims_sender, dims_receiver, dims_mode, context_matrix, unit_rows, codes, times)
+}
+

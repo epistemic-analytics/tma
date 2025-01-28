@@ -53,11 +53,31 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// apply_windows_c
+arma::mat apply_windows_c(std::vector<int> multidim_as_vector, std::vector<int> dims, std::vector<int> dims_sender, std::vector<int> dims_receiver, std::vector<int> dims_mode, NumericMatrix context_matrix, std::vector<int> unit_rows, arma::mat codes, NumericVector times);
+RcppExport SEXP _tma_apply_windows_c(SEXP multidim_as_vectorSEXP, SEXP dimsSEXP, SEXP dims_senderSEXP, SEXP dims_receiverSEXP, SEXP dims_modeSEXP, SEXP context_matrixSEXP, SEXP unit_rowsSEXP, SEXP codesSEXP, SEXP timesSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< std::vector<int> >::type multidim_as_vector(multidim_as_vectorSEXP);
+    Rcpp::traits::input_parameter< std::vector<int> >::type dims(dimsSEXP);
+    Rcpp::traits::input_parameter< std::vector<int> >::type dims_sender(dims_senderSEXP);
+    Rcpp::traits::input_parameter< std::vector<int> >::type dims_receiver(dims_receiverSEXP);
+    Rcpp::traits::input_parameter< std::vector<int> >::type dims_mode(dims_modeSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type context_matrix(context_matrixSEXP);
+    Rcpp::traits::input_parameter< std::vector<int> >::type unit_rows(unit_rowsSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type codes(codesSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type times(timesSEXP);
+    rcpp_result_gen = Rcpp::wrap(apply_windows_c(multidim_as_vector, dims, dims_sender, dims_receiver, dims_mode, context_matrix, unit_rows, codes, times));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_tma_choose_two", (DL_FUNC) &_tma_choose_two, 1},
     {"_tma_accumulate_network", (DL_FUNC) &_tma_accumulate_network, 6},
     {"_tma_accumulate_networks", (DL_FUNC) &_tma_accumulate_networks, 5},
+    {"_tma_apply_windows_c", (DL_FUNC) &_tma_apply_windows_c, 9},
     {NULL, NULL, 0}
 };
 
