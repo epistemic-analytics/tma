@@ -157,6 +157,7 @@ contexts <- function(x, hoo_rules, units_by = NULL, split_rules = NULL) {
           attr(res, "tma.unit") <- attr(unit_contexts[[unit_label]], "tma.unit");
           res <- lapply(res, function(r) {
             attr(r, "tma.unit") <- attr(res, "tma.unit");
+            attr(r, "tma.unit_rows") <- which(res$QEUNIT == unit_label)
             r
           });
           res
@@ -204,7 +205,10 @@ contexts <- function(x, hoo_rules, units_by = NULL, split_rules = NULL) {
         # unit_label <- paste(u, collapse = "::");
         unit_label <- paste(trimws(u), collapse = "::");
         res <- raw_input[unit_contexts[[unit_label]]];
+        res[[tma:::ATTR_NAMES$CONTEXT_COL_ID]] <- seq.int(nrow(res));
+        
         attr(res, "tma.unit") <- attr(unit_contexts[[unit_label]], "tma.unit");
+        attr(res, "tma.unit_rows") <- which(res$QEUNIT == unit_label);
         res
       });
       names(unit_contexts_res) <- apply(unique_units, 1, paste, collapse = "::"); #names(unit_contexts);

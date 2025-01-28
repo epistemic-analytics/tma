@@ -1,9 +1,8 @@
 testthat::context("Test accumulation with multidimensional array")
-
+data(test_mockdata, package = "tma")
+mock_data <- test_mockdata;
 
 test_that("no senders, no receivers, modality", {
-  
-  mock_data <- read.csv("../../vignettes/mock_data_edited.csv")
   mock_data <- mock_data[mock_data$chatGroup == "PAM",]
   
   # Initialize TMA units and contexts
@@ -41,7 +40,7 @@ test_that("no senders, no receivers, modality", {
   # Get new TMA results 
   mode_column = "modality"
   
-  multidim_arr <- make_multidim_arr(mock_data, sender_cols = list(), receiver_cols = list(), mode_column, 0, 0)
+  multidim_arr <- make_multidim_arr(mock_data, sender_cols = c(), receiver_cols = c(), mode_column, 0, 0)
   
   multidim_arr["chat", "weight"] <- 1
   multidim_arr["resource", "weight"] <- 2
@@ -56,29 +55,21 @@ test_that("no senders, no receivers, modality", {
     context_model
   )
   
-  # Compare vectors accross all 3 units 
-  
-  df <- as.data.frame(do.call(rbind, result_new))
+  # Compare vectors across all 3 units 
   
   user1_old <- as.numeric(unname(as.vector(result_old$connection.counts[1,4:length(colnames(result_old$connection.counts))])))
-  user1_new <- as.numeric(unname(as.vector(df["User1::FirstHalf", ])))
-  
-  testthat::expect_true(all(user1_old == user1_new))
-  
+  user1_new <- as.numeric(unname(as.vector(result_new$connection.counts[1,4:length(colnames(result_new$connection.counts))])))
   user2_old <- as.numeric(unname(as.vector(result_old$connection.counts[2,4:length(colnames(result_old$connection.counts))])))
-  user2_new <- as.numeric(unname(as.vector(df["User2::FirstHalf", ])))
-  
-  testthat::expect_true(all(user2_old == user2_new))
-  
+  user2_new <- as.numeric(unname(as.vector(result_new$connection.counts[2,4:length(colnames(result_new$connection.counts))])))
   user3_old <- as.numeric(unname(as.vector(result_old$connection.counts[3,4:length(colnames(result_old$connection.counts))])))
-  user3_new <- as.numeric(unname(as.vector(df["User3::FirstHalf", ])))
+  user3_new <- as.numeric(unname(as.vector(result_new$connection.counts[3,4:length(colnames(result_new$connection.counts))])))
   
-  testthat::expect_true(all(user3_old == user3_new))
+  testthat::expect_equal(user1_old, user1_new)
+  testthat::expect_equal(user2_old, user2_new)
+  testthat::expect_equal(user3_old, user3_new)
 })
 
 test_that("sender, no receivers, no modality", {
-  
-  mock_data <- read.csv("../../vignettes/mock_data_edited.csv")
   mock_data <- mock_data[mock_data$chatGroup == "PAM",]
   
   # Initialize TMA units and contexts
@@ -97,7 +88,6 @@ test_that("sender, no receivers, no modality", {
   time_column = "timeStamp"
   
   # Get old TMA results
-  
   result_old <- tma:::accumulate_contexts (
     x = context_model,
     codes = codes,
@@ -115,7 +105,7 @@ test_that("sender, no receivers, no modality", {
   )
 
   # Get new TMA results
-  sender_cols = list("role")
+  sender_cols = c("role")
   
   multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = list(), mode_column = list(), 0, 0)
   
@@ -132,29 +122,25 @@ test_that("sender, no receivers, no modality", {
     context_model
   )
  
-  # Compare vectors accross all 3 units 
-  
-  df <- as.data.frame(do.call(rbind, result_new))
+  # Compare vectors across all 3 units 
   
   user1_old <- as.numeric(unname(as.vector(result_old$connection.counts[1,4:length(colnames(result_old$connection.counts))])))
-  user1_new <- as.numeric(unname(as.vector(df["User1::FirstHalf", ])))
+  user1_new <- as.numeric(unname(as.vector(result_new$connection.counts[1,4:length(colnames(result_new$connection.counts))])))
   
   testthat::expect_true(all(user1_old == user1_new))
   
   user2_old <- as.numeric(unname(as.vector(result_old$connection.counts[2,4:length(colnames(result_old$connection.counts))])))
-  user2_new <- as.numeric(unname(as.vector(df["User2::FirstHalf", ])))
+  user2_new <- as.numeric(unname(as.vector(result_new$connection.counts[2,4:length(colnames(result_new$connection.counts))])))
   
   testthat::expect_true(all(user2_old == user2_new))
   
   user3_old <- as.numeric(unname(as.vector(result_old$connection.counts[3,4:length(colnames(result_old$connection.counts))])))
-  user3_new <- as.numeric(unname(as.vector(df["User3::FirstHalf", ])))
+  user3_new <- as.numeric(unname(as.vector(result_new$connection.counts[3,4:length(colnames(result_new$connection.counts))])))
   
   testthat::expect_true(all(user3_old == user3_new))
 })
 
 test_that("no senders, receiver, no modality", {
-  
-  mock_data <- read.csv("../../vignettes/mock_data_edited.csv")
   mock_data <- mock_data[mock_data$chatGroup == "PAM",]
   
   # Initialize TMA units and contexts
@@ -190,7 +176,7 @@ test_that("no senders, receiver, no modality", {
   )
   
   # Get new TMA results
-  receiver_cols = list("language")
+  receiver_cols = c("language")
   
   multidim_arr <- make_multidim_arr(mock_data, sender_cols = list(), receiver_cols = receiver_cols, mode_column = list(), 0, 0)
   
@@ -206,31 +192,25 @@ test_that("no senders, receiver, no modality", {
     codes,
     context_model
   )
-  
-  # Compare vectors accross all 3 units 
-  
-  df <- as.data.frame(do.call(rbind, result_new))
+
+  # Compare vectors across all 3 units 
   
   user1_old <- as.numeric(unname(as.vector(result_old$connection.counts[1,4:length(colnames(result_old$connection.counts))])))
-  user1_new <- as.numeric(unname(as.vector(df["User1::FirstHalf", ])))
-  
-  testthat::expect_true(all(user1_old == user1_new))
+  user1_new <- as.numeric(unname(as.vector(result_new$connection.counts[1,4:length(colnames(result_new$connection.counts))])))
   
   user2_old <- as.numeric(unname(as.vector(result_old$connection.counts[2,4:length(colnames(result_old$connection.counts))])))
-  user2_new <- as.numeric(unname(as.vector(df["User2::FirstHalf", ])))
-  
-  testthat::expect_true(all(user2_old == user2_new))
+  user2_new <- as.numeric(unname(as.vector(result_new$connection.counts[2,4:length(colnames(result_new$connection.counts))])))
   
   user3_old <- as.numeric(unname(as.vector(result_old$connection.counts[3,4:length(colnames(result_old$connection.counts))])))
-  user3_new <- as.numeric(unname(as.vector(df["User3::FirstHalf", ])))
+  user3_new <- as.numeric(unname(as.vector(result_new$connection.counts[3,4:length(colnames(result_new$connection.counts))])))
   
-  testthat::expect_true(all(user3_old == user3_new))
+  testthat::expect_equal(user1_old, user1_new)
+  testthat::expect_equal(user2_old, user2_new)
+  testthat::expect_equal(user3_old, user3_new)
   
 })
 
 test_that("sender, no receiver, modality", {
-  
-  mock_data <- read.csv("../../vignettes/mock_data_edited.csv")
   mock_data <- mock_data[mock_data$chatGroup == "PAM",]
   
   # Initialize TMA units and contexts
@@ -249,7 +229,7 @@ test_that("sender, no receiver, modality", {
   time_column = "timeStamp"
   
   # Get new TMA results
-  sender_cols = list("role")
+  sender_cols = c("role")
   mode_column = "modality"
   
   multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = list(), mode_column = mode_column, 0, 0)
@@ -303,21 +283,20 @@ test_that("sender, no receiver, modality", {
   )
   
   
-  # Compare vectors accross all 3 units 
-  df <- as.data.frame(do.call(rbind, result_new))
+  # Compare vectors across all 3 units 
   
   user1_old <- as.numeric(unname(as.vector(result_old$connection.counts[1,4:length(colnames(result_old$connection.counts))])))
-  user1_new <- as.numeric(unname(as.vector(df["User1::FirstHalf", ])))
+  user1_new <- as.numeric(unname(as.vector(result_new$connection.counts[1,4:length(colnames(result_new$connection.counts))])))
   
   testthat::expect_true(all(user1_old == user1_new))
   
   user2_old <- as.numeric(unname(as.vector(result_old$connection.counts[2,4:length(colnames(result_old$connection.counts))])))
-  user2_new <- as.numeric(unname(as.vector(df["User2::FirstHalf", ])))
+  user2_new <- as.numeric(unname(as.vector(result_new$connection.counts[2,4:length(colnames(result_new$connection.counts))])))
   
   testthat::expect_true(all(user2_old == user2_new))
   
   user3_old <- as.numeric(unname(as.vector(result_old$connection.counts[3,4:length(colnames(result_old$connection.counts))])))
-  user3_new <- as.numeric(unname(as.vector(df["User3::FirstHalf", ])))
+  user3_new <- as.numeric(unname(as.vector(result_new$connection.counts[3,4:length(colnames(result_new$connection.counts))])))
   
   testthat::expect_true(all(user3_old == user3_new))
   
@@ -325,8 +304,6 @@ test_that("sender, no receiver, modality", {
 })
 
 test_that("no sender, receiver, modality", {
-  
-  mock_data <- read.csv("../../vignettes/mock_data_edited.csv")
   mock_data <- mock_data[mock_data$chatGroup == "PAM",]
   
   # Initialize TMA units and contexts
@@ -345,7 +322,7 @@ test_that("no sender, receiver, modality", {
   time_column = "timeStamp"
   
   # Get new TMA results
-  receiver_cols = list("language")
+  receiver_cols = c("language")
   mode_column = "modality"
   
   multidim_arr <- make_multidim_arr(mock_data, sender_cols = list(), receiver_cols = receiver_cols, mode_column = mode_column, 0, 0)
@@ -387,30 +364,26 @@ test_that("no sender, receiver, modality", {
     # mode.column = c("language", "modality")
   )
   
-  # Compare vectors accross all 3 units 
-  
-  df <- as.data.frame(do.call(rbind, result_new))
+  # Compare vectors across all 3 units 
   
   user1_old <- as.numeric(unname(as.vector(result_old$connection.counts[1,4:length(colnames(result_old$connection.counts))])))
-  user1_new <- as.numeric(unname(as.vector(df["User1::FirstHalf", ])))
+  user1_new <- as.numeric(unname(as.vector(result_new$connection.counts[1,4:length(colnames(result_new$connection.counts))])))
   
   testthat::expect_true(all(user1_old == user1_new))
   
   user2_old <- as.numeric(unname(as.vector(result_old$connection.counts[2,4:length(colnames(result_old$connection.counts))])))
-  user2_new <- as.numeric(unname(as.vector(df["User2::FirstHalf", ])))
+  user2_new <- as.numeric(unname(as.vector(result_new$connection.counts[2,4:length(colnames(result_new$connection.counts))])))
   
   testthat::expect_true(all(user2_old == user2_new))
   
   user3_old <- as.numeric(unname(as.vector(result_old$connection.counts[3,4:length(colnames(result_old$connection.counts))])))
-  user3_new <- as.numeric(unname(as.vector(df["User3::FirstHalf", ])))
+  user3_new <- as.numeric(unname(as.vector(result_new$connection.counts[3,4:length(colnames(result_new$connection.counts))])))
   
   testthat::expect_true(all(user3_old == user3_new))
   
 })
 
 test_that("sender, receiver, no modality", {
-  
-  mock_data <- read.csv("../../vignettes/mock_data_edited.csv")
   mock_data <- mock_data[mock_data$chatGroup == "PAM",]
   
   # Initialize TMA units and contexts
@@ -431,8 +404,8 @@ test_that("sender, receiver, no modality", {
   
   
   # Get new TMA results
-  sender_cols = list("role")
-  receiver_cols = list("language")
+  sender_cols = c("role")
+  receiver_cols = c("language")
   
   multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = list(), 0, 0)
   
@@ -475,30 +448,25 @@ test_that("sender, receiver, no modality", {
   
   
   
-  # Compare vectors accross all 3 units 
-  
-  df <- as.data.frame(do.call(rbind, result_new))
+  # Compare vectors across all 3 units 
   
   user1_old <- as.numeric(unname(as.vector(result_old$connection.counts[1,4:length(colnames(result_old$connection.counts))])))
-  user1_new <- as.numeric(unname(as.vector(df["User1::FirstHalf", ])))
+  user1_new <- as.numeric(unname(as.vector(result_new$connection.counts[1,4:length(colnames(result_new$connection.counts))])))
   
   testthat::expect_true(all(user1_old == user1_new))
   
   user2_old <- as.numeric(unname(as.vector(result_old$connection.counts[2,4:length(colnames(result_old$connection.counts))])))
-  user2_new <- as.numeric(unname(as.vector(df["User2::FirstHalf", ])))
+  user2_new <- as.numeric(unname(as.vector(result_new$connection.counts[2,4:length(colnames(result_new$connection.counts))])))
   
   testthat::expect_true(all(user2_old == user2_new))
   
   user3_old <- as.numeric(unname(as.vector(result_old$connection.counts[3,4:length(colnames(result_old$connection.counts))])))
-  user3_new <- as.numeric(unname(as.vector(df["User3::FirstHalf", ])))
+  user3_new <- as.numeric(unname(as.vector(result_new$connection.counts[3,4:length(colnames(result_new$connection.counts))])))
   
   testthat::expect_true(all(user3_old == user3_new))
-  
 })
 
 test_that("sender, receiver, modality", {
-  
-  mock_data <- read.csv("../../vignettes/mock_data_edited.csv")
   mock_data <- mock_data[mock_data$chatGroup == "PAM",]
   
   # Initialize TMA units and contexts
@@ -517,8 +485,8 @@ test_that("sender, receiver, modality", {
   time_column = "timeStamp"
   
   # Get new TMA results
-  sender_cols = list("role")
-  receiver_cols = list("language")
+  sender_cols = c("role")
+  receiver_cols = c("language")
   mode_column = "modality"
   
   multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, 0, 0)
@@ -583,30 +551,26 @@ test_that("sender, receiver, modality", {
     # mode.column = c("role", "language", "modality")
   )
   
-  # Compare vectors accross all 3 units 
-  
-  df <- as.data.frame(do.call(rbind, result_new))
+  # Compare vectors across all 3 units 
   
   user1_old <- as.numeric(unname(as.vector(result_old$connection.counts[1,4:length(colnames(result_old$connection.counts))])))
-  user1_new <- as.numeric(unname(as.vector(df["User1::FirstHalf", ])))
+  user1_new <- as.numeric(unname(as.vector(result_new$connection.counts[1,4:length(colnames(result_new$connection.counts))])))
   
   testthat::expect_true(all(user1_old == user1_new))
   
   user2_old <- as.numeric(unname(as.vector(result_old$connection.counts[2,4:length(colnames(result_old$connection.counts))])))
-  user2_new <- as.numeric(unname(as.vector(df["User2::FirstHalf", ])))
+  user2_new <- as.numeric(unname(as.vector(result_new$connection.counts[2,4:length(colnames(result_new$connection.counts))])))
   
   testthat::expect_true(all(user2_old == user2_new))
   
   user3_old <- as.numeric(unname(as.vector(result_old$connection.counts[3,4:length(colnames(result_old$connection.counts))])))
-  user3_new <- as.numeric(unname(as.vector(df["User3::FirstHalf", ])))
+  user3_new <- as.numeric(unname(as.vector(result_new$connection.counts[3,4:length(colnames(result_new$connection.counts))])))
   
   testthat::expect_true(all(user3_old == user3_new))
   
 })
 
 test_that("senders, receivers, modality", {
-  
-  mock_data <- read.csv("../../vignettes/mock_data_edited.csv")
   mock_data <- mock_data[mock_data$chatGroup == "PAM",]
   
   # Initialize TMA units and contexts
@@ -625,8 +589,8 @@ test_that("senders, receivers, modality", {
   time_column = "timeStamp"
   
   # Get new TMA results
-  sender_cols <- list("role", "language")
-  receiver_cols <- list("role", "handwriting")
+  sender_cols <- c("role", "language")
+  receiver_cols <- c("role", "handwriting")
   mode_column <- "modality"
   
   multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, 0, 0)
@@ -730,20 +694,20 @@ test_that("senders, receivers, modality", {
   
   # Compare vectors accross all 3 units 
   
-  df <- as.data.frame(do.call(rbind, result_new))
+  # Compare vectors across all 3 units 
   
-  user1_old <- as.numeric(unname(as.vector(result_old[1,2:length(colnames(result_old))])))
-  user1_new <- as.numeric(unname(as.vector(df["User1::FirstHalf", ])))
+  user1_old <- as.numeric(unname(as.vector(result_old$connection.counts[1,4:length(colnames(result_old$connection.counts))])))
+  user1_new <- as.numeric(unname(as.vector(result_new$connection.counts[1,4:length(colnames(result_new$connection.counts))])))
   
   testthat::expect_true(all(user1_old == user1_new))
   
-  user2_old <- as.numeric(unname(as.vector(result_old[2,2:length(colnames(result_old))])))
-  user2_new <- as.numeric(unname(as.vector(df["User2::FirstHalf", ])))
+  user2_old <- as.numeric(unname(as.vector(result_old$connection.counts[2,4:length(colnames(result_old$connection.counts))])))
+  user2_new <- as.numeric(unname(as.vector(result_new$connection.counts[2,4:length(colnames(result_new$connection.counts))])))
   
   testthat::expect_true(all(user2_old == user2_new))
   
-  user3_old <- as.numeric(unname(as.vector(result_old[3,2:length(colnames(result_old))])))
-  user3_new <- as.numeric(unname(as.vector(df["User3::FirstHalf", ])))
+  user3_old <- as.numeric(unname(as.vector(result_old$connection.counts[3,4:length(colnames(result_old$connection.counts))])))
+  user3_new <- as.numeric(unname(as.vector(result_new$connection.counts[3,4:length(colnames(result_new$connection.counts))])))
   
   testthat::expect_true(all(user3_old == user3_new))
 })

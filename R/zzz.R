@@ -4,3 +4,8 @@
     "KEYCOL"
   ))
 }
+
+
+ATTR_NAMES <- list(
+  CONTEXT_COL_ID = "__CONTEXT_ROWID__"
+)

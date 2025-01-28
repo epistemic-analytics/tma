@@ -16,66 +16,66 @@ mock_data <- read_csv("./vignettes/mock_data_edited.csv")
 mock_data <- mock_data %>% filter(chatGroup == "PAM") # just keep PAM for now
 ```
 
-## 1. Test make_multidim_arr function 
+## 1. Test tma:::make_multidim_arr function 
 ```{r}
 # no sender, no receiver, modality
-source("./R/temp_accum_multidim.R")
+ 
 mode_column <- "modality"
-tester <- make_multidim_arr(mock_data, sender_cols = list(), receiver_cols = list(), mode_column, default_window = 1, default_weight = 2) 
+tester <- tma:::make_multidim_arr(mock_data, sender_cols = list(), receiver_cols = list(), mode_column, default_window = 1, default_weight = 2) 
 print(tester) # this works
 ```
 
 ```{r}
 # sender, no receiver, no modality
-source("./R/temp_accum_multidim.R")
+ 
 sender_cols <- list("role")
-tester <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = list(), mode_column = list(), default_window = 1, default_weight = 2) 
+tester <- tma:::make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = list(), mode_column = list(), default_window = 1, default_weight = 2) 
 print(tester) # this works
 ```
 
 ```{r}
 # no sender, receiver, no modality
-source("./R/temp_accum_multidim.R")
+ 
 receiver_cols <- list("language")
-tester <- make_multidim_arr(mock_data, sender_cols = list(), receiver_cols = receiver_cols, mode_column = list(), default_window = 1, default_weight = 2) 
+tester <- tma:::make_multidim_arr(mock_data, sender_cols = list(), receiver_cols = receiver_cols, mode_column = list(), default_window = 1, default_weight = 2) 
 print(tester) # this works
 ```
 
 ```{r}
 # sender, no receiver, modality
-source("./R/temp_accum_multidim.R")
+ 
 mode_column <- "modality"
 sender_cols <- list("role")
-tester <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = list(), mode_column, default_window = 1, default_weight = 2) 
+tester <- tma:::make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = list(), mode_column, default_window = 1, default_weight = 2) 
 print(tester) # this works
 ```
 
 ```{r}
 # no sender, receiver, modality
-source("./R/temp_accum_multidim.R")
+ 
 mode_column <- "modality"
 receiver_cols <- list("language")
-tester <- make_multidim_arr(mock_data, sender_cols = list(), receiver_cols = receiver_cols, mode_column, default_window = 1, default_weight = 2) 
+tester <- tma:::make_multidim_arr(mock_data, sender_cols = list(), receiver_cols = receiver_cols, mode_column, default_window = 1, default_weight = 2) 
 print(tester) # this works 
 ```
 
 ```{r}
 # sender, receiver, no modality
-source("./R/temp_accum_multidim.R")
+ 
 sender_cols <- list("role")
 receiver_cols <- list("language")
-tester <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = list(), default_window = 1, default_weight = 2) 
+tester <- tma:::make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = list(), default_window = 1, default_weight = 2) 
 print(tester) # this works
 ```
 
 ```{r}
 # sender, receiver, modality
-source("./R/temp_accum_multidim.R")
+ 
 sender_cols <- list("role")
 receiver_cols <- list("language")
 mode_column <- "modality"
 
-tester <- make_multidim_arr(mock_data, sender_cols, receiver_cols, mode_column, default_window = 1, default_weight = 2)
+tester <- tma:::make_multidim_arr(mock_data, sender_cols, receiver_cols, mode_column, default_window = 1, default_weight = 2)
 print(tester) # this works
 ```
 
@@ -103,17 +103,16 @@ print(tester)
 
 ```{r}
 # senders, receivers, modality
-source("./R/temp_accum_multidim.R")
+ 
 sender_cols <- list("role", "language")
 receiver_cols <- list("role", "handwriting")
 mode_column <- "modality"
 
-tester <- make_multidim_arr(mock_data, sender_cols, receiver_cols, mode_column, default_window = 1, default_weight = 2)
+tester <- tma:::make_multidim_arr(mock_data, sender_cols, receiver_cols, mode_column, default_window = 1, default_weight = 2)
 print(tester) # this works 
 ```
 
-
-## 2. Test accum_multidim function on mock dataset
+## 2. Test tma:::accum_multidim function on mock dataset
 
 ```{r}
 # Initialize TMA units and contexts
@@ -137,18 +136,18 @@ potential receivers: role, language, handwriting
 
 ```{r}
 # Test 1: Do we get the correct standin matrix when specifying just a modality?
-source("./R/temp_accum_multidim.R")
+ 
 
 mode_column = "modality"
 
-multidim_arr <- make_multidim_arr(mock_data, sender_cols = list(), receiver_cols = list(), mode_column, 0, 0)
+multidim_arr <- tma:::make_multidim_arr(mock_data, sender_cols = list(), receiver_cols = list(), mode_column, 0, 0)
 
 multidim_arr["chat", "weight"] <- 1
 multidim_arr["resource", "weight"] <- 2
 multidim_arr["chat", "window"] <- 360
 multidim_arr["resource", "window"] <- 180
 
-result_new <- accum_multidim(
+result_new <- tma:::accum_multidim(
     mock_data,
     multidim_arr, 
     time_column,
@@ -173,7 +172,7 @@ result_old <- tma:::accumulate_contexts (
 )
 
 print(result_old$connection.counts)
-print(result_new)
+print(result_new$connection.counts)
 
 # run roxygen2::roxygenise() before running these tests, b/c otherwise it stops utilizing our change to o.g. accum func
 #'*works* when windows are the same (tried 180, 360, 720)  
@@ -185,18 +184,18 @@ print(result_new)
 
 ```{r}
 # Test 2: Do we get the correct answer with just a sender? 
-source("./R/temp_accum_multidim.R")
+ 
 
 sender_cols = list("role")
 
-multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = list(), mode_column = list(), 0, 0)
+multidim_arr <- tma:::make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = list(), mode_column = list(), 0, 0)
 
 multidim_arr["Mentor", "weight"] <- 1
 multidim_arr["Player", "weight"] <- 2
 multidim_arr["Mentor", "window"] <- 360
 multidim_arr["Player", "window"] <- 180
 
-result_new <- accum_multidim(
+result_new <- tma:::accum_multidim(
     mock_data, 
     multidim_arr, 
     time_column,
@@ -221,7 +220,7 @@ result_old <- tma:::accumulate_contexts (
 )
 
 print(result_old$connection.counts)
-print(result_new)
+print(result_new$connection.counts)
 
 #'*works*: in equal windows equal weights case 
 #'*works*: weights not equal (m = 1, p = 2s)
@@ -231,18 +230,18 @@ print(result_new)
 
 ```{r}
 # Test 3: Do we get the correct answer with just a receiver? 
-source("./R/temp_accum_multidim.R")
+ 
 
 receiver_cols = list("language")
 
-multidim_arr <- make_multidim_arr(mock_data, sender_cols = list(), receiver_cols = receiver_cols, mode_column = list(), 0, 0)
+multidim_arr <- tma:::make_multidim_arr(mock_data, sender_cols = list(), receiver_cols = receiver_cols, mode_column = list(), 0, 0)
 
 multidim_arr["L1", "weight"] <- 1
 multidim_arr["L2", "weight"] <- 5
 multidim_arr["L1", "window"] <- 360
 multidim_arr["L2", "window"] <- 180
 
-result_new <- accum_multidim(
+result_new <- tma:::accum_multidim(
     mock_data, 
     multidim_arr, 
     time_column,
@@ -267,7 +266,7 @@ result_old <- tma:::accumulate_contexts (
 )
 
 print(result_old$connection.counts)
-print(result_new)
+print(result_new$connection.counts)
 
 #'*works*: in equal windows equal weights case
 #'*works*: in different windows, different weights, and mixed cases
@@ -275,12 +274,12 @@ print(result_new)
 
 ```{r}
 # Test 4: Do we get the correct answer with sender, no receiver, modality? 
-source("./R/temp_accum_multidim.R")
+ 
 
 sender_cols = list("role")
 mode_column = "modality"
 
-multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = list(), mode_column = mode_column, 0, 0)
+multidim_arr <- tma:::make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = list(), mode_column = mode_column, 0, 0)
 
 multidim_arr["Mentor", "chat", "weight"] <- 3
 multidim_arr["Mentor", "resource", "weight"] <- 1
@@ -293,7 +292,7 @@ multidim_arr["Player", "chat", "window"] <- 180
 multidim_arr["Player", "resource", "window"] <- 360
 
 
-result_new <- accum_multidim(
+result_new <- tma:::accum_multidim(
     mock_data,
     multidim_arr, 
     time_column,
@@ -330,7 +329,7 @@ result_old <- tma:::accumulate_contexts (
 )
 
 print(result_old$connection.counts)
-print(result_new)
+print(result_new$connection.counts)
 
 #'*works* in case with same windows, same weights
 #'*works* in case with mixed windows, mixed weights
@@ -338,12 +337,12 @@ print(result_new)
 
 ```{r}
 # Test 5: Do we get the correct answer with no sender, receiver, modality? 
-source("./R/temp_accum_multidim.R")
+ 
 
 receiver_cols = list("language")
 mode_column = "modality"
 
-multidim_arr <- make_multidim_arr(mock_data, sender_cols = list(), receiver_cols = receiver_cols, mode_column = mode_column, 0, 0)
+multidim_arr <- tma:::make_multidim_arr(mock_data, sender_cols = list(), receiver_cols = receiver_cols, mode_column = mode_column, 0, 0)
 
 multidim_arr["L1", "chat", "weight"] <- 5
 multidim_arr["L1", "resource", "weight"] <- 1
@@ -355,7 +354,7 @@ multidim_arr["L1", "resource", "window"] <- 360
 multidim_arr["L2", "chat", "window"] <- 60
 multidim_arr["L2", "resource", "window"] <- 120
 
-result_new <- accum_multidim(
+result_new <- tma:::accum_multidim(
     mock_data,
     multidim_arr, 
     time_column,
@@ -381,7 +380,7 @@ result_old <- tma:::accumulate_contexts (
 )
 
 print(result_old$connection.counts)
-print(result_new)
+print(result_new$connection.counts)
 
 #'*works in same weights/window case*
 #'*works in different weights/window case*
@@ -389,12 +388,12 @@ print(result_new)
 
 ```{r}
 # Test 6: Do we get the correct answer with sender, receiver, no modality? 
-source("./R/temp_accum_multidim.R")
+ 
 
 sender_cols = list("role")
 receiver_cols = list("language")
 
-multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = list(), 0, 0)
+multidim_arr <- tma:::make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = list(), 0, 0)
 
 multidim_arr["Mentor", "L1", "weight"] <- 1
 multidim_arr["Mentor", "L2", "weight"] <- 5
@@ -406,7 +405,7 @@ multidim_arr["Mentor", "L2", "window"] <- 180
 multidim_arr["Player", "L1", "window"] <- 250
 multidim_arr["Player", "L2", "window"] <- 200
 
-result_new <- accum_multidim(
+result_new <- tma:::accum_multidim(
     mock_data,
     multidim_arr, 
     time_column,
@@ -432,7 +431,7 @@ result_old <- tma:::accumulate_contexts (
 )
 
 print(result_old$connection.counts)
-print(result_new)
+print(result_new$connection.counts)
 
 #'*works in same weights/windows case* 
 #'*works in different weights/windows case*
@@ -440,13 +439,13 @@ print(result_new)
 
 ```{r}
 # Test 7: Do we get the correct answer with sender, receiver, modality? 
-source("./R/temp_accum_multidim.R")
+ 
 
 sender_cols = list("role")
 receiver_cols = list("language")
 mode_column = "modality"
 
-multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, 0, 0)
+multidim_arr <- tma:::make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, 0, 0)
 
 multidim_arr["Mentor", "L1", "chat", "weight"] <- 5
 multidim_arr["Mentor", "L1", "resource", "weight"] <- 5
@@ -473,7 +472,7 @@ multidim_arr["Player", "L2", "resource", "window"] <- 360
 ```{r}
 
 
-result_new <- accum_multidim(
+result_new <- tma:::accum_multidim(
     mock_data,
     multidim_arr, 
     time_column,
@@ -512,7 +511,7 @@ result_old <- tma:::accumulate_contexts (
 )
 
 print(result_old$connection.counts)
-print(result_new)
+print(result_new$connection.counts)
 
 #'*works in same weights case*
 #'*works in different weights case*
@@ -522,7 +521,7 @@ potential senders: role, language, handwriting
 potential receivers: role, language, handwriting
 ```{r}
 # Test 8: Do we get the correct answer with senders, receivers, modality? 
-source("./R/temp_accum_multidim.R")
+ 
 
 # senders: role, language
 # receivers: role, handwriting 
@@ -531,7 +530,7 @@ sender_cols <- list("role", "language")
 receiver_cols <- list("role", "handwriting")
 mode_column <- "modality"
 
-multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, 0, 0)
+multidim_arr <- tma:::make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, 0, 0)
 
 
 multidim_arr["Player", "L1", "Player", "poor", "chat", "weight"] <- 1
@@ -601,7 +600,7 @@ multidim_arr["Mentor", "L2", "Mentor", "good", "chat", "window"] <- 180
 multidim_arr["Mentor", "L2", "Mentor", "good", "resource", "window"] <- 360
 
 
-result_new <- accum_multidim(
+result_new <- tma:::accum_multidim(
     mock_data,
     multidim_arr, 
     time_column,
@@ -647,7 +646,7 @@ result_old <- tma:::accumulate_contexts (
 )
 
 
-print(result_new)
+print(result_new$connection.counts)
 print(result_old$connection.counts)
 
 
@@ -662,7 +661,7 @@ print(result_old$connection.counts)
 
 ## 2.5 Brief test of T/ENA
 ```{r}
-source("./R/temp_accum_multidim.R")
+ 
 
 # senders: role, language
 # receivers: role, handwriting 
@@ -671,7 +670,7 @@ sender_cols <- list("role", "language")
 receiver_cols <- list("role", "handwriting")
 mode_column <- "modality"
 
-multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, 0, 0)
+multidim_arr <- tma:::make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, 0, 0)
 
 
 multidim_arr["Player", "L1", "Player", "poor", "chat", "weight"] <- 1
@@ -741,7 +740,7 @@ multidim_arr["Mentor", "L2", "Mentor", "good", "chat", "window"] <- 180
 multidim_arr["Mentor", "L2", "Mentor", "good", "resource", "window"] <- 360
 
 
-result_new <- accum_multidim(
+result_new <- tma:::accum_multidim(
     mock_data,
     multidim_arr, 
     time_column,
@@ -750,11 +749,11 @@ result_new <- accum_multidim(
     return_ena_set = TRUE
 )
 
-print(result_new) # this looks right
+print(result_new$connection.counts) # this looks right
 ```
 
 
-## 3. Test accum_multidim function on full transomdal RS data 
+## 3. Test tma:::accum_multidim function on full transomdal RS data 
 ```{r}
 df <- read_csv("./vignettes/RS_data_multimodal.csv")
 # mutate language column for receiver, and also fill NA
@@ -785,13 +784,13 @@ time_column = "timeStamp"
 
 ```{r}
 # Do we get the correct answer with senders, receivers, modality? 
-source("./R/temp_accum_multidim.R")
+ 
 
 sender_cols = list("role")
 receiver_cols = list("language")
 mode_column = "modality"
 
-multidim_arr <- make_multidim_arr(df, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, 0, 0)
+multidim_arr <- tma:::make_multidim_arr(df, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, 0, 0)
 
 multidim_arr["Mentor", "L1", "chat", "weight"] <- 5
 multidim_arr["Mentor", "L1", "resource", "weight"] <- 5
@@ -814,14 +813,14 @@ multidim_arr["Player", "L2", "chat", "window"] <- 150
 multidim_arr["Player", "L2", "resource", "window"] <- 360
 
 
-result_new <- accum_multidim(
+result_new <- tma:::accum_multidim(
     df,
     multidim_arr, 
     time_column,
     codes,
     context_model
 )
-# print(result_new)
+# print(result_new$connection.counts)
 ```
 
 ```{r}
@@ -857,6 +856,6 @@ result_old <- tma:::accumulate_contexts (
 )
 
 print(result_old$connection.counts)
-print(result_new)
+print(result_new$connection.counts)
 ```
 

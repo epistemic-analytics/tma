@@ -11,3 +11,7 @@ usethis::use_data(RS.data, overwrite = TRUE)
 
 test_smalldata = read.csv(system.file(package = "tma", 'extdata/test_data_3.csv'), stringsAsFactors = FALSE)
 usethis::use_data(test_smalldata, overwrite = TRUE)
+
+test_mockdata = data.table::fread(system.file(package = "tma", 'extdata/mock_data_edited.csv'), stringsAsFactors = FALSE)
+usethis::use_data(test_mockdata, overwrite = TRUE)
+
