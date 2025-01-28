@@ -205,6 +205,8 @@ contexts <- function(x, hoo_rules, units_by = NULL, split_rules = NULL) {
         # unit_label <- paste(u, collapse = "::");
         unit_label <- paste(trimws(u), collapse = "::");
         res <- raw_input[unit_contexts[[unit_label]]];
+        res[[tma:::ATTR_NAMES$CONTEXT_COL_ID]] <- seq.int(nrow(res));
+        
         attr(res, "tma.unit") <- attr(unit_contexts[[unit_label]], "tma.unit");
         attr(res, "tma.unit_rows") <- which(res$QEUNIT == unit_label);
         res

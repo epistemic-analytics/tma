@@ -25,6 +25,16 @@ accumulate_networks <- function(x, code_cols, decay_function, time_col = -1L, or
 }
 
 #' @export
+calculate_adjacency_matrix <- function(ground, response, response_weight) {
+    .Call(`_tma_calculate_adjacency_matrix`, ground, response, response_weight)
+}
+
+#' @export
+adjacency_matrix_to_vector <- function(x, full = TRUE) {
+    .Call(`_tma_adjacency_matrix_to_vector`, x, full)
+}
+
+#' @export
 apply_windows_c <- function(multidim_as_vector, dims, dims_sender, dims_receiver, dims_mode, context_matrix, unit_rows, codes, times) {
     .Call(`_tma_apply_windows_c`, multidim_as_vector, dims, dims_sender, dims_receiver, dims_mode, context_matrix, unit_rows, codes, times)
 }

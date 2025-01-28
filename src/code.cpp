@@ -299,7 +299,6 @@ void deallocateArray(T* array, const std::vector<int>& sizes, int dimension = 0)
 
 std::vector<std::vector<int>> matrix_to_2d_vector(NumericMatrix mat) {
   int n = mat.nrow();
-  int m = mat.ncol();
   std::vector<std::vector<int>> vec(n);
   
   for (int i = 0; i < n; ++i) {
@@ -310,7 +309,6 @@ std::vector<std::vector<int>> matrix_to_2d_vector(NumericMatrix mat) {
 }
 std::vector<std::vector<int>> armamatrix_to_2d_vector(arma::mat mat) {
   int n = mat.n_rows;
-  int m = mat.n_cols;
   std::vector<std::vector<int>> vec(n);
   
   for (int i = 0; i < n; ++i) {
@@ -407,8 +405,32 @@ void insert_element(arma::uvec& vec, double value) {
 }
 
 //' @export
+ // [[Rcpp::export]]
+arma::mat calculate_adjacency_matrix(arma::rowvec ground, arma::rowvec response, double response_weight) {
+  arma::mat response_matrix = response.t() * response;
+  response_matrix.diag().zeros();
+  
+  arma::mat ground_by_response = ground.t() * response;
+  
+  return ground_by_response + (0.5 * response_weight * response_matrix);
+}
+
+//' @export
+ // [[Rcpp::export]]
+arma::rowvec adjacency_matrix_to_vector(arma::mat x, bool full = true) {
+  if(full == true) {
+    return arma::vectorise(x).t();
+  }
+  else {
+    arma::mat combined = arma::trimatu(x, 1) + arma::trimatl(x, -1);
+    arma::uvec combined_tri_inds = arma::trimatu_ind(arma::size(combined), 1); 
+    return arma::vectorise(combined(combined_tri_inds)).t();
+  }
+}
+
+//' @export
 // [[Rcpp::export]]
-arma::rowvec apply_windows_c(
+Rcpp::List apply_windows_c(
   std::vector<int> multidim_as_vector, 
   std::vector<int> dims,
   std::vector<int> dims_sender,
@@ -420,7 +442,6 @@ arma::rowvec apply_windows_c(
   NumericVector times
 ) {
   int code_cnt = codes.n_cols;
-  int numCoOccurrences =( (code_cnt * (code_cnt + 1)) / 2) - code_cnt;
   
   std::vector<std::vector<int>> context_lookup = matrix_to_2d_vector(context_matrix);
   // std::vector<std::vector<int>> codes_matrix = armamatrix_to_2d_vector(codes);
@@ -435,6 +456,7 @@ arma::rowvec apply_windows_c(
   // std::cout << "Codes matrix: " << std::endl << codes << std::endl;
  
   arma::mat g_w_vec(code_cnt, code_cnt, arma::fill::zeros);
+  arma::mat unit_row_connection_counts(unit_rows.size(), code_cnt * code_cnt);
   arma::uvec upper_indices = trimatu_ind( size(g_w_vec), 1 );
   // std::cout << "UI: " << upper_indices << std::endl;
   
@@ -518,7 +540,8 @@ arma::rowvec apply_windows_c(
         arma::rowvec g_ws_vec = arma::sum(ground_codes_by_weight);
         arma::rowvec r_vec = codes.row(unit_row_i);
         
-        // std::cout << "g_ws_vec: " << g_ws_vec << std::endl;
+        // std::cout << "g_ws_vec: " << std::endl << ground_codes << std::endl;
+        // std::cout << "r_vec: " << std::endl << r_vec << std::endl;
         
         arma::mat counting_matrix = response_weight *(row_vec.t() * row_vec);
         // std::cout << "CM 1: " << std::endl << counting_matrix << std::endl;
@@ -528,7 +551,14 @@ arma::rowvec apply_windows_c(
         // std::cout << "CM 2: " << std::endl << counting_matrix2 << std::endl;
         // std::cout << "CM 3: " << std::endl << counting_matrix3 << std::endl;
         
-        g_w_vec = g_w_vec + (counting_matrix + counting_matrix2 + counting_matrix3);
+        // Directed
+        // (g_ws_vec %*% t(r_vec)) + 0.5 * w_rr * f_diag(r_vec %*% t(r_vec))
+        
+        // Only generating for standard ENA currently
+        arma::mat resp = calculate_adjacency_matrix(g_ws_vec, row_vec, response_weight);
+        g_w_vec = g_w_vec + resp;
+        
+        unit_row_connection_counts.row(i) = adjacency_matrix_to_vector(resp);
       }
       else {
         // std::cout << "-- No Ground Rows Passed --" << std::endl;
@@ -541,70 +571,99 @@ arma::rowvec apply_windows_c(
     }
   }
   
-  SEXP result = createListFromMultiDimArray(multidim_as_array2, dims);
-  
   deallocateArray(multidim_as_array2, dims);
 
-  arma::vec upper_part = g_w_vec(upper_indices);
+  arma::rowvec unit_connection_counts = adjacency_matrix_to_vector(g_w_vec);
   
-  return(upper_part.t());
+  Rcpp::List return_list = Rcpp::List::create(
+    Rcpp::Named("row_connection_counts") = unit_row_connection_counts,
+    Rcpp::Named("connection_counts") = unit_connection_counts
+  );
+  
+  return(return_list);
 }
 
 /*** R
-# data(test_mockdata, package = "tma")
-# mock_data <- test_mockdata;
-# mock_data <- mock_data[mock_data$chatGroup == "PAM",]
-# sender_cols <- c("role")
-# receiver_cols <- c("role")
-# mode_column <- "modality"
-# 
-# multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, 20000, 300)
-# # dims <- dim(multidim_arr)
-# # multidim_arr <- seq_along(multidim_arr)
-# # dim(multidim_arr) <- dims
-# 
-# unit_cols <- c("userID", "condition")
-# codes <- c("A", "B", "C")
-# HOO_rules_model <- tma:::rules(
-#   modality %in% "chat" & chatGroup %in% UNIT$chatGroup & condition %in% UNIT$condition, modality %in% "resource" & userID %in% UNIT$userID & condition %in% UNIT$condition
-# )
-# context_model <- tma:::contexts(
-#   x = mock_data,
-#   units = unit_cols,
-#   hoo_rules = HOO_rules_model
-# )
-# time_column = "timeStamp"
+data(test_mockdata, package = "tma")
+mock_data <- test_mockdata;
+mock_data <- mock_data[mock_data$chatGroup == "PAM",]
+sender_cols <- c("role")
+receiver_cols <- c("role")
+mode_column <- "modality"
 
-# context_lookup <- as.matrix(mock_data[, lapply(.SD, function(x) as.numeric(as.factor(x))), .SDcols = c(sender_cols, receiver_cols, mode_column)])
-# 
-# 
-# unit_1_context <- context_model$model$contexts$`User1::FirstHalf`;
-# unit_1_context_lookup <- as.matrix(unit_1_context[, lapply(.SD, function(x) as.numeric(as.factor(x))), .SDcols = c(sender_cols, receiver_cols, mode_column)]);
-# unit_1_rows <- attr(context_model$model$contexts$`User1::FirstHalf`, "tma.unit_rows")
-# unit_1_to_last <- seq.int(last(unit_1_rows));
-# 
-# res <- apply_windows_c(
-#   multidim_arr,
-#   attr(multidim_arr, "dim"), 
-#   attr(multidim_arr, "sender_inds") - 1,
-#   attr(multidim_arr, "receiver_inds") - 1,
-#   attr(multidim_arr, "mode_inds") - 1,
-#   unit_1_context_lookup[unit_1_to_last,] - 1,
-#   unit_1_rows - 1,
-#   as.matrix(unit_1_context[unit_1_to_last, ..codes]),
-#   unit_1_context[unit_1_to_last,][[time_column]]
-# )
-# 
+multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, 20, 1)
+# multidim_arr["Mentor", "L1", "chat", "weight"] <- 1
+# multidim_arr["Mentor", "L1", "resource", "weight"] <- 1
+# multidim_arr["Mentor", "L2", "chat", "weight"] <- 1
+# multidim_arr["Mentor", "L2", "resource", "weight"] <- 1
+# multidim_arr["Player", "L1", "chat", "weight"] <- 1
+# multidim_arr["Player", "L1", "resource", "weight"] <- 1
+# multidim_arr["Player", "L2", "chat", "weight"] <- 1
+# multidim_arr["Player", "L2", "resource", "weight"] <- 1
+
+# multidim_arr["Mentor", "L1", "chat", "window"] <- 800
+# multidim_arr["Mentor", "L1", "resource", "window"] <- 500
+# multidim_arr["Mentor", "L2", "chat", "window"] <- 20
+# multidim_arr["Mentor", "L2", "resource", "window"] <- 310
+# multidim_arr["Player", "L1", "chat", "window"] <- 320
+# multidim_arr["Player", "L1", "resource", "window"] <- 200
+# multidim_arr["Player", "L2", "chat", "window"] <- 150
+# multidim_arr["Player", "L2", "resource", "window"] <- 360
+
+# dims <- dim(multidim_arr)
+# multidim_arr <- seq_along(multidim_arr)
+# dim(multidim_arr) <- dims
+
+unit_cols <- c("userID", "condition")
+codes <- c("A", "B", "C")
+HOO_rules_model <- tma:::rules(
+  modality %in% "chat" & chatGroup %in% UNIT$chatGroup & condition %in% UNIT$condition, modality %in% "resource" & userID %in% UNIT$userID & condition %in% UNIT$condition
+)
+context_model <- tma:::contexts(
+  x = mock_data,
+  units = unit_cols,
+  hoo_rules = HOO_rules_model
+)
+# time_column = "timeStamp"
+time_column = tma:::ATTR_NAMES$CONTEXT_COL_ID
+context_lookup <- as.matrix(mock_data[, lapply(.SD, function(x) as.numeric(as.factor(x))), .SDcols = c(sender_cols, receiver_cols, mode_column)])
+
+unit_1_context <- context_model$model$contexts$`User1::FirstHalf`;
+unit_1_context_lookup <- as.matrix(unit_1_context[, lapply(.SD, function(x) as.numeric(as.factor(x))), .SDcols = c(sender_cols, receiver_cols, mode_column)]);
+unit_1_rows <- attr(context_model$model$contexts$`User1::FirstHalf`, "tma.unit_rows")
+unit_1_to_last <- seq.int(last(unit_1_rows));
+
+res <- apply_windows_c(
+  multidim_arr,
+  attr(multidim_arr, "dim"),
+  attr(multidim_arr, "sender_inds") - 1,
+  attr(multidim_arr, "receiver_inds") - 1,
+  attr(multidim_arr, "mode_inds") - 1,
+  unit_1_context_lookup[unit_1_to_last,] - 1,
+  unit_1_rows - 1,
+  as.matrix(unit_1_context[unit_1_to_last, ..codes]),
+  unit_1_context[unit_1_to_last,][[time_column]]
+)
+
+result_new <- accum_multidim(
+  mock_data,
+  multidim_arr, 
+  time_column,
+  codes,
+  context_model
+)
+
 # dims <- dim(multidim_arr)
 # res_as_array <- array(unlist(res), dim = dims);
 # all(res_as_array == multidim_arr)
 
-t(sapply(context_model$model$contexts, function(ctx) {
+
+result_cpp <- lapply(context_model$model$contexts, function(ctx) {
   # unit_1_context <- context_model$model$contexts$`User1::FirstHalf`;
   unit_1_context_lookup <- as.matrix(ctx[, lapply(.SD, function(x) as.numeric(as.factor(x))), .SDcols = c(sender_cols, receiver_cols, mode_column)]);
   unit_1_rows <- attr(ctx, "tma.unit_rows")
   unit_1_to_last <- seq.int(last(unit_1_rows));
-  
+
   res <- apply_windows_c(
     multidim_arr,
     attr(multidim_arr, "dim"),
@@ -616,11 +675,11 @@ t(sapply(context_model$model$contexts, function(ctx) {
     as.matrix(ctx[unit_1_to_last, ..codes]),
     ctx[unit_1_to_last,][[time_column]]
   )
-  
+
   # dims <- dim(multidim_arr)
   # res_as_array <- array(unlist(res), dim = dims);
   # all(res_as_array == multidim_arr)
-  
+
   res
-}))
+})
 */
