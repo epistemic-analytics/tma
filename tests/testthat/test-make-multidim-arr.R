@@ -1,9 +1,10 @@
 testthat::context("Test making multidimnesional array")
+data(test_mockdata, package = "tma")
+mock_data <- test_mockdata;
 
 testthat::test_that("no senders, no receivers, modality", {
   
   # load mock data
-  mock_data <- read.csv("../../vignettes/mock_data_edited.csv")
   mock_data <- mock_data[mock_data$chatGroup == "PAM",]
   
   # generate multidim arr
@@ -19,7 +20,6 @@ testthat::test_that("no senders, no receivers, modality", {
 testthat::test_that("sender, no receivers, no modality", {
   
   # load mock data
-  mock_data <- read.csv("../../vignettes/mock_data_edited.csv")
   mock_data <- mock_data[mock_data$chatGroup == "PAM",]
   
   # generate multidim arr
@@ -35,7 +35,6 @@ testthat::test_that("sender, no receivers, no modality", {
 testthat::test_that("no senders, receiver, no modality", {
   
   # load mock data
-  mock_data <- read.csv("../../vignettes/mock_data_edited.csv")
   mock_data <- mock_data[mock_data$chatGroup == "PAM",]
   
   # generate multidim arr
@@ -51,7 +50,6 @@ testthat::test_that("no senders, receiver, no modality", {
 testthat::test_that("sender, no receivers, modality", {
   
   # load mock data
-  mock_data <- read.csv("../../vignettes/mock_data_edited.csv")
   mock_data <- mock_data[mock_data$chatGroup == "PAM",]
   
   # generate multidim arr
@@ -68,7 +66,6 @@ testthat::test_that("sender, no receivers, modality", {
 testthat::test_that("no senders, receiver, modality", {
   
   # load mock data
-  mock_data <- read.csv("../../vignettes/mock_data_edited.csv")
   mock_data <- mock_data[mock_data$chatGroup == "PAM",]
   
   # generate multidim arr
@@ -86,7 +83,6 @@ testthat::test_that("no senders, receiver, modality", {
 testthat::test_that("sender, receiver, no modality", {
   
   # load mock data
-  mock_data <- read.csv("../../vignettes/mock_data_edited.csv")
   mock_data <- mock_data[mock_data$chatGroup == "PAM",]
   
   # generate multidim arr
@@ -103,7 +99,6 @@ testthat::test_that("sender, receiver, no modality", {
 testthat::test_that("sender, receiver, modality", {
   
   # load mock data
-  mock_data <- read.csv("../../vignettes/mock_data_edited.csv")
   mock_data <- mock_data[mock_data$chatGroup == "PAM",]
   
   # generate multidim arr
@@ -121,7 +116,6 @@ testthat::test_that("sender, receiver, modality", {
 testthat::test_that("senders, receiver, modality", {
   
   # load mock data
-  mock_data <- read.csv("../../vignettes/mock_data_edited.csv")
   mock_data <- mock_data[mock_data$chatGroup == "PAM",]
   
   # generate multidim arr
@@ -139,7 +133,6 @@ testthat::test_that("senders, receiver, modality", {
 testthat::test_that("sender, receivers, modality", {
   
   # load mock data
-  mock_data <- read.csv("../../vignettes/mock_data_edited.csv")
   mock_data <- mock_data[mock_data$chatGroup == "PAM",]
   
   # generate multidim arr
@@ -157,7 +150,6 @@ testthat::test_that("sender, receivers, modality", {
 testthat::test_that("senders, receivers, modality", {
   
   # load mock data
-  mock_data <- read.csv("../../vignettes/mock_data_edited.csv")
   mock_data <- mock_data[mock_data$chatGroup == "PAM",]
   
   # generate multidim arr
