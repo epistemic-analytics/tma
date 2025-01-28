@@ -421,7 +421,6 @@ arma::rowvec apply_windows_c(
 ) {
   int code_cnt = codes.n_cols;
   int numCoOccurrences =( (code_cnt * (code_cnt + 1)) / 2) - code_cnt;
-  std::cout << "Co-occurrences: " << numCoOccurrences << std::endl;
   
   std::vector<std::vector<int>> context_lookup = matrix_to_2d_vector(context_matrix);
   // std::vector<std::vector<int>> codes_matrix = armamatrix_to_2d_vector(codes);
@@ -435,8 +434,9 @@ arma::rowvec apply_windows_c(
   // print_2d_vector(codes_matrix);
   // std::cout << "Codes matrix: " << std::endl << codes << std::endl;
  
-  arma::mat g_w_vec(numCoOccurrences, numCoOccurrences, arma::fill::zeros);
+  arma::mat g_w_vec(code_cnt, code_cnt, arma::fill::zeros);
   arma::uvec upper_indices = trimatu_ind( size(g_w_vec), 1 );
+  // std::cout << "UI: " << upper_indices << std::endl;
   
   for(int i = 0; i < unit_rows.size(); ++i) {
     int unit_row_i = unit_rows[i];
@@ -444,11 +444,11 @@ arma::rowvec apply_windows_c(
 
     std::vector<int> response_context_lookup = context_lookup[unit_row_i];
     arma::rowvec row_vec = codes.row(unit_row_i);
-    int response_time = times[unit_row_i];
+    double response_time = times[unit_row_i];
 
     // std::cout << "Response context: "; print_vector(response_context_lookup);
     // std::cout << "Response codes: " << std::endl << row_vec << std::endl;
-    // std::cout << "Response time: " << std::endl << response_time << std::endl << std::endl;
+    // std::cout << "Response time: " << response_time << std::endl;
     
     // std::cout << "Response: " << std::endl;
     // print_vector(response_context_lookup);
@@ -477,7 +477,7 @@ arma::rowvec apply_windows_c(
 
       for (int ground_row = unit_row_i - 1; ground_row >= 0; ground_row --) {
         std::vector<int> row = context_ground[ground_row];
-        int ground_row_time = times[ground_row];
+        double ground_row_time = times[ground_row];
 
         // Adjust array lookup to account for response row values
         for (const auto& dim : dims_receiver) {
@@ -487,13 +487,17 @@ arma::rowvec apply_windows_c(
         row.push_back(1);
         
         std::reverse(row.begin(), row.end());
-        int row_win = getElement(multidim_as_array2, row);
+        double row_win = getElement(multidim_as_array2, row);
+        double ground_row_time_adj = ground_row_time + row_win;
+        double diff = ground_row_time_adj - response_time;
         
-        int ground_row_time_adj = ground_row_time + row_win;
-        // std::cout << "Diff: (" << ground_row_time << " + " << row_win << ") - " << response_time  << std::endl;
-        // std::cout << " -> adjusted: " << ground_row_time_adj << " - " << response_time << " = " << (ground_row_time_adj - response_time) << std::endl; 
+        // std::cout << " -> g time: " << ground_row_time << std::endl;
+        // std::cout << " -> row_win: " << row_win << std::endl;
+        // std::cout << " -> adjusted: " << ground_row_time_adj << std::endl;
+        // std::cout << " -> r time: " << response_time << std::endl;
+        // std::cout << " -> diff: " << diff << std::endl;
         
-        if(ground_row_time_adj - response_time >= 0) {
+        if(diff >= 0) {
           // std::cout << "Found ground row: " << ground_row << std::endl;
           insert_element(ground_rows_to_include, ground_row);
           // ground_rows_to_include.push_back(ground_row);
@@ -594,4 +598,29 @@ arma::rowvec apply_windows_c(
 # dims <- dim(multidim_arr)
 # res_as_array <- array(unlist(res), dim = dims);
 # all(res_as_array == multidim_arr)
+
+t(sapply(context_model$model$contexts, function(ctx) {
+  # unit_1_context <- context_model$model$contexts$`User1::FirstHalf`;
+  unit_1_context_lookup <- as.matrix(ctx[, lapply(.SD, function(x) as.numeric(as.factor(x))), .SDcols = c(sender_cols, receiver_cols, mode_column)]);
+  unit_1_rows <- attr(ctx, "tma.unit_rows")
+  unit_1_to_last <- seq.int(last(unit_1_rows));
+  
+  res <- apply_windows_c(
+    multidim_arr,
+    attr(multidim_arr, "dim"),
+    attr(multidim_arr, "sender_inds") - 1,
+    attr(multidim_arr, "receiver_inds") - 1,
+    attr(multidim_arr, "mode_inds") - 1,
+    unit_1_context_lookup[unit_1_to_last,] - 1,
+    unit_1_rows - 1,
+    as.matrix(ctx[unit_1_to_last, ..codes]),
+    ctx[unit_1_to_last,][[time_column]]
+  )
+  
+  # dims <- dim(multidim_arr)
+  # res_as_array <- array(unlist(res), dim = dims);
+  # all(res_as_array == multidim_arr)
+  
+  res
+}))
 */
