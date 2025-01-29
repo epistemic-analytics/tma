@@ -294,58 +294,70 @@ void print_2d_vector(const std::vector<std::vector<int>>& vec) {
 //' @export
 // [[Rcpp::export]]
 Rcpp::List apply_windows_d(
-   Rcpp::NumericVector multidim_as_vector, 
-   Rcpp::IntegerVector dims,
+   Rcpp::NumericVector multidim_as_vector, // vectorized multidim arr
+   Rcpp::IntegerVector dims, // colnames of senders, receivers, and modes along with weight/window
    std::vector<int> dims_sender,
    std::vector<int> dims_receiver,
    std::vector<int> dims_mode,
-   Rcpp::NumericMatrix context_matrix,
-   std::vector<int> unit_rows,
-   arma::mat codes,
-   Rcpp::NumericVector times
+   Rcpp::NumericMatrix context_matrix, // matrix of this unit's context 
+   std::vector<int> unit_rows, // vector of indices of unit's (response) rows in context
+   arma::mat codes, // matrix of nrows(context) x |codes| 
+   Rcpp::NumericVector times // vector of times of length nrows(context))
 ) {
- std::vector<int> dims_v(dims.begin(), dims.end());
- int code_cnt = codes.n_cols;
+ std::vector<int> dims_v(dims.begin(), dims.end()); // vectorize dims (colnames of senders, receivers, and modes along with weight/window)  
+ int code_cnt = codes.n_cols; // get # of codes 
  
+ // convert context datatable to 2D C vector
  std::vector<std::vector<int>> context_lookup = matrix_to_2d_vector(context_matrix);
  
- int index = 0;
- int dim_start = dims.size() - 1;
+ int index = 0; 
+ int dim_start = dims.size() - 1; // start processing dims in reverse order (?)
  
- arma::mat g_w_vec(code_cnt, code_cnt, arma::fill::zeros);
- arma::mat unit_row_connection_counts(unit_rows.size(), code_cnt * code_cnt);
- arma::uvec upper_indices = trimatu_ind( size(g_w_vec), 1 );
+ arma::mat g_w_vec(code_cnt, code_cnt, arma::fill::zeros); // initialize g_w_vec matrix as |codes| x |codes| of all 0s 
+ arma::mat unit_row_connection_counts(unit_rows.size(), code_cnt * code_cnt); // initialize matrix to return of |unit's rows in context| x |codes^2| (ordered, for now)
+ arma::uvec upper_indices = trimatu_ind( size(g_w_vec), 1 ); // indices of upper triangle; for ENA 
  
+ // iterate over all of this unit's rows 
  for(int i = 0; i < unit_rows.size(); ++i) {
-   int unit_row_i = unit_rows[i];
+   int unit_row_i = unit_rows[i]; // get current unit row
    
+   // get response line for this current unit row  
    std::vector<int> response_context_lookup = context_lookup[unit_row_i];
-   arma::rowvec row_vec = codes.row(unit_row_i);
-   double response_time = times[unit_row_i];
+   arma::rowvec row_vec = codes.row(unit_row_i); // get response codes 
+   double response_time = times[unit_row_i]; // get response time 
    
-   response_context_lookup.push_back(0);
-   int response_win_idx = calculate_1d_index(response_context_lookup, dims_v);
+   
+   response_context_lookup.push_back(0); // add a 0 to the end of response line; indicates that we are getting windows
+   // calculate_1d_index calculates index offsetted into 1d multidim_arr (vectorized); this gets idx of receiver vals, and then we get them
+   int response_win_idx = calculate_1d_index(response_context_lookup, dims_v); 
    int response_win = multidim_as_vector[response_win_idx];
    // std::cout << "Response context window: "; print_vector(response_context_lookup);
    
-   response_context_lookup[response_context_lookup.size() - 1] = 1;
+   
+   response_context_lookup[response_context_lookup.size() - 1] = 1; // set the end of response line (set to 0 earlier) to 1; indicates that we are getting weights
    // std::cout << "Response context weight: "; print_vector(response_context_lookup);
-   int response_wgt_idx = calculate_1d_index(response_context_lookup, dims_v);
+   int response_wgt_idx = calculate_1d_index(response_context_lookup, dims_v); // same thing as above, except for receiver weight 
    int response_weight = multidim_as_vector[response_wgt_idx];
    
-   arma::uvec ground_rows_to_include;
-   arma::colvec ground_row_weights;
+   arma::uvec ground_rows_to_include; // vector of rows to keep 
+   arma::colvec ground_row_weights; // vector of weights (to apply to kept rows)
    
-   if(unit_row_i > 0) {
+   if(unit_row_i > 0) { // proceed w/ TIF and weighting of g_vecs if it isn't the first row (otherwise, no ground)
+     
+     // only look at stuff from beginning of ground to the current response line 
      std::vector<std::vector<int>> context_ground = std::vector<std::vector<int>>(context_lookup.begin(), context_lookup.begin() + unit_row_i);
      
-     
+     // unfiltered g_vecs are ground rows from just before response line all the way to top of context
      for (int ground_row = unit_row_i - 1; ground_row >= 0; ground_row --) {
-       double ground_row_time = times[ground_row];
+       double ground_row_time = times[ground_row]; // get time for this ground row (not doing select-all-times at once approach...?)
        
        // Rcpp::IntegerVector row = Rcpp::as<Rcpp::IntegerVector>(Rcpp::wrap(context_ground[ground_row]));
-       std::vector<int> row_v = context_ground[ground_row];
+       std::vector<int> row_v = context_ground[ground_row]; // get actual ground row from context (using ground_row idx)
        
+       
+       
+       // Set the values related to the response row to those of the response row in the ground vector; this way, we can pull all the values from 
+       // multidim_arr using just the ground row 
        // Adjust array lookup to account for response row values
        for (const auto& dim : dims_receiver) {
          row_v[dim] = response_context_lookup[dim];
@@ -356,16 +368,18 @@ Rcpp::List apply_windows_d(
        
        // std::reverse(row.begin(), row.end());
        int row_wgt_idx = calculate_1d_index(row_v, dims_v);
-       double row_win = multidim_as_vector[row_wgt_idx];
-       double ground_row_time_adj = ground_row_time + row_win;
+       double row_win = multidim_as_vector[row_wgt_idx]; // get ground window 
+       
+       double ground_row_time_adj = ground_row_time + row_win; // this computation for the TIF makes sense, I think (?)
        double diff = ground_row_time_adj - response_time;
        
        if(diff >= 0) {
-         insert_element(ground_rows_to_include, ground_row);
+         insert_element(ground_rows_to_include, ground_row); 
          
          row_v[row_v.size() - 1] = 1;
          // std::cout << "Ground context row weight: "; print_vector(row_v);
          
+         // apply weights
          int row_wgt_idx = calculate_1d_index(row_v, dims_v);
          int row_wgt = multidim_as_vector[row_wgt_idx];
          
@@ -376,13 +390,15 @@ Rcpp::List apply_windows_d(
      
      if(ground_rows_to_include.size() > 0) {
        arma::mat ground_codes = codes.rows(ground_rows_to_include);
-       arma::mat ground_codes_by_weight = ground_codes.each_col() % ground_row_weights;
-       arma::rowvec g_ws_vec = arma::sum(ground_codes_by_weight);
-       arma::rowvec r_vec = codes.row(unit_row_i);
+       arma::mat ground_codes_by_weight = ground_codes.each_col() % ground_row_weights; // apply weights w/ hadamard (element-wise) product
+       arma::rowvec g_ws_vec = arma::sum(ground_codes_by_weight); // sum codes 
+       arma::rowvec r_vec = codes.row(unit_row_i); // get response codes, unweighted
        
-       arma::mat resp = calculate_adjacency_matrix(g_ws_vec, row_vec, response_weight);
+       // make g_w_vec, adjacency matrix
+       arma::mat resp = calculate_adjacency_matrix(g_ws_vec, row_vec, response_weight); 
        g_w_vec = g_w_vec + resp;
        
+       // add this response line's connection counts to a matrix of |unit rows| x |connections| 
        unit_row_connection_counts.row(i) = adjacency_matrix_to_vector(resp);
      }
      else {
@@ -399,6 +415,7 @@ Rcpp::List apply_windows_d(
  
  // deallocateArray(multidim_as_array2, dims);
  
+ // vectorize this unit's connection counts and return what we'd like for a single unit 
  arma::rowvec unit_connection_counts = adjacency_matrix_to_vector(g_w_vec);
  
  Rcpp::List return_list = Rcpp::List::create(
