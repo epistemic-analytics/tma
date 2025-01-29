@@ -23,15 +23,15 @@ BEGIN_RCPP
 END_RCPP
 }
 // accumulate_network
-Rcpp::List accumulate_network(std::string unit, SEXP unit_rows_sexp, NumericVector code_cols, Function decay_function, int time_col, bool ordered);
+Rcpp::List accumulate_network(std::string unit, SEXP unit_rows_sexp, Rcpp::NumericVector code_cols, Rcpp::Function decay_function, int time_col, bool ordered);
 RcppExport SEXP _tma_accumulate_network(SEXP unitSEXP, SEXP unit_rows_sexpSEXP, SEXP code_colsSEXP, SEXP decay_functionSEXP, SEXP time_colSEXP, SEXP orderedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< std::string >::type unit(unitSEXP);
     Rcpp::traits::input_parameter< SEXP >::type unit_rows_sexp(unit_rows_sexpSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type code_cols(code_colsSEXP);
-    Rcpp::traits::input_parameter< Function >::type decay_function(decay_functionSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type code_cols(code_colsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Function >::type decay_function(decay_functionSEXP);
     Rcpp::traits::input_parameter< int >::type time_col(time_colSEXP);
     Rcpp::traits::input_parameter< bool >::type ordered(orderedSEXP);
     rcpp_result_gen = Rcpp::wrap(accumulate_network(unit, unit_rows_sexp, code_cols, decay_function, time_col, ordered));
@@ -39,14 +39,14 @@ BEGIN_RCPP
 END_RCPP
 }
 // accumulate_networks
-Rcpp::List accumulate_networks(List x, NumericVector code_cols, Function decay_function, int time_col, bool ordered);
+Rcpp::List accumulate_networks(Rcpp::List x, Rcpp::NumericVector code_cols, Rcpp::Function decay_function, int time_col, bool ordered);
 RcppExport SEXP _tma_accumulate_networks(SEXP xSEXP, SEXP code_colsSEXP, SEXP decay_functionSEXP, SEXP time_colSEXP, SEXP orderedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< List >::type x(xSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type code_cols(code_colsSEXP);
-    Rcpp::traits::input_parameter< Function >::type decay_function(decay_functionSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type x(xSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type code_cols(code_colsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Function >::type decay_function(decay_functionSEXP);
     Rcpp::traits::input_parameter< int >::type time_col(time_colSEXP);
     Rcpp::traits::input_parameter< bool >::type ordered(orderedSEXP);
     rcpp_result_gen = Rcpp::wrap(accumulate_networks(x, code_cols, decay_function, time_col, ordered));
@@ -78,22 +78,34 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// apply_windows_c
-Rcpp::List apply_windows_c(std::vector<int> multidim_as_vector, std::vector<int> dims, std::vector<int> dims_sender, std::vector<int> dims_receiver, std::vector<int> dims_mode, NumericMatrix context_matrix, std::vector<int> unit_rows, arma::mat codes, NumericVector times);
-RcppExport SEXP _tma_apply_windows_c(SEXP multidim_as_vectorSEXP, SEXP dimsSEXP, SEXP dims_senderSEXP, SEXP dims_receiverSEXP, SEXP dims_modeSEXP, SEXP context_matrixSEXP, SEXP unit_rowsSEXP, SEXP codesSEXP, SEXP timesSEXP) {
+// calculate_1d_index
+int calculate_1d_index(const std::vector<int>& indices, const std::vector<int>& dims);
+RcppExport SEXP _tma_calculate_1d_index(SEXP indicesSEXP, SEXP dimsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< std::vector<int> >::type multidim_as_vector(multidim_as_vectorSEXP);
-    Rcpp::traits::input_parameter< std::vector<int> >::type dims(dimsSEXP);
+    Rcpp::traits::input_parameter< const std::vector<int>& >::type indices(indicesSEXP);
+    Rcpp::traits::input_parameter< const std::vector<int>& >::type dims(dimsSEXP);
+    rcpp_result_gen = Rcpp::wrap(calculate_1d_index(indices, dims));
+    return rcpp_result_gen;
+END_RCPP
+}
+// apply_windows_d
+Rcpp::List apply_windows_d(Rcpp::NumericVector multidim_as_vector, Rcpp::IntegerVector dims, std::vector<int> dims_sender, std::vector<int> dims_receiver, std::vector<int> dims_mode, Rcpp::NumericMatrix context_matrix, std::vector<int> unit_rows, arma::mat codes, Rcpp::NumericVector times);
+RcppExport SEXP _tma_apply_windows_d(SEXP multidim_as_vectorSEXP, SEXP dimsSEXP, SEXP dims_senderSEXP, SEXP dims_receiverSEXP, SEXP dims_modeSEXP, SEXP context_matrixSEXP, SEXP unit_rowsSEXP, SEXP codesSEXP, SEXP timesSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type multidim_as_vector(multidim_as_vectorSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type dims(dimsSEXP);
     Rcpp::traits::input_parameter< std::vector<int> >::type dims_sender(dims_senderSEXP);
     Rcpp::traits::input_parameter< std::vector<int> >::type dims_receiver(dims_receiverSEXP);
     Rcpp::traits::input_parameter< std::vector<int> >::type dims_mode(dims_modeSEXP);
-    Rcpp::traits::input_parameter< NumericMatrix >::type context_matrix(context_matrixSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type context_matrix(context_matrixSEXP);
     Rcpp::traits::input_parameter< std::vector<int> >::type unit_rows(unit_rowsSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type codes(codesSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type times(timesSEXP);
-    rcpp_result_gen = Rcpp::wrap(apply_windows_c(multidim_as_vector, dims, dims_sender, dims_receiver, dims_mode, context_matrix, unit_rows, codes, times));
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type times(timesSEXP);
+    rcpp_result_gen = Rcpp::wrap(apply_windows_d(multidim_as_vector, dims, dims_sender, dims_receiver, dims_mode, context_matrix, unit_rows, codes, times));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -104,7 +116,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_tma_accumulate_networks", (DL_FUNC) &_tma_accumulate_networks, 5},
     {"_tma_calculate_adjacency_matrix", (DL_FUNC) &_tma_calculate_adjacency_matrix, 3},
     {"_tma_adjacency_matrix_to_vector", (DL_FUNC) &_tma_adjacency_matrix_to_vector, 2},
-    {"_tma_apply_windows_c", (DL_FUNC) &_tma_apply_windows_c, 9},
+    {"_tma_calculate_1d_index", (DL_FUNC) &_tma_calculate_1d_index, 2},
+    {"_tma_apply_windows_d", (DL_FUNC) &_tma_apply_windows_d, 9},
     {NULL, NULL, 0}
 };
 

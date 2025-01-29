@@ -5,15 +5,14 @@
 #
 # @return matrix
 adjacency_key <- function(codes, upper = TRUE) {
-  n <- length(codes);
+  expanded <- expand.grid(codes, codes);
+  rownames(expanded) <- apply(expanded, 1, paste, collapse = " & ");
   if(upper == TRUE) {
-    matrix(c(
-      codes[sequence((1:n-1))],
-      codes[rep((2:n), times = (1:(n-1)))]
-    ), byrow = TRUE, nrow = 2)
+    upper_inds <- which(upper.tri(matrix(nrow = length(codes), ncol = length(codes))));
+    t(expanded[upper_inds,])
   }
   else {
-    stop("Not implemented")
+    t(expanded);
   }
 }
 

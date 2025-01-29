@@ -35,7 +35,12 @@ adjacency_matrix_to_vector <- function(x, full = TRUE) {
 }
 
 #' @export
-apply_windows_c <- function(multidim_as_vector, dims, dims_sender, dims_receiver, dims_mode, context_matrix, unit_rows, codes, times) {
-    .Call(`_tma_apply_windows_c`, multidim_as_vector, dims, dims_sender, dims_receiver, dims_mode, context_matrix, unit_rows, codes, times)
+calculate_1d_index <- function(indices, dims) {
+    .Call(`_tma_calculate_1d_index`, indices, dims)
+}
+
+#' @export
+apply_windows_d <- function(multidim_as_vector, dims, dims_sender, dims_receiver, dims_mode, context_matrix, unit_rows, codes, times) {
+    .Call(`_tma_apply_windows_d`, multidim_as_vector, dims, dims_sender, dims_receiver, dims_mode, context_matrix, unit_rows, codes, times)
 }
 

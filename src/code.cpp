@@ -2,9 +2,6 @@
 
 #include <RcppArmadillo.h>
 
-using namespace Rcpp;
-using namespace arma;
-
 //' @title n choose 2
 //' @param n int
 //' @export
@@ -44,14 +41,14 @@ arma::rowvec vector_to_summed_uppertri(arma::vec blank) {
 Rcpp::List accumulate_network(
   std::string unit,
   SEXP unit_rows_sexp, 
-  NumericVector code_cols,
-  Function decay_function,
+  Rcpp::NumericVector code_cols,
+  Rcpp::Function decay_function,
   int time_col = -1,
   bool ordered = true
 ) {
   // Rcpp::Rcout << "1" << std::endl;
   arma::vec blank(code_cols.size() * code_cols.size());
-  Rcpp::DataFrame unit_rows = Rcpp::as<Rcpp::DataFrame>(wrap(unit_rows_sexp));
+  Rcpp::DataFrame unit_rows = Rcpp::as<Rcpp::DataFrame>(Rcpp::wrap(unit_rows_sexp));
   Rcpp::NumericMatrix codes(unit_rows.nrow(), code_cols.size());
 
   Rcpp::CharacterVector qeunit_col = unit_rows["QEUNIT"];
@@ -66,23 +63,23 @@ Rcpp::List accumulate_network(
   arma::mat individual_networks(qeunit_row_indices.size(), (code_cols.size() * code_cols.size()) );
   for(int i = 0; i < code_cols.size(); i++) {
     Rcpp::NumericVector     unit_code_col = unit_rows[code_cols[i]];
-    Rcpp::NumericMatrix::Column codes_col = codes(_, i);
+    Rcpp::NumericMatrix::Column codes_col = codes(Rcpp::_, i);
     codes_col = unit_code_col;
   }
 
   // Environment decay_fun_env(decay_function);
-  Environment decay_fun_env = decay_function.environment();
+  Rcpp::Environment decay_fun_env = decay_function.environment();
   
   // Rcpp::Rcout << "3" << std::endl;
   for(int i = 0; i < qeunit_row_indices.size(); i++) {
     int unit_response_row = qeunit_row_indices[i];
     
-    arma::uvec ground_rows = arma::regspace<uvec>(0, 1, unit_response_row);
-    Rcpp::NumericVector ground_rows2 = Rcpp::as<Rcpp::NumericVector>(wrap(ground_rows));
-    NumericVector ground_dist_from_response(ground_rows.size());
+    arma::uvec ground_rows = arma::regspace<arma::uvec>(0, 1, unit_response_row);
+    Rcpp::NumericVector ground_rows2 = Rcpp::as<Rcpp::NumericVector>(Rcpp::wrap(ground_rows));
+    Rcpp::NumericVector ground_dist_from_response(ground_rows.size());
     if (time_col == -1) {
-      ground_dist_from_response = seq(0, ground_rows.size()-1);
-      std::reverse(ground_dist_from_response.begin(), ground_dist_from_response.end());
+      ground_dist_from_response = Rcpp::seq(0, ground_rows.size()-1);
+      // std::reverse(ground_dist_from_response.begin(), ground_dist_from_response.end());
     }
     else {
       arma::uvec times = Rcpp::as<arma::uvec>(wrap(unit_rows[time_col]));
@@ -122,11 +119,11 @@ Rcpp::List accumulate_network(
     // }
     // // all_rows[all_rows.size() - 1] = unit_response_row + 2;
     
-    arma::vec decay_effect = as<arma::vec>(wrap(decay_function(ground_dist_from_response)));
+    arma::vec decay_effect = Rcpp::as<arma::vec>(Rcpp::wrap(decay_function(ground_dist_from_response)));
 
-    NumericMatrix ground_codes_raw = codes( Range( ground_rows[0], ground_rows[ground_rows.size() - 1]  ), _);
+    Rcpp::NumericMatrix ground_codes_raw = codes( Rcpp::Range( ground_rows[0], ground_rows[ground_rows.size() - 1]  ), Rcpp::_);
     
-    arma::mat ground_codes_mat = as<arma::mat>(ground_codes_raw);
+    arma::mat ground_codes_mat = Rcpp::as<arma::mat>(ground_codes_raw);
     arma::mat codes_decayed(ground_codes_mat.n_rows, ground_codes_mat.n_cols);
     for(int j = 0; j < codes_decayed.n_rows; j ++) {
       codes_decayed.row(j) = ground_codes_mat.row(j) * decay_effect[j];
@@ -149,11 +146,11 @@ Rcpp::List accumulate_network(
     blank = blank + full_connection_vec;
   }
 
-  NumericMatrix individual_networks_nm = Rcpp::as<Rcpp::NumericMatrix>(Rcpp::wrap(individual_networks));
+  Rcpp::NumericMatrix individual_networks_nm = Rcpp::as<Rcpp::NumericMatrix>(Rcpp::wrap(individual_networks));
   
-  Function subset("[.data.frame");
+  Rcpp::Function subset("[.data.frame");
   individual_networks_nm.attr("unit_rows") = subset(unit_rows, qeunit_row_indices + 1, R_MissingArg);
-  CharacterVector classes = {"unit.rows","list"};
+  Rcpp::CharacterVector classes = {"unit.rows","list"};
   individual_networks_nm.attr("class") = classes;
  
   arma::rowvec network_vector;
@@ -166,7 +163,7 @@ Rcpp::List accumulate_network(
   // Rcpp::Rcout << "5" << std::endl;
   
   return Rcpp::List::create(
-    Rcpp::Named("networks") = as<std::vector<double>>(wrap(network_vector)),
+    Rcpp::Named("networks") = Rcpp::as<std::vector<double>>(Rcpp::wrap(network_vector)),
     Rcpp::Named("row_networks") = individual_networks_nm
   );
 }
@@ -181,15 +178,15 @@ Rcpp::List accumulate_network(
 //' @export
 // [[Rcpp::export]]
 Rcpp::List accumulate_networks(
-  List x,
-  NumericVector code_cols,
-  Function decay_function,
+    Rcpp::List x,
+    Rcpp::NumericVector code_cols,
+    Rcpp::Function decay_function,
   int time_col = -1,
   bool ordered = true
 ) {
-  List model = x["model"];
-  List contexts = model["contexts"];
-  CharacterVector units = model["unit.labels"];
+  Rcpp::List model = x["model"];
+  Rcpp::List contexts = model["contexts"];
+  Rcpp::CharacterVector units = model["unit.labels"];
   
   // Rcpp::Rcout << "N codes: " << code_cols.size() << std::endl;
   int ncol = code_cols.size() * code_cols.size();
@@ -197,16 +194,16 @@ Rcpp::List accumulate_networks(
     ncol = choose_two(code_cols.size());
     // Rcpp::Rcout << "Ncol: " << ncol << std::endl;
   }
-  NumericMatrix blank(units.size(), ncol);
+  Rcpp::NumericMatrix blank(units.size(), ncol);
   Rcpp::List unit_networks_by_row = Rcpp::List::create();
   
   for(int i = 0; i < units.size(); i++) {
-    NumericMatrix::Row unit_row = blank.row(i);
-    std::string unit_name = as<std::string>(wrap(units[i]));
+    Rcpp::NumericMatrix::Row unit_row = blank.row(i);
+    std::string unit_name = Rcpp::as<std::string>(Rcpp::wrap(units[i]));
     
     Rcpp::List accumulated = accumulate_network(unit_name, contexts[unit_name], code_cols, decay_function, time_col, ordered);
-    NumericVector unit_network_conv = as<NumericVector>(wrap(accumulated["networks"]));
-    NumericMatrix row_networks = accumulated["row_networks"];
+    Rcpp::NumericVector unit_network_conv = Rcpp::as<Rcpp::NumericVector>(Rcpp::wrap(accumulated["networks"]));
+    Rcpp::NumericMatrix row_networks = accumulated["row_networks"];
     
     unit_networks_by_row[unit_name] = row_networks;
     unit_row = unit_network_conv;
@@ -218,184 +215,60 @@ Rcpp::List accumulate_networks(
   );
 }
 
-#include <iostream>
-#include <vector>
-
-template <typename T>
-T* allocateArray(const std::vector<int>& sizes, int dimension = 0) {
-  if (dimension == sizes.size() - 1) {
-    return new T[sizes[dimension]];
-  }
-  else {
-    T** array = new T*[sizes[dimension]];
-    for (int i = 0; i < sizes[dimension]; ++i) {
-      array[i] = allocateArray<T>(sizes, dimension + 1);
-    }
-    return reinterpret_cast<T*>(array);
-  }
+//' @export
+// [[Rcpp::export]]
+arma::mat calculate_adjacency_matrix(arma::rowvec ground, arma::rowvec response, double response_weight) {
+ arma::mat response_matrix = response.t() * response;
+ response_matrix.diag().zeros();
+ 
+ arma::mat ground_by_response = ground.t() * response;
+ 
+ return ground_by_response + (0.5 * response_weight * response_matrix);
 }
 
-template <typename T>
-T* allocateAndInitializeArray(
-  const std::vector<int>& sizes, 
-  const std::vector<T>& values, 
-  int& index, int dimension = 0
-) {
-  if (dimension == sizes.size() - 1) {
-    T* array = new T[sizes[dimension]];
-    for (int i = 0; i < sizes[dimension]; ++i) {
-      array[i] = values[index++];
-    }
-    return array;
-  }
-  else {
-    T** array = new T*[sizes[dimension]];
-    for (int i = 0; i < sizes[dimension]; ++i) {
-      array[i] = allocateAndInitializeArray<T>(sizes, values, index, dimension + 1);
-    }
-    return reinterpret_cast<T*>(array);
-  }
+//' @export
+// [[Rcpp::export]]
+arma::rowvec adjacency_matrix_to_vector(arma::mat x, bool full = true) {
+ if(full == true) {
+   return arma::vectorise(x).t();
+ }
+ else {
+   arma::mat combined = arma::trimatu(x, 1) + arma::trimatl(x, -1);
+   arma::uvec combined_tri_inds = arma::trimatu_ind(arma::size(combined), 1); 
+   return arma::vectorise(combined(combined_tri_inds)).t();
+ }
 }
 
-template <typename T>
-T* allocateAndInitializeArrayRev(
-    const std::vector<int>& sizes, 
-    const std::vector<T>& values, 
-    int& index, int dimension = 0, int indent = 0
-) {
-  // Rcpp::Rcout << dimension << std::endl;
-  // if (dimension == sizes.size() - 1) {
-  if (dimension == 0) {
-    T* array = new T[sizes[dimension]];
-    for (int i = 0; i < sizes[dimension]; ++i) {
-      int add_val = values[index++];
-      // std::cout << std::string(indent, ' ') << "Dimension " << dimension << " -> " << "Adding value: " << add_val << std::endl;
-      array[i] = add_val;
-    }
-    return array;
-  }
-  else {
-    T** array = new T*[sizes[dimension]];
-    for (int i = 0; i < sizes[dimension]; ++i) {
-      // std::cout << "Dimension: " << i << std::endl;
-      // std::cout << std::string(indent, ' ') << "Dimension " << dimension << " - " << i << """:" << std::endl;
-      array[i] = allocateAndInitializeArrayRev<T>(sizes, values, index, dimension - 1, ++indent);
-    }
-    return reinterpret_cast<T*>(array);
-  }
-}
-
-template <typename T>
-void deallocateArray(T* array, const std::vector<int>& sizes, int dimension = 0) {
-  if (dimension == sizes.size() - 1) {
-    delete[] array;
-  } else {
-    for (int i = 0; i < sizes[dimension]; ++i) {
-      deallocateArray(reinterpret_cast<T**>(array)[i], sizes, dimension + 1);
-    }
-    delete[] reinterpret_cast<T**>(array);
-  }
-}
-
-std::vector<std::vector<int>> matrix_to_2d_vector(NumericMatrix mat) {
+std::vector<std::vector<int>> matrix_to_2d_vector(Rcpp::NumericMatrix mat) {
   int n = mat.nrow();
   std::vector<std::vector<int>> vec(n);
   
   for (int i = 0; i < n; ++i) {
-    NumericVector row = mat(i, _); // Extract the i-th row
+    Rcpp::NumericVector row = mat(i, Rcpp::_); // Extract the i-th row
     vec[i] = Rcpp::as<std::vector<int>>(row); // Convert the row to std::vector<int>
   }
   return vec;
 }
-std::vector<std::vector<int>> armamatrix_to_2d_vector(arma::mat mat) {
-  int n = mat.n_rows;
-  std::vector<std::vector<int>> vec(n);
-  
-  for (int i = 0; i < n; ++i) {
-    arma::rowvec row = mat.row(i); // Extract the i-th row
-    // vec[i] = Rcpp::as<std::vector<int>>(row); // Convert the row to std::vector<int>
-    
-    std::vector<int> std_vec(row.begin(), row.end());
-    vec[i] = std_vec;
-  }
-  return vec;
-}
 
-void print_vector(const std::vector<int>& row) {
-  for (const auto& elem : row) {
-    std::cout << elem << " ";
-  }
-  std::cout << std::endl;
-}
-void print_2d_vector(const std::vector<std::vector<int>>& vec) {
-  for (const auto& row : vec) {
-    print_vector(row);
-  }
-}
-
-template <typename T>
-void printArray(T* array, const std::vector<int>& sizes, int dimension = 0, int indent = 0) {
-  if (dimension == sizes.size() - 1) {
-    for (int i = 0; i < sizes[dimension]; ++i) {
-      std::cout << std::string(indent, ' ') << array[i] << " ";
-    }
-    std::cout << std::endl;
-  } 
-  else {
-    for (int i = 0; i < sizes[dimension]; ++i) {
-      std::cout << std::string(indent, ' ') << "Dimension " << dimension << ", Index " << i << ":" << std::endl;
-      printArray(reinterpret_cast<T**>(array)[i], sizes, dimension + 1, indent + 2);
-    }
-  }
-}
-
-template <typename T>
-SEXP createListFromMultiDimArray(T* array, const std::vector<int>& sizes, int dimension = 0) {
-  if (dimension == sizes.size() - 1) {
-    NumericVector vec(sizes[dimension]);
-    for (int i = 0; i < sizes[dimension]; ++i) {
-      vec[i] = array[i];
-    }
-    return vec;
-  } else {
-    List list(sizes[dimension]);
-    for (int i = 0; i < sizes[dimension]; ++i) {
-      list[i] = createListFromMultiDimArray(reinterpret_cast<T**>(array)[i], sizes, dimension + 1);
-    }
-    return list;
-  }
-}
-
-template <typename T>
-T getElement(T* array, const std::vector<int>& indices, int dimension = 0) {
-  if (dimension == indices.size() - 1) {
-    return array[indices[dimension]];
-  } else {
-    T** arrayNext = reinterpret_cast<T**>(array);
-    return getElement(arrayNext[indices[dimension]], indices, dimension + 1);
-  }
-}
-
-NumericMatrix subsetRowsByIndices(const NumericMatrix& mat, const std::vector<int>& indices) {
-  int nrows = indices.size();
-  int ncols = mat.ncol();
-  NumericMatrix result(nrows, ncols);
-  
-  for (int i = 0; i < nrows; ++i) {
-    int rowIndex = indices[i];
-    if (rowIndex >= 0 && rowIndex < mat.nrow()) {
-      for (int j = 0; j < ncols; ++j) {
-        result(i, j) = mat(rowIndex, j);
-      }
-    } else {
-      Rcpp::stop("Index out of bounds");
-    }
+//' @export
+// [[Rcpp::export]]
+int calculate_1d_index(const std::vector<int>& indices, const std::vector<int>& dims) {
+  if (indices.size() != dims.size()) {
+    throw std::invalid_argument("Number of indices must match number of dimensions.");
   }
   
-  return result;
+  int index = 0;
+  int stride = 1;
+  for (int i = dims.size() - 1; i >= 0; --i) {
+    if (indices[i] < 0 || indices[i] >= dims[i]) {
+      throw std::out_of_range("Index out of range.");
+    }
+    index += indices[i] * stride;
+    stride *= dims[i];
+  }
+  return index;
 }
 
-// Function to insert elements dynamically
 void insert_element(arma::uvec& vec, double value) {
   // Add a new row at the end
   vec.insert_rows(vec.n_rows, 1);
@@ -404,186 +277,154 @@ void insert_element(arma::uvec& vec, double value) {
   vec(vec.n_rows - 1) = value;
 }
 
-//' @export
- // [[Rcpp::export]]
-arma::mat calculate_adjacency_matrix(arma::rowvec ground, arma::rowvec response, double response_weight) {
-  arma::mat response_matrix = response.t() * response;
-  response_matrix.diag().zeros();
-  
-  arma::mat ground_by_response = ground.t() * response;
-  
-  return ground_by_response + (0.5 * response_weight * response_matrix);
+
+void print_vector(const std::vector<int>& row) {
+  for (const auto& elem : row) {
+    std::cout << elem << " ";
+  }
+  std::cout << std::endl;
 }
 
-//' @export
- // [[Rcpp::export]]
-arma::rowvec adjacency_matrix_to_vector(arma::mat x, bool full = true) {
-  if(full == true) {
-    return arma::vectorise(x).t();
-  }
-  else {
-    arma::mat combined = arma::trimatu(x, 1) + arma::trimatl(x, -1);
-    arma::uvec combined_tri_inds = arma::trimatu_ind(arma::size(combined), 1); 
-    return arma::vectorise(combined(combined_tri_inds)).t();
+void print_2d_vector(const std::vector<std::vector<int>>& vec) {
+  for (const auto& row : vec) {
+    print_vector(row);
   }
 }
 
 //' @export
 // [[Rcpp::export]]
-Rcpp::List apply_windows_c(
-  std::vector<int> multidim_as_vector, 
-  std::vector<int> dims,
-  std::vector<int> dims_sender,
-  std::vector<int> dims_receiver,
-  std::vector<int> dims_mode,
-  NumericMatrix context_matrix,
-  std::vector<int> unit_rows,
-  arma::mat codes,
-  NumericVector times
+Rcpp::List apply_windows_d(
+   Rcpp::NumericVector multidim_as_vector, 
+   Rcpp::IntegerVector dims,
+   std::vector<int> dims_sender,
+   std::vector<int> dims_receiver,
+   std::vector<int> dims_mode,
+   Rcpp::NumericMatrix context_matrix,
+   std::vector<int> unit_rows,
+   arma::mat codes,
+   Rcpp::NumericVector times
 ) {
-  int code_cnt = codes.n_cols;
-  
-  std::vector<std::vector<int>> context_lookup = matrix_to_2d_vector(context_matrix);
-  // std::vector<std::vector<int>> codes_matrix = armamatrix_to_2d_vector(codes);
-  
-  int index = 0;
-  int dim_start = dims.size() - 1;
-  int* multidim_as_array2 = allocateAndInitializeArrayRev<int>(dims, multidim_as_vector, index, dim_start);
-  
-  // printArray(multidim_as_array2, dims, 0);
-  // print_2d_vector(context_lookup);
-  // print_2d_vector(codes_matrix);
-  // std::cout << "Codes matrix: " << std::endl << codes << std::endl;
+ std::vector<int> dims_v(dims.begin(), dims.end());
+ int code_cnt = codes.n_cols;
  
-  arma::mat g_w_vec(code_cnt, code_cnt, arma::fill::zeros);
-  arma::mat unit_row_connection_counts(unit_rows.size(), code_cnt * code_cnt);
-  arma::uvec upper_indices = trimatu_ind( size(g_w_vec), 1 );
-  // std::cout << "UI: " << upper_indices << std::endl;
-  
-  for(int i = 0; i < unit_rows.size(); ++i) {
-    int unit_row_i = unit_rows[i];
-    // std::cout << "Unit row: " << unit_row_i << std::endl;
-
-    std::vector<int> response_context_lookup = context_lookup[unit_row_i];
-    arma::rowvec row_vec = codes.row(unit_row_i);
-    double response_time = times[unit_row_i];
-
-    // std::cout << "Response context: "; print_vector(response_context_lookup);
-    // std::cout << "Response codes: " << std::endl << row_vec << std::endl;
-    // std::cout << "Response time: " << response_time << std::endl;
-    
-    // std::cout << "Response: " << std::endl;
-    // print_vector(response_context_lookup);
-    // std::cout << std::endl;
-    response_context_lookup.push_back(1);
-    
-    std::reverse(response_context_lookup.begin(), response_context_lookup.end());
-    int response_win = getElement(multidim_as_array2, response_context_lookup);
-    response_context_lookup[0] = 0;
-    int response_weight = getElement(multidim_as_array2, response_context_lookup);
-
-    arma::uvec ground_rows_to_include;
-    // ground_rows_to_include.set_size(unit_row_i);
-    // std::vector<int> ground_rows_to_include;
-    // ground_rows_to_include.reserve(unit_row_i);
-
-    arma::colvec ground_row_weights;
-    // ground_row_weights.set_size(unit_row_i);
-    
-    if(unit_row_i > 0) {
-      std::vector<std::vector<int>> context_ground = std::vector<std::vector<int>>(context_lookup.begin(), context_lookup.begin() + unit_row_i);
-
-      // std::cout << "Ground: " << std::endl;
-      // print_2d_vector(context_ground);
-      // std::cout << std::endl;
-
-      for (int ground_row = unit_row_i - 1; ground_row >= 0; ground_row --) {
-        std::vector<int> row = context_ground[ground_row];
-        double ground_row_time = times[ground_row];
-
-        // Adjust array lookup to account for response row values
-        for (const auto& dim : dims_receiver) {
-          row[dim] = response_context_lookup[dim];
-        }
-
-        row.push_back(1);
-        
-        std::reverse(row.begin(), row.end());
-        double row_win = getElement(multidim_as_array2, row);
-        double ground_row_time_adj = ground_row_time + row_win;
-        double diff = ground_row_time_adj - response_time;
-        
-        // std::cout << " -> g time: " << ground_row_time << std::endl;
-        // std::cout << " -> row_win: " << row_win << std::endl;
-        // std::cout << " -> adjusted: " << ground_row_time_adj << std::endl;
-        // std::cout << " -> r time: " << response_time << std::endl;
-        // std::cout << " -> diff: " << diff << std::endl;
-        
-        if(diff >= 0) {
-          // std::cout << "Found ground row: " << ground_row << std::endl;
-          insert_element(ground_rows_to_include, ground_row);
-          // ground_rows_to_include.push_back(ground_row);
-          
-          row[0] = 0;
-          // std::cout << "Weight r lookup: "; print_vector(row);
-          int row_wgt = getElement(multidim_as_array2, row);
-          // std::cout << "Weight: " << row_wgt << std::endl;
-          
-          ground_row_weights.insert_rows(ground_row_weights.n_rows, 1);
-          ground_row_weights(ground_row_weights.n_rows - 1) = row_wgt;
-        }
-      }
-      
-      if(ground_rows_to_include.size() > 0) {
-        arma::mat ground_codes = codes.rows(ground_rows_to_include);
-        arma::mat ground_codes_by_weight = ground_codes.each_col() % ground_row_weights;
-        arma::rowvec g_ws_vec = arma::sum(ground_codes_by_weight);
-        arma::rowvec r_vec = codes.row(unit_row_i);
-        
-        // std::cout << "g_ws_vec: " << std::endl << ground_codes << std::endl;
-        // std::cout << "r_vec: " << std::endl << r_vec << std::endl;
-        
-        arma::mat counting_matrix = response_weight *(row_vec.t() * row_vec);
-        // std::cout << "CM 1: " << std::endl << counting_matrix << std::endl;
-        
-        arma::mat counting_matrix3 = row_vec.t() * g_ws_vec;
-        arma::mat counting_matrix2 = counting_matrix3.t();
-        // std::cout << "CM 2: " << std::endl << counting_matrix2 << std::endl;
-        // std::cout << "CM 3: " << std::endl << counting_matrix3 << std::endl;
-        
-        // Directed
-        // (g_ws_vec %*% t(r_vec)) + 0.5 * w_rr * f_diag(r_vec %*% t(r_vec))
-        
-        // Only generating for standard ENA currently
-        arma::mat resp = calculate_adjacency_matrix(g_ws_vec, row_vec, response_weight);
-        g_w_vec = g_w_vec + resp;
-        
-        unit_row_connection_counts.row(i) = adjacency_matrix_to_vector(resp);
-      }
-      else {
-        // std::cout << "-- No Ground Rows Passed --" << std::endl;
-      }
-    }
-
-    // No ground available
-    else {
-      // std::cout << "-- No Ground --" << std::endl;
-    }
-  }
-  
-  deallocateArray(multidim_as_array2, dims);
-
-  arma::rowvec unit_connection_counts = adjacency_matrix_to_vector(g_w_vec);
-  
-  Rcpp::List return_list = Rcpp::List::create(
-    Rcpp::Named("row_connection_counts") = unit_row_connection_counts,
-    Rcpp::Named("connection_counts") = unit_connection_counts
-  );
-  
-  return(return_list);
+ std::vector<std::vector<int>> context_lookup = matrix_to_2d_vector(context_matrix);
+ 
+ int index = 0;
+ int dim_start = dims.size() - 1;
+ 
+ arma::mat g_w_vec(code_cnt, code_cnt, arma::fill::zeros);
+ arma::mat unit_row_connection_counts(unit_rows.size(), code_cnt * code_cnt);
+ arma::uvec upper_indices = trimatu_ind( size(g_w_vec), 1 );
+ 
+ for(int i = 0; i < unit_rows.size(); ++i) {
+   int unit_row_i = unit_rows[i];
+   
+   std::vector<int> response_context_lookup = context_lookup[unit_row_i];
+   arma::rowvec row_vec = codes.row(unit_row_i);
+   double response_time = times[unit_row_i];
+   
+   response_context_lookup.push_back(0);
+   int response_win_idx = calculate_1d_index(response_context_lookup, dims_v);
+   int response_win = multidim_as_vector[response_win_idx];
+   // std::cout << "Response context window: "; print_vector(response_context_lookup);
+   
+   response_context_lookup[response_context_lookup.size() - 1] = 1;
+   // std::cout << "Response context weight: "; print_vector(response_context_lookup);
+   int response_wgt_idx = calculate_1d_index(response_context_lookup, dims_v);
+   int response_weight = multidim_as_vector[response_wgt_idx];
+   
+   arma::uvec ground_rows_to_include;
+   arma::colvec ground_row_weights;
+   
+   if(unit_row_i > 0) {
+     std::vector<std::vector<int>> context_ground = std::vector<std::vector<int>>(context_lookup.begin(), context_lookup.begin() + unit_row_i);
+     
+     
+     for (int ground_row = unit_row_i - 1; ground_row >= 0; ground_row --) {
+       double ground_row_time = times[ground_row];
+       
+       // Rcpp::IntegerVector row = Rcpp::as<Rcpp::IntegerVector>(Rcpp::wrap(context_ground[ground_row]));
+       std::vector<int> row_v = context_ground[ground_row];
+       
+       // Adjust array lookup to account for response row values
+       for (const auto& dim : dims_receiver) {
+         row_v[dim] = response_context_lookup[dim];
+       }
+       // row.push_back(1);
+       row_v.push_back(0);
+       // std::cout << "Ground context row win: "; print_vector(row_v);
+       
+       // std::reverse(row.begin(), row.end());
+       int row_wgt_idx = calculate_1d_index(row_v, dims_v);
+       double row_win = multidim_as_vector[row_wgt_idx];
+       double ground_row_time_adj = ground_row_time + row_win;
+       double diff = ground_row_time_adj - response_time;
+       
+       if(diff >= 0) {
+         insert_element(ground_rows_to_include, ground_row);
+         
+         row_v[row_v.size() - 1] = 1;
+         // std::cout << "Ground context row weight: "; print_vector(row_v);
+         
+         int row_wgt_idx = calculate_1d_index(row_v, dims_v);
+         int row_wgt = multidim_as_vector[row_wgt_idx];
+         
+         ground_row_weights.insert_rows(ground_row_weights.n_rows, 1);
+         ground_row_weights(ground_row_weights.n_rows - 1) = row_wgt;
+       }
+     }
+     
+     if(ground_rows_to_include.size() > 0) {
+       arma::mat ground_codes = codes.rows(ground_rows_to_include);
+       arma::mat ground_codes_by_weight = ground_codes.each_col() % ground_row_weights;
+       arma::rowvec g_ws_vec = arma::sum(ground_codes_by_weight);
+       arma::rowvec r_vec = codes.row(unit_row_i);
+       
+       arma::mat resp = calculate_adjacency_matrix(g_ws_vec, row_vec, response_weight);
+       g_w_vec = g_w_vec + resp;
+       
+       unit_row_connection_counts.row(i) = adjacency_matrix_to_vector(resp);
+     }
+     else {
+       // std::cout << "-- No Ground Rows Passed --" << std::endl;
+       // Handle just the response row here
+     }
+   }
+   
+   // No ground available
+   else {
+     // std::cout << "-- No Ground --" << std::endl;
+   }
+ }
+ 
+ // deallocateArray(multidim_as_array2, dims);
+ 
+ arma::rowvec unit_connection_counts = adjacency_matrix_to_vector(g_w_vec);
+ 
+ Rcpp::List return_list = Rcpp::List::create(
+   Rcpp::Named("row_connection_counts") = unit_row_connection_counts,
+   Rcpp::Named("connection_counts") = unit_connection_counts
+ );
+ 
+ return(return_list);
 }
 
 /*** R
+# Example usage in R (matching the previous example)
+# sizes <- c(2, 3, 4)
+# values <- seq.int(2*3*4)
+# result <- rcpp_allocate_and_initialize(sizes, values) # Assuming you have this function from the previous example
+# dim(result) <- sizes
+# 
+# # Get an element
+# indices <- c(1, 2, 3)  # Example indices (0-based)
+# element <- rcpp_get_element(result, sizes, indices)
+# print(element)
+# 
+# indices <- c(2, 3, 5) # this will produce an error in C++ because the index is out of range.
+# element <- rcpp_get_element(result, sizes, indices)
+# print(element)
+
 data(test_mockdata, package = "tma")
 mock_data <- test_mockdata;
 mock_data <- mock_data[mock_data$chatGroup == "PAM",]
@@ -591,29 +432,7 @@ sender_cols <- c("role")
 receiver_cols <- c("role")
 mode_column <- "modality"
 
-multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, 20, 1)
-# multidim_arr["Mentor", "L1", "chat", "weight"] <- 1
-# multidim_arr["Mentor", "L1", "resource", "weight"] <- 1
-# multidim_arr["Mentor", "L2", "chat", "weight"] <- 1
-# multidim_arr["Mentor", "L2", "resource", "weight"] <- 1
-# multidim_arr["Player", "L1", "chat", "weight"] <- 1
-# multidim_arr["Player", "L1", "resource", "weight"] <- 1
-# multidim_arr["Player", "L2", "chat", "weight"] <- 1
-# multidim_arr["Player", "L2", "resource", "weight"] <- 1
-
-# multidim_arr["Mentor", "L1", "chat", "window"] <- 800
-# multidim_arr["Mentor", "L1", "resource", "window"] <- 500
-# multidim_arr["Mentor", "L2", "chat", "window"] <- 20
-# multidim_arr["Mentor", "L2", "resource", "window"] <- 310
-# multidim_arr["Player", "L1", "chat", "window"] <- 320
-# multidim_arr["Player", "L1", "resource", "window"] <- 200
-# multidim_arr["Player", "L2", "chat", "window"] <- 150
-# multidim_arr["Player", "L2", "resource", "window"] <- 360
-
-# dims <- dim(multidim_arr)
-# multidim_arr <- seq_along(multidim_arr)
-# dim(multidim_arr) <- dims
-
+multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, default_window = 20, default_weight = 1)
 unit_cols <- c("userID", "condition")
 codes <- c("A", "B", "C")
 HOO_rules_model <- tma:::rules(
@@ -624,16 +443,16 @@ context_model <- tma:::contexts(
   units = unit_cols,
   hoo_rules = HOO_rules_model
 )
-# time_column = "timeStamp"
+# # time_column = "timeStamp"
 time_column = tma:::ATTR_NAMES$CONTEXT_COL_ID
+# result_cpp <- accum_multidim_c(context_model, multidim_arr, time_column, codes);
+#
 context_lookup <- as.matrix(mock_data[, lapply(.SD, function(x) as.numeric(as.factor(x))), .SDcols = c(sender_cols, receiver_cols, mode_column)])
-
 unit_1_context <- context_model$model$contexts$`User1::FirstHalf`;
 unit_1_context_lookup <- as.matrix(unit_1_context[, lapply(.SD, function(x) as.numeric(as.factor(x))), .SDcols = c(sender_cols, receiver_cols, mode_column)]);
 unit_1_rows <- attr(context_model$model$contexts$`User1::FirstHalf`, "tma.unit_rows")
 unit_1_to_last <- seq.int(last(unit_1_rows));
-
-res <- apply_windows_c(
+res <- apply_windows_d(
   multidim_arr,
   attr(multidim_arr, "dim"),
   attr(multidim_arr, "sender_inds") - 1,
@@ -645,41 +464,43 @@ res <- apply_windows_c(
   unit_1_context[unit_1_to_last,][[time_column]]
 )
 
-result_new <- accum_multidim(
-  mock_data,
-  multidim_arr, 
-  time_column,
-  codes,
-  context_model
-)
-
-# dims <- dim(multidim_arr)
-# res_as_array <- array(unlist(res), dim = dims);
-# all(res_as_array == multidim_arr)
 
 
-result_cpp <- lapply(context_model$model$contexts, function(ctx) {
-  # unit_1_context <- context_model$model$contexts$`User1::FirstHalf`;
-  unit_1_context_lookup <- as.matrix(ctx[, lapply(.SD, function(x) as.numeric(as.factor(x))), .SDcols = c(sender_cols, receiver_cols, mode_column)]);
-  unit_1_rows <- attr(ctx, "tma.unit_rows")
-  unit_1_to_last <- seq.int(last(unit_1_rows));
-
-  res <- apply_windows_c(
-    multidim_arr,
-    attr(multidim_arr, "dim"),
-    attr(multidim_arr, "sender_inds") - 1,
-    attr(multidim_arr, "receiver_inds") - 1,
-    attr(multidim_arr, "mode_inds") - 1,
-    unit_1_context_lookup[unit_1_to_last,] - 1,
-    unit_1_rows - 1,
-    as.matrix(ctx[unit_1_to_last, ..codes]),
-    ctx[unit_1_to_last,][[time_column]]
-  )
-
-  # dims <- dim(multidim_arr)
-  # res_as_array <- array(unlist(res), dim = dims);
-  # all(res_as_array == multidim_arr)
-
-  res
-})
+# 
+# # result_new <- accum_multidim(
+# #   mock_data,
+# #   multidim_arr, 
+# #   time_column,
+# #   codes,
+# #   context_model
+# # )
+# 
+# # # dims <- dim(multidim_arr)
+# # # res_as_array <- array(unlist(res), dim = dims);
+# # # all(res_as_array == multidim_arr)
+# 
+# # result_cpp <- lapply(context_model$model$contexts, function(ctx) {
+# #   # unit_1_context <- context_model$model$contexts$`User1::FirstHalf`;
+# #   unit_1_context_lookup <- as.matrix(ctx[, lapply(.SD, function(x) as.numeric(as.factor(x))), .SDcols = c(sender_cols, receiver_cols, mode_column)]);
+# #   unit_1_rows <- attr(ctx, "tma.unit_rows")
+# #   unit_1_to_last <- seq.int(last(unit_1_rows));
+# # 
+# #   res <- apply_windows_c(
+# #     multidim_arr,
+# #     attr(multidim_arr, "dim"),
+# #     attr(multidim_arr, "sender_inds") - 1,
+# #     attr(multidim_arr, "receiver_inds") - 1,
+# #     attr(multidim_arr, "mode_inds") - 1,
+# #     unit_1_context_lookup[unit_1_to_last,] - 1,
+# #     unit_1_rows - 1,
+# #     as.matrix(ctx[unit_1_to_last, ..codes]),
+# #     ctx[unit_1_to_last,][[time_column]]
+# #   )
+# # 
+# #   # dims <- dim(multidim_arr)
+# #   # res_as_array <- array(unlist(res), dim = dims);
+# #   # all(res_as_array == multidim_arr)
+# # 
+# #   res
+# # })
 */
