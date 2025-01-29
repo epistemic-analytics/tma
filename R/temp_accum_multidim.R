@@ -106,7 +106,7 @@ make_multidim_arr <- function(df,
   
   # print(multidim_arr)
   
-  ## Ensure default window and default weight in multidim_arr
+  # Ensure default window and default weight in multidim_arr
   # combinations <- expand.grid(
   #   senders = if (length(unique_senders) > 0) {
   #     do.call(paste, c(expand.grid(unique_senders), sep = "_"))
@@ -156,9 +156,9 @@ make_multidim_arr <- function(df,
 # standin as expected in multidim_arr. 
 # We do this so we don't fail when they don't specify senders/receivers/mode
 preprocess <- function(
-    df, 
-    multidim_arr,
-    use_standin = TRUE
+  df, 
+  multidim_arr,
+  use_standin = TRUE
 ) {
   # Get sender, receiver, and mode columns + unique values from multidim_arr
   sender_cols <- attr(multidim_arr, "sender_cols")
@@ -291,16 +291,16 @@ preprocess <- function(
 # Returns ground vectors to consider for a response line
 # This should return the actual ground vectors from the context i.e. not just the codes
 apply_windows <- function(
-    multidim_arr, 
-    sender_cols,
-    receiver_cols,
-    time_column,
-    duration_column,
-    mode_column,
-    r_vec_qeid, 
-    context, 
-    codes, 
-    time_unit = 'auto'
+  multidim_arr, 
+  sender_cols,
+  receiver_cols,
+  time_column,
+  duration_column,
+  mode_column,
+  r_vec_qeid, 
+  context, 
+  codes, 
+  time_unit = 'auto'
 ) {
   
   # first line is response line--since we aren't including response lines, just provide a dummy vec w/ 0s @ codes
@@ -396,7 +396,7 @@ apply_weights <- function(
   #   mult_arr_mat <- cbind(t(as.matrix(sm_mat[,1:length(sender_cols)])), receivers, sm_mat[, ncol(sm_mat)], "weight")
   # } else {
   # }
-  mult_arr_mat <- cbind(sm_mat[,1:length(sender_cols)], receivers, sm_mat[,ncol(sm_mat)], "weight")
+  mult_arr_mat <-cbind(sm_mat[,1:length(sender_cols), drop = FALSE], receivers, sm_mat[,ncol(sm_mat), drop = FALSE], "weight")
   weight_vec <-  as.numeric(multidim_arr[mult_arr_mat])
   # print(cbind(mult_arr_mat, weight_vec));
   
