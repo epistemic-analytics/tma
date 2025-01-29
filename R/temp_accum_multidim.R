@@ -398,7 +398,7 @@ apply_weights <- function(
   # }
   mult_arr_mat <- cbind(sm_mat[,1:length(sender_cols)], receivers, sm_mat[,ncol(sm_mat)], "weight")
   weight_vec <-  as.numeric(multidim_arr[mult_arr_mat])
-  print(cbind(mult_arr_mat, weight_vec));
+  # print(cbind(mult_arr_mat, weight_vec));
   
   # apply to all g_vecs
   g_w_vecs <- as.matrix(g_vecs[,..codes]) * weight_vec

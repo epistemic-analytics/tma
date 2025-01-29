@@ -24,7 +24,7 @@ accum_multidim_c <- function(context_model, multidim_arr, time_column, codes, or
       attr(multidim_arr, "sender_inds") - 1,
       attr(multidim_arr, "receiver_inds") - 1,
       attr(multidim_arr, "mode_inds") - 1,
-      unit_context_lookup[unit_to_last,] - 1,
+      unit_context_lookup[unit_to_last,, drop = FALSE] - 1,
       unit_rows - 1,
       as.matrix(ctx[unit_to_last, ..codes]),
       ctx[unit_to_last,][[time_column]]
