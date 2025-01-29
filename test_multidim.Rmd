@@ -80,6 +80,28 @@ print(tester) # this works
 ```
 
 ```{r}
+# senders, receiver, modality (cody test)
+sender_cols <- c("role", "language")
+receiver_cols <- c("role")
+mode_column <- "modality"
+
+tester <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, 100, 200)
+
+print(tester)
+```
+
+```{r}
+# sender, receivers, modality (cody test)
+sender_cols <- c("role")
+receiver_cols <- c("role", "language")
+mode_column <- "modality"
+
+tester <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, 100, 200)
+
+print(tester)
+```
+
+```{r}
 # senders, receivers, modality
  
 sender_cols <- list("role", "language")

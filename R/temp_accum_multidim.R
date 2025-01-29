@@ -121,35 +121,34 @@ make_multidim_arr <- function(df,
       "None"  # Placeholder for empty receivers
     },
     modes = if (length(unique_modes) > 0) {
-      unique_modes
+       unique_modes
     } else {
-      "None" # Placeholder for empty modes
+       "None" # Placeholder for empty modes
     },
     stringsAsFactors = FALSE
   )
-  
-  
+
+
   # remove NAs
   combinations <- unique(combinations[rowSums(is.na(combinations)) < ncol(combinations), ])
-  
+
   for (i in seq_len(nrow(combinations))) {
     sender <- combinations$senders[i]
     receiver <- combinations$receivers[i]
     modality <- combinations$modes[i]
-    
+
     sender_parts <- if (sender == "None") character(0) else strsplit(sender, "_")[[1]]
     receiver_parts <- if (receiver == "None") character(0) else strsplit(receiver, "_")[[1]]
     modality_parts <- if (modality == "None") character(0) else modality
     index_list <- c(sender_parts, receiver_parts, modality_parts)
-    
+
     weight_new_index_list <- c(index_list, "weight")
     window_new_index_list <- c(index_list, "window")
-    
+
     multidim_arr[matrix(as.vector(weight_new_index_list), 1)] <- default_weight
     multidim_arr[matrix(as.vector(window_new_index_list), 1)] <- default_window
   }
-  
-  # 
+
   return(multidim_arr)
 }
 
@@ -348,6 +347,10 @@ apply_windows <- function(
   #   .SD[as.vector((.SD[[time_column]] + as.numeric(multidim_arr[mult_arr_mat])) >= response_row_time_val), ];
   # }]
   # browser()
+  
+  context[[time_column]] <- as.POSIXct(context[[time_column]], origin = "1970-01-01") 
+  
+  
   g_vecs_i <- context[, {
     times = .SD[[time_column]]
     difftime(
