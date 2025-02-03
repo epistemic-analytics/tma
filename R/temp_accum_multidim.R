@@ -7,18 +7,18 @@ get_unique_values <- function(
   mode_column
 ) {
   # Extract unique values for each sender column
-  unique_senders <- lapply(sender_cols, function(col) unique(df[[col]]))
+  unique_senders <- lapply(sender_cols, function(col) sort(unique(df[[col]])))
   names(unique_senders) <- sender_cols
   
   # Extract unique values for each receiver column
-  unique_receivers <- lapply(receiver_cols, function(col) unique(df[[col]]))
+  unique_receivers <- lapply(receiver_cols, function(col) sort(unique(df[[col]])))
   names(unique_receivers) <- receiver_cols
   
   # Extract unique values for the mode column
   if (length(mode_column) == 0) {
     unique_modes <- list()
   } else {
-    unique_modes <- unique(df[[mode_column]])
+    unique_modes <- sort(unique(df[[mode_column]]))
   }
   
   ret_list <- list(
@@ -70,15 +70,9 @@ make_multidim_arr <- function(df,
     dim_names[["modes"]] <- unique_modes
   }
   dim_names[["weight_window"]] <- weight_window_axis
-  
+   
   # Set dims accordingly s.t. our array is [S, R, M, weight/window]
   dims <- c()
-  # for (i in seq_along(sender_cols)) {
-  #   dims <- c(dims, length(unique_senders[[i]]))
-  # }
-  # for (i in seq_along(receiver_cols)) {
-  #   dims <- c(dims, length(unique_receivers[[i]]))
-  # }
   dims <- c(sapply(unique_senders, length), sapply(unique_receivers, length))
   
   if (length(unique_modes > 0)) { 
@@ -104,49 +98,6 @@ make_multidim_arr <- function(df,
   attr(multidim_arr, "default_window") <- default_window
   attr(multidim_arr, "default_weight") <- default_weight
   
-  # print(multidim_arr)
-  
-  # Ensure default window and default weight in multidim_arr
-  # combinations <- expand.grid(
-  #   senders = if (length(unique_senders) > 0) {
-  #     do.call(paste, c(expand.grid(unique_senders), sep = "_"))
-  #   } else {
-  #     "None"  # Placeholder for empty senders
-  #   },
-  #   receivers = if (length(unique_receivers) > 0) {
-  #     do.call(paste, c(expand.grid(unique_receivers), sep = "_"))
-  #   } else {
-  #     "None"  # Placeholder for empty receivers
-  #   },
-  #   modes = if (length(unique_modes) > 0) {
-  #      unique_modes
-  #   } else {
-  #      "None" # Placeholder for empty modes
-  #   },
-  #   stringsAsFactors = FALSE
-  # )
-  # 
-  # 
-  # # remove NAs
-  # combinations <- unique(combinations[rowSums(is.na(combinations)) < ncol(combinations), ])
-  # 
-  # for (i in seq_len(nrow(combinations))) {
-  #   sender <- combinations$senders[i]
-  #   receiver <- combinations$receivers[i]
-  #   modality <- combinations$modes[i]
-  # 
-  #   sender_parts <- if (sender == "None") character(0) else strsplit(sender, "_")[[1]]
-  #   receiver_parts <- if (receiver == "None") character(0) else strsplit(receiver, "_")[[1]]
-  #   modality_parts <- if (modality == "None") character(0) else modality
-  #   index_list <- c(sender_parts, receiver_parts, modality_parts)
-  # 
-  #   weight_new_index_list <- c(index_list, "weight")
-  #   window_new_index_list <- c(index_list, "window")
-  # 
-  #   multidim_arr[matrix(as.vector(weight_new_index_list), 1)] <- default_weight
-  #   multidim_arr[matrix(as.vector(window_new_index_list), 1)] <- default_window
-  # }
-
   return(multidim_arr)
 }
 

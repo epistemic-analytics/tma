@@ -307,11 +307,15 @@ Rcpp::List apply_windows_d(
  std::vector<int> dims_v(dims.begin(), dims.end()); // vectorize dims (colnames of senders, receivers, and modes along with weight/window)  
  int code_cnt = codes.n_cols; // get # of codes 
  
+ 
+ Rcpp::Rcout << "Multidim array, vectorized "; print_vector(Rcpp::as<std::vector<int>>(multidim_as_vector));
+ 
+ 
  // convert context datatable to 2D C vector
  std::vector<std::vector<int>> context_lookup = matrix_to_2d_vector(context_matrix);
  
  int index = 0; 
- int dim_start = dims.size() - 1; // start processing dims in reverse order (?)
+ // int dim_start = dims.size() - 1; // start processing dims in reverse order (not using rn)
  
  arma::mat g_w_vec(code_cnt, code_cnt, arma::fill::zeros); // initialize g_w_vec matrix as |codes| x |codes| of all 0s 
  arma::mat unit_row_connection_counts(unit_rows.size(), code_cnt * code_cnt); // initialize matrix to return of |unit's rows in context| x |codes^2| (ordered, for now)
@@ -450,6 +454,28 @@ receiver_cols <- c("role")
 mode_column <- "modality"
 
 multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, default_window = 20, default_weight = 1)
+
+# set everything in multidim arr to be unique so we can understand where everything goes in vectorized multidim arr
+multidim_arr["Mentor", "Mentor", "chat", "weight"] <- 1
+multidim_arr["Mentor", "Player", "chat", "weight"] <- 2
+multidim_arr["Player", "Mentor", "chat", "weight"] <- 3
+multidim_arr["Player", "Player", "chat", "weight"] <- 4
+
+multidim_arr["Mentor", "Mentor", "resource", "weight"] <- 5
+multidim_arr["Mentor", "Player", "resource", "weight"] <- 6
+multidim_arr["Player", "Mentor", "resource", "weight"] <- 7
+multidim_arr["Player", "Player", "resource", "weight"] <- 8
+
+multidim_arr["Mentor", "Mentor", "chat", "window"] <- 9
+multidim_arr["Mentor", "Player", "chat", "window"] <- 10
+multidim_arr["Player", "Mentor", "chat", "window"] <- 11
+multidim_arr["Player", "Player", "chat", "window"] <- 12
+
+multidim_arr["Mentor", "Mentor", "resource", "window"] <- 13
+multidim_arr["Mentor", "Player", "resource", "window"] <- 14
+multidim_arr["Player", "Mentor", "resource", "window"] <- 15
+multidim_arr["Player", "Player", "resource", "window"] <- 16
+
 unit_cols <- c("userID", "condition")
 codes <- c("A", "B", "C")
 HOO_rules_model <- tma:::rules(
@@ -469,7 +495,7 @@ unit_1_context <- context_model$model$contexts$`User1::FirstHalf`;
 unit_1_context_lookup <- as.matrix(unit_1_context[, lapply(.SD, function(x) as.numeric(as.factor(x))), .SDcols = c(sender_cols, receiver_cols, mode_column)]);
 unit_1_rows <- attr(context_model$model$contexts$`User1::FirstHalf`, "tma.unit_rows")
 unit_1_to_last <- seq.int(last(unit_1_rows));
-res <- apply_windows_d(
+res <- apply_windows_d( 
   multidim_arr,
   attr(multidim_arr, "dim"),
   attr(multidim_arr, "sender_inds") - 1,
