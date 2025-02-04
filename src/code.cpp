@@ -304,12 +304,15 @@ Rcpp::List apply_windows_d(
    arma::mat codes, // matrix of nrows(context) x |codes| 
    Rcpp::NumericVector times // vector of times of length nrows(context))
 ) {
+  const int WINDOW_DIM = 1;
+  const int WEIGHT_DIM = 0;
+  
  std::vector<int> dims_v(dims.begin(), dims.end()); // vectorize dims (colnames of senders, receivers, and modes along with weight/window)  
  int code_cnt = codes.n_cols; // get # of codes 
  
- 
- Rcpp::Rcout << "Multidim array, vectorized "; print_vector(Rcpp::as<std::vector<int>>(multidim_as_vector));
- 
+ // std::cout << "Multidim: " << multidim_as_vector << std::endl;
+ // std::cout << "Dimensions: "; print_vector(dims_v); 
+ // std::cout << "Dims recv: "; print_vector(dims_receiver);
  
  // convert context datatable to 2D C vector
  std::vector<std::vector<int>> context_lookup = matrix_to_2d_vector(context_matrix);
@@ -331,22 +334,40 @@ Rcpp::List apply_windows_d(
    double response_time = times[unit_row_i]; // get response time 
    
    
-   response_context_lookup.push_back(0); // add a 0 to the end of response line; indicates that we are getting windows
+   // add a 1 to the end of response line; indicates that we are getting windows
+   response_context_lookup.push_back(WINDOW_DIM); 
+   
+   std::vector<int> response_context_lookup_rev = response_context_lookup;
+   std::reverse(response_context_lookup_rev.begin(), response_context_lookup_rev.end());
+   
    // calculate_1d_index calculates index offsetted into 1d multidim_arr (vectorized); this gets idx of receiver vals, and then we get them
-   int response_win_idx = calculate_1d_index(response_context_lookup, dims_v); 
+   int response_win_idx = calculate_1d_index(response_context_lookup_rev, dims_v); 
    int response_win = multidim_as_vector[response_win_idx];
-   // std::cout << "Response context window: "; print_vector(response_context_lookup);
+   // std::cout << "Response context lookup reg: "; print_vector(response_context_lookup_rev);
+   // std::cout << "Response context lookup rev: "; print_vector(response_context_lookup);
+   // std::cout << "Response time: " << unit_row_i << " = " << response_time << std::endl;
    
+   // set the end of response line (set to 1 earlier) to 0; indicates that we are getting weights
+   response_context_lookup[0] = WEIGHT_DIM;
    
-   response_context_lookup[response_context_lookup.size() - 1] = 1; // set the end of response line (set to 0 earlier) to 1; indicates that we are getting weights
-   // std::cout << "Response context weight: "; print_vector(response_context_lookup);
    int response_wgt_idx = calculate_1d_index(response_context_lookup, dims_v); // same thing as above, except for receiver weight 
    int response_weight = multidim_as_vector[response_wgt_idx];
+   // std::cout << "Response context weight: "; print_vector(response_context_lookup); std::cout << " - " << response_wgt_idx << " = " << response_weight << std::endl;
    
-   arma::uvec ground_rows_to_include; // vector of rows to keep 
-   arma::colvec ground_row_weights; // vector of weights (to apply to kept rows)
+   // vector of rows to keep 
+   arma::uvec ground_rows_to_include;
    
-   if(unit_row_i > 0) { // proceed w/ TIF and weighting of g_vecs if it isn't the first row (otherwise, no ground)
+   // vector of weights (to apply to kept rows)
+   arma::colvec ground_row_weights;
+   
+   // get response codes, unweighted
+   arma::rowvec r_vec = codes.row(unit_row_i);
+   
+   // proceed w/ TIF and weighting of g_vecs if it isn't the first row (otherwise, no ground)
+   arma::rowvec g_ws_vec(code_cnt, arma::fill::zeros);
+   arma::mat resp = calculate_adjacency_matrix(g_ws_vec, row_vec, response_weight); 
+   
+   if(unit_row_i > 0) {
      
      // only look at stuff from beginning of ground to the current response line 
      std::vector<std::vector<int>> context_ground = std::vector<std::vector<int>>(context_lookup.begin(), context_lookup.begin() + unit_row_i);
@@ -355,32 +376,33 @@ Rcpp::List apply_windows_d(
      for (int ground_row = unit_row_i - 1; ground_row >= 0; ground_row --) {
        double ground_row_time = times[ground_row]; // get time for this ground row (not doing select-all-times at once approach...?)
        
-       // Rcpp::IntegerVector row = Rcpp::as<Rcpp::IntegerVector>(Rcpp::wrap(context_ground[ground_row]));
        std::vector<int> row_v = context_ground[ground_row]; // get actual ground row from context (using ground_row idx)
-       
        
        
        // Set the values related to the response row to those of the response row in the ground vector; this way, we can pull all the values from 
        // multidim_arr using just the ground row 
        // Adjust array lookup to account for response row values
+       row_v.push_back(WINDOW_DIM);
+       
+       // std::cout << "Ground context row win orig: "; print_vector(row_v);
        for (const auto& dim : dims_receiver) {
          row_v[dim] = response_context_lookup[dim];
        }
-       // row.push_back(1);
-       row_v.push_back(0);
-       // std::cout << "Ground context row win: "; print_vector(row_v);
+       // std::cout << "Ground context row win adjd: "; print_vector(row_v);
        
-       // std::reverse(row.begin(), row.end());
-       int row_wgt_idx = calculate_1d_index(row_v, dims_v);
-       double row_win = multidim_as_vector[row_wgt_idx]; // get ground window 
+       std::reverse(row_v.begin(), row_v.end());
+       int row_win_idx = calculate_1d_index(row_v, dims_v);
+       double row_win = multidim_as_vector[row_win_idx]; // get ground window 
+       
        
        double ground_row_time_adj = ground_row_time + row_win; // this computation for the TIF makes sense, I think (?)
        double diff = ground_row_time_adj - response_time;
        
-       if(diff >= 0) {
+       if(diff > 0) {
+         // std::cout << "Ground context window: " << ground_row << " -- " << row_wgt_idx << " --> " << ground_row_time << " - " << row_win << std::endl;
          insert_element(ground_rows_to_include, ground_row); 
          
-         row_v[row_v.size() - 1] = 1;
+         row_v[0] = WEIGHT_DIM;
          // std::cout << "Ground context row weight: "; print_vector(row_v);
          
          // apply weights
@@ -395,15 +417,9 @@ Rcpp::List apply_windows_d(
      if(ground_rows_to_include.size() > 0) {
        arma::mat ground_codes = codes.rows(ground_rows_to_include);
        arma::mat ground_codes_by_weight = ground_codes.each_col() % ground_row_weights; // apply weights w/ hadamard (element-wise) product
-       arma::rowvec g_ws_vec = arma::sum(ground_codes_by_weight); // sum codes 
-       arma::rowvec r_vec = codes.row(unit_row_i); // get response codes, unweighted
+       g_ws_vec = arma::sum(ground_codes_by_weight); // sum codes 
        
-       // make g_w_vec, adjacency matrix
-       arma::mat resp = calculate_adjacency_matrix(g_ws_vec, row_vec, response_weight); 
-       g_w_vec = g_w_vec + resp;
-       
-       // add this response line's connection counts to a matrix of |unit rows| x |connections| 
-       unit_row_connection_counts.row(i) = adjacency_matrix_to_vector(resp);
+       // std::cout << "Ground rows summed: " << std::endl << g_ws_vec << std::endl;
      }
      else {
        // std::cout << "-- No Ground Rows Passed --" << std::endl;
@@ -413,8 +429,18 @@ Rcpp::List apply_windows_d(
    
    // No ground available
    else {
-     // std::cout << "-- No Ground --" << std::endl;
+     // std::cout << "-- No Ground on first row --" << std::endl;
    }
+   
+   // make g_w_vec, adjacency matrix
+   // std::cout<< "using resp: " << row_vec << std::endl;
+   // std::cout<< "using grnd: " << g_ws_vec << std::endl;
+   // std::cout<< "using wght: " << response_weight << std::endl;
+   resp = calculate_adjacency_matrix(g_ws_vec, row_vec, response_weight); 
+   g_w_vec = g_w_vec + resp;
+   
+   // add this response line's connection counts to a matrix of |unit rows| x |connections| 
+   unit_row_connection_counts.row(i) = adjacency_matrix_to_vector(resp);
  }
  
  // deallocateArray(multidim_as_array2, dims);
@@ -431,85 +457,65 @@ Rcpp::List apply_windows_d(
 }
 
 /*** R
-# Example usage in R (matching the previous example)
-# sizes <- c(2, 3, 4)
-# values <- seq.int(2*3*4)
-# result <- rcpp_allocate_and_initialize(sizes, values) # Assuming you have this function from the previous example
-# dim(result) <- sizes
+# data(test_mockdata, package = "tma")
+# mock_data <- test_mockdata;
+# mock_data <- mock_data[mock_data$chatGroup == "PAM",]
+# sender_cols <- c("role")
+# receiver_cols <- c("role")
+# mode_column <- "modality"
 # 
-# # Get an element
-# indices <- c(1, 2, 3)  # Example indices (0-based)
-# element <- rcpp_get_element(result, sizes, indices)
-# print(element)
+# multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, default_window = 0, default_weight = 1)
+# # multidim_arr[1:16] <- 1:16
+# unit_cols <- c("userID", "condition")
+# codes <- c("A", "B", "C")
+# HOO_rules_model <- tma:::rules(
+#   modality %in% "chat" & chatGroup %in% UNIT$chatGroup & condition %in% UNIT$condition, modality %in% "resource" & userID %in% UNIT$userID & condition %in% UNIT$condition
+# )
+# context_model <- tma:::contexts(
+#   x = mock_data,
+#   units = unit_cols,
+#   hoo_rules = HOO_rules_model
+# )
+# time_column = "timeStamp"
+# # time_column = tma:::ATTR_NAMES$CONTEXT_COL_ID
+# # result_cpp <- accum_multidim_c(context_model, multidim_arr, time_column, codes);
+# #
 # 
-# indices <- c(2, 3, 5) # this will produce an error in C++ because the index is out of range.
-# element <- rcpp_get_element(result, sizes, indices)
-# print(element)
+# context_lookup <- as.matrix(mock_data[, lapply(.SD, function(x) as.numeric(as.factor(x))), .SDcols = c(sender_cols, receiver_cols, mode_column)])
+# 
+# unit_1_context <- context_model$model$contexts[[2]];
+# unit_1_context_lookup <- as.matrix(unit_1_context[, lapply(.SD, function(x) as.numeric(as.factor(x))), .SDcols = c(sender_cols, receiver_cols, mode_column)]);
+# unit_1_rows <- attr(unit_1_context, "tma.unit_rows")
+# unit_1_to_last <- seq.int(last(unit_1_rows));
+# res <- apply_windows_d(
+#   multidim_arr,
+#   attr(multidim_arr, "dim"),
+#   attr(multidim_arr, "sender_inds") - 1,
+#   attr(multidim_arr, "receiver_inds") - 1,
+#   attr(multidim_arr, "mode_inds") - 1,
+#   unit_1_context_lookup[unit_1_to_last,] - 1,
+#   unit_1_rows - 1,
+#   as.matrix(unit_1_context[unit_1_to_last, ..codes]),
+#   unit_1_context[unit_1_to_last,][[time_column]]
+# )
 
-data(test_mockdata, package = "tma")
-mock_data <- test_mockdata;
-mock_data <- mock_data[mock_data$chatGroup == "PAM",]
-sender_cols <- c("role")
-receiver_cols <- c("role")
-mode_column <- "modality"
-
-multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, default_window = 20, default_weight = 1)
-
-# set everything in multidim arr to be unique so we can understand where everything goes in vectorized multidim arr
-multidim_arr["Mentor", "Mentor", "chat", "weight"] <- 1
-multidim_arr["Mentor", "Player", "chat", "weight"] <- 2
-multidim_arr["Player", "Mentor", "chat", "weight"] <- 3
-multidim_arr["Player", "Player", "chat", "weight"] <- 4
-
-multidim_arr["Mentor", "Mentor", "resource", "weight"] <- 5
-multidim_arr["Mentor", "Player", "resource", "weight"] <- 6
-multidim_arr["Player", "Mentor", "resource", "weight"] <- 7
-multidim_arr["Player", "Player", "resource", "weight"] <- 8
-
-multidim_arr["Mentor", "Mentor", "chat", "window"] <- 9
-multidim_arr["Mentor", "Player", "chat", "window"] <- 10
-multidim_arr["Player", "Mentor", "chat", "window"] <- 11
-multidim_arr["Player", "Player", "chat", "window"] <- 12
-
-multidim_arr["Mentor", "Mentor", "resource", "window"] <- 13
-multidim_arr["Mentor", "Player", "resource", "window"] <- 14
-multidim_arr["Player", "Mentor", "resource", "window"] <- 15
-multidim_arr["Player", "Player", "resource", "window"] <- 16
-
-unit_cols <- c("userID", "condition")
-codes <- c("A", "B", "C")
-HOO_rules_model <- tma:::rules(
-  modality %in% "chat" & chatGroup %in% UNIT$chatGroup & condition %in% UNIT$condition, modality %in% "resource" & userID %in% UNIT$userID & condition %in% UNIT$condition
-)
-context_model <- tma:::contexts(
-  x = mock_data,
-  units = unit_cols,
-  hoo_rules = HOO_rules_model
-)
-# # time_column = "timeStamp"
-time_column = tma:::ATTR_NAMES$CONTEXT_COL_ID
-# result_cpp <- accum_multidim_c(context_model, multidim_arr, time_column, codes);
-#
-context_lookup <- as.matrix(mock_data[, lapply(.SD, function(x) as.numeric(as.factor(x))), .SDcols = c(sender_cols, receiver_cols, mode_column)])
-unit_1_context <- context_model$model$contexts$`User1::FirstHalf`;
-unit_1_context_lookup <- as.matrix(unit_1_context[, lapply(.SD, function(x) as.numeric(as.factor(x))), .SDcols = c(sender_cols, receiver_cols, mode_column)]);
-unit_1_rows <- attr(context_model$model$contexts$`User1::FirstHalf`, "tma.unit_rows")
-unit_1_to_last <- seq.int(last(unit_1_rows));
-res <- apply_windows_d( 
-  multidim_arr,
-  attr(multidim_arr, "dim"),
-  attr(multidim_arr, "sender_inds") - 1,
-  attr(multidim_arr, "receiver_inds") - 1,
-  attr(multidim_arr, "mode_inds") - 1,
-  unit_1_context_lookup[unit_1_to_last,] - 1,
-  unit_1_rows - 1,
-  as.matrix(unit_1_context[unit_1_to_last, ..codes]),
-  unit_1_context[unit_1_to_last,][[time_column]]
+result_cpp <- accum_multidim_c(
+  context_model = context_model, multidim_arr = multidim_arr, time_column = time_column, codes = codes
 )
 
+# res <- apply_windows_d(
+#   multidim_arr,
+#   attr(multidim_arr, "dim"),
+#   attr(multidim_arr, "sender_inds") - 1,
+#   attr(multidim_arr, "receiver_inds") - 1,
+#   attr(multidim_arr, "mode_inds") - 1,
+#   unit_1_context_lookup[unit_1_to_last,] - 1,
+#   unit_1_rows - 1,
+#   as.matrix(unit_1_context[unit_1_to_last, ..codes]),
+#   unit_1_context[unit_1_to_last,][[time_column]]
+# )
 
 
-# 
 # # result_new <- accum_multidim(
 # #   mock_data,
 # #   multidim_arr, 
