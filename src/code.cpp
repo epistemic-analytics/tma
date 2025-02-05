@@ -254,23 +254,41 @@ std::vector<std::vector<int>> matrix_to_2d_vector(Rcpp::NumericMatrix mat) {
 // [[Rcpp::export]]
 int calculate_1d_index(const std::vector<int>& indices, const std::vector<int>& dims) {
   if (indices.size() != dims.size()) {
-    throw std::invalid_argument("Number of indices must match number of dimensions.");
+     throw std::invalid_argument("Number of indices must match number of dimensions.");
   }
-  
- // formula for mode-k tensor in R^{n_1 \times ... \times n_k} 
- // idx = i_0 + \sum_{v = 1}^k [i_v * \Pi_{j = 0}^{v-1}n_j] (this is reindexed to index from 0, b/c we in C++)
- // the below operationalizes this
-  
-  size_t linear_index = 0;
-  size_t stride = 1;
-  
-  for (size_t v = 0; v < indices.size(); ++v) {
-    linear_index += indices[v] * stride;
-    stride *= dims[v]; 
+ 
+  int index = 0;
+  int stride = 1;
+  for (int i = dims.size() - 1; i >= 0; --i) {
+    if (indices[i] < 0 || indices[i] >= dims[i]) {
+      throw std::out_of_range("Index out of range.");
+    }
+    index += indices[i] * stride;
+    stride *= dims[i];
   }
-  
-  return linear_index;
+  return index;
 }
+
+
+// int calculate_1d_index(const std::vector<int>& indices, const std::vector<int>& dims) {
+//   if (indices.size() != dims.size()) {
+//     throw std::invalid_argument("Number of indices must match number of dimensions.");
+//   }
+//   
+//  // formula for mode-k tensor in R^{n_1 \times ... \times n_k} 
+//  // idx = i_0 + \sum_{v = 1}^k [i_v * \Pi_{j = 0}^{v-1}n_j] (this is reindexed to index from 0, b/c we in C++)
+//  // the below operationalizes this
+//   
+//   size_t linear_index = 0;
+//   size_t stride = 1;
+//   
+//   for (size_t v = 0; v < indices.size(); ++v) {
+//     linear_index += indices[v] * stride;
+//     stride *= dims[v]; 
+//   }
+//   
+//   return linear_index;
+// }
 
 void insert_element(arma::uvec& vec, double value) {
   // Add a new row at the end
