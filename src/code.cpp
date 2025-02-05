@@ -257,16 +257,19 @@ int calculate_1d_index(const std::vector<int>& indices, const std::vector<int>& 
     throw std::invalid_argument("Number of indices must match number of dimensions.");
   }
   
-  int index = 0;
-  int stride = 1;
-  for (int i = dims.size() - 1; i >= 0; --i) {
-    if (indices[i] < 0 || indices[i] >= dims[i]) {
-      throw std::out_of_range("Index out of range.");
-    }
-    index += indices[i] * stride;
-    stride *= dims[i];
+ // formula for mode-k tensor in R^{n_1 \times ... \times n_k} 
+ // idx = i_0 + \sum_{v = 1}^k [i_v * \Pi_{j = 0}^{v-1}n_j] (this is reindexed to index from 0, b/c we in C++)
+ // the below operationalizes this
+  
+  size_t linear_index = 0;
+  size_t stride = 1;
+  
+  for (size_t v = 0; v < indices.size(); ++v) {
+    linear_index += indices[v] * stride;
+    stride *= dims[v]; 
   }
-  return index;
+  
+  return linear_index;
 }
 
 void insert_element(arma::uvec& vec, double value) {
@@ -367,7 +370,7 @@ Rcpp::List apply_windows_d(
          row_v[dim] = response_context_lookup[dim];
        }
        // row.push_back(1);
-       row_v.push_back(0);
+       row_v.push_back(0); // set to 0 to get window, same as above
        // std::cout << "Ground context row win: "; print_vector(row_v);
        
        // std::reverse(row.begin(), row.end());
@@ -380,7 +383,7 @@ Rcpp::List apply_windows_d(
        if(diff >= 0) {
          insert_element(ground_rows_to_include, ground_row); 
          
-         row_v[row_v.size() - 1] = 1;
+         row_v[row_v.size() - 1] = 1; // set to 1 to get weight, same as above
          // std::cout << "Ground context row weight: "; print_vector(row_v);
          
          // apply weights
@@ -456,25 +459,26 @@ mode_column <- "modality"
 multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, default_window = 20, default_weight = 1)
 
 # set everything in multidim arr to be unique so we can understand where everything goes in vectorized multidim arr
-multidim_arr["Mentor", "Mentor", "chat", "weight"] <- 1
-multidim_arr["Mentor", "Player", "chat", "weight"] <- 2
-multidim_arr["Player", "Mentor", "chat", "weight"] <- 3
-multidim_arr["Player", "Player", "chat", "weight"] <- 4
+multidim_arr["Mentor", "Mentor", "chat", "weight"] <- 0 # (0,0,0,0)
+multidim_arr["Player", "Mentor", "chat", "weight"] <- 1 # (1,0,0,0)
+multidim_arr["Mentor", "Player", "chat", "weight"] <- 2 # (0,1,0,0)
+multidim_arr["Player", "Player", "chat", "weight"] <- 3 # (1,1,0,0)
 
-multidim_arr["Mentor", "Mentor", "resource", "weight"] <- 5
-multidim_arr["Mentor", "Player", "resource", "weight"] <- 6
-multidim_arr["Player", "Mentor", "resource", "weight"] <- 7
-multidim_arr["Player", "Player", "resource", "weight"] <- 8
+multidim_arr["Mentor", "Mentor", "resource", "weight"] <- 4 # (0,0,1,0)
+multidim_arr["Player", "Mentor", "resource", "weight"] <- 5 # (1,0,1,0)
+multidim_arr["Mentor", "Player", "resource", "weight"] <- 6 # (0,1,1,0)
+multidim_arr["Player", "Player", "resource", "weight"] <- 7 # (1,1,1,0)
 
-multidim_arr["Mentor", "Mentor", "chat", "window"] <- 9
-multidim_arr["Mentor", "Player", "chat", "window"] <- 10
-multidim_arr["Player", "Mentor", "chat", "window"] <- 11
-multidim_arr["Player", "Player", "chat", "window"] <- 12
+multidim_arr["Mentor", "Mentor", "chat", "window"] <- 8 # (0,0,0,1)
+multidim_arr["Player", "Mentor", "chat", "window"] <- 9 # (1,0,0,1)
+multidim_arr["Mentor", "Player", "chat", "window"] <- 10 # (0,1,0,1)
+multidim_arr["Player", "Player", "chat", "window"] <- 11 # (1,1,0,1)
 
-multidim_arr["Mentor", "Mentor", "resource", "window"] <- 13
-multidim_arr["Mentor", "Player", "resource", "window"] <- 14
-multidim_arr["Player", "Mentor", "resource", "window"] <- 15
-multidim_arr["Player", "Player", "resource", "window"] <- 16
+multidim_arr["Mentor", "Mentor", "resource", "window"] <- 12 # (0,0,1,1)
+multidim_arr["Player", "Mentor", "resource", "window"] <- 13 # (1,0,1,1)
+multidim_arr["Mentor", "Player", "resource", "window"] <- 14 # (0,1,1,1)
+multidim_arr["Player", "Player", "resource", "window"] <- 15 # (1,1,1,1)
+
 
 unit_cols <- c("userID", "condition")
 codes <- c("A", "B", "C")
@@ -507,16 +511,20 @@ res <- apply_windows_d(
   unit_1_context[unit_1_to_last,][[time_column]]
 )
 
+# etc. this seems to be working now 
+# calculate_1d_index(c(1,0,1,0), as.vector(attr(multidim_arr, "dim"))) -- old version: this should be 5, but it fails and returns 10
+# calculate_1d_index(c(1,0,1,0), as.vector(attr(multidim_arr, "dim"))) -- new version: this should be 5, and it succeeds and returns 5 
 
+result_new <- accum_multidim(
+  mock_data,
+  multidim_arr,
+  time_column,
+  codes,
+  context_model
+)
 
-# 
-# # result_new <- accum_multidim(
-# #   mock_data,
-# #   multidim_arr, 
-# #   time_column,
-# #   codes,
-# #   context_model
-# # )
+# result_new$connection.counts[result_new$connection.counts$userID == "User1"]
+
 # 
 # # # dims <- dim(multidim_arr)
 # # # res_as_array <- array(unlist(res), dim = dims);
