@@ -252,7 +252,7 @@ std::vector<std::vector<int>> matrix_to_2d_vector(Rcpp::NumericMatrix mat) {
 
 //' @export
 // [[Rcpp::export]]
-int calculate_1d_index(const std::vector<int>& indices, const std::vector<int>& dims) {
+int calculate_1d_index_rev(const std::vector<int>& indices, const std::vector<int>& dims) {
   if (indices.size() != dims.size()) {
      throw std::invalid_argument("Number of indices must match number of dimensions.");
   }
@@ -270,25 +270,27 @@ int calculate_1d_index(const std::vector<int>& indices, const std::vector<int>& 
 }
 
 
-// int calculate_1d_index(const std::vector<int>& indices, const std::vector<int>& dims) {
-//   if (indices.size() != dims.size()) {
-//     throw std::invalid_argument("Number of indices must match number of dimensions.");
-//   }
-//   
-//  // formula for mode-k tensor in R^{n_1 \times ... \times n_k} 
-//  // idx = i_0 + \sum_{v = 1}^k [i_v * \Pi_{j = 0}^{v-1}n_j] (this is reindexed to index from 0, b/c we in C++)
-//  // the below operationalizes this
-//   
-//   size_t linear_index = 0;
-//   size_t stride = 1;
-//   
-//   for (size_t v = 0; v < indices.size(); ++v) {
-//     linear_index += indices[v] * stride;
-//     stride *= dims[v]; 
-//   }
-//   
-//   return linear_index;
-// }
+//' @export
+// [[Rcpp::export]]
+int calculate_1d_index(const std::vector<int>& indices, const std::vector<int>& dims) {
+  if (indices.size() != dims.size()) {
+    throw std::invalid_argument("Number of indices must match number of dimensions.");
+  }
+
+ // formula for mode-k tensor in R^{n_1 \times ... \times n_k}
+ // idx = i_0 + \sum_{v = 1}^k [i_v * \Pi_{j = 0}^{v-1}n_j] (this is reindexed to index from 0, b/c we in C++)
+ // the below operationalizes this
+
+  size_t linear_index = 0;
+  size_t stride = 1;
+
+  for (size_t v = 0; v < indices.size(); ++v) {
+    linear_index += indices[v] * stride;
+    stride *= dims[v];
+  }
+
+  return linear_index;
+}
 
 void insert_element(arma::uvec& vec, double value) {
   // Add a new row at the end
@@ -330,9 +332,9 @@ Rcpp::List apply_windows_d(
   
  std::vector<int> dims_v(dims.begin(), dims.end()); // vectorize dims (colnames of senders, receivers, and modes along with weight/window)  
  int code_cnt = codes.n_cols; // get # of codes 
- 
- // std::cout << "Multidim: " << multidim_as_vector << std::endl;
- // std::cout << "Dimensions: "; print_vector(dims_v); 
+
+  // std::cout << "Multidim: " << multidim_as_vector << std::endl;
+ // std::cout << "Dimensions: "; print_vector(dims_v);
  // std::cout << "Dims recv: "; print_vector(dims_receiver);
  
  // convert context datatable to 2D C vector
@@ -358,18 +360,17 @@ Rcpp::List apply_windows_d(
    // add a 1 to the end of response line; indicates that we are getting windows
    response_context_lookup.push_back(WINDOW_DIM); 
    
-   std::vector<int> response_context_lookup_rev = response_context_lookup;
-   std::reverse(response_context_lookup_rev.begin(), response_context_lookup_rev.end());
+   // std::vector<int> response_context_lookup_rev = response_context_lookup;
+   // std::reverse(response_context_lookup_rev.begin(), response_context_lookup_rev.end());
    
    // calculate_1d_index calculates index offsetted into 1d multidim_arr (vectorized); this gets idx of receiver vals, and then we get them
-   int response_win_idx = calculate_1d_index(response_context_lookup_rev, dims_v); 
+   int response_win_idx = calculate_1d_index(response_context_lookup, dims_v); 
    int response_win = multidim_as_vector[response_win_idx];
-   // std::cout << "Response context lookup reg: "; print_vector(response_context_lookup_rev);
    // std::cout << "Response context lookup rev: "; print_vector(response_context_lookup);
    // std::cout << "Response time: " << unit_row_i << " = " << response_time << std::endl;
-   
+
    // set the end of response line (set to 1 earlier) to 0; indicates that we are getting weights
-   response_context_lookup[0] = WEIGHT_DIM;
+   response_context_lookup[response_context_lookup.size() - 1] = WEIGHT_DIM;
    
    int response_wgt_idx = calculate_1d_index(response_context_lookup, dims_v); // same thing as above, except for receiver weight 
    int response_weight = multidim_as_vector[response_wgt_idx];
@@ -411,11 +412,11 @@ Rcpp::List apply_windows_d(
        }
        
        // std::cout << "Ground context row win adjd: "; print_vector(row_v);
+       // std::reverse(row_v.begin(), row_v.end());
        
-       std::reverse(row_v.begin(), row_v.end());
        int row_win_idx = calculate_1d_index(row_v, dims_v);
        double row_win = multidim_as_vector[row_win_idx]; // get ground window 
-       
+       // std::cout << "Row window: " << row_win << std::endl;
        
        double ground_row_time_adj = ground_row_time + row_win; // this computation for the TIF makes sense, I think (?)
        double diff = ground_row_time_adj - response_time;
@@ -425,13 +426,14 @@ Rcpp::List apply_windows_d(
          insert_element(ground_rows_to_include, ground_row); 
          
 
-         row_v[0] = WEIGHT_DIM;
+         row_v[row_v.size() - 1] = WEIGHT_DIM;
 
-         // std::cout << "Ground context row weight: "; print_vector(row_v);
          
          // apply weights
          int row_wgt_idx = calculate_1d_index(row_v, dims_v);
          int row_wgt = multidim_as_vector[row_wgt_idx];
+         
+         std::cout << "Ground context row weight: "; print_vector(row_v); std::cout << " -> " << row_wgt << std::endl;
          
          ground_row_weights.insert_rows(ground_row_weights.n_rows, 1);
          ground_row_weights(ground_row_weights.n_rows - 1) = row_wgt;
@@ -541,39 +543,39 @@ multidim_arr["Mentor", "Player", "resource", "window"] <- 14 # (0,1,1,1)
 multidim_arr["Player", "Player", "resource", "window"] <- 15 # (1,1,1,1)
 
 
-# context_lookup <- as.matrix(mock_data[, lapply(.SD, function(x) as.numeric(as.factor(x))), .SDcols = c(sender_cols, receiver_cols, mode_column)])
-# 
-# unit_1_context <- context_model$model$contexts[[2]];
-# unit_1_context_lookup <- as.matrix(unit_1_context[, lapply(.SD, function(x) as.numeric(as.factor(x))), .SDcols = c(sender_cols, receiver_cols, mode_column)]);
-# unit_1_rows <- attr(unit_1_context, "tma.unit_rows")
-# unit_1_to_last <- seq.int(last(unit_1_rows));
-# res <- apply_windows_d(
-#   multidim_arr,
-#   attr(multidim_arr, "dim"),
-#   attr(multidim_arr, "sender_inds") - 1,
-#   attr(multidim_arr, "receiver_inds") - 1,
-#   attr(multidim_arr, "mode_inds") - 1,
-#   unit_1_context_lookup[unit_1_to_last,] - 1,
-#   unit_1_rows - 1,
-#   as.matrix(unit_1_context[unit_1_to_last, ..codes]),
-#   unit_1_context[unit_1_to_last,][[time_column]]
-# )
+context_lookup <- as.matrix(mock_data[, lapply(.SD, function(x) as.numeric(as.factor(x))), .SDcols = c(sender_cols, receiver_cols, mode_column)])
 
-result_cpp <- accum_multidim_c(
-  context_model = context_model, multidim_arr = multidim_arr, time_column = time_column, codes = codes
+unit_1_context <- context_model$model$contexts[[2]];
+unit_1_context_lookup <- as.matrix(unit_1_context[, lapply(.SD, function(x) as.numeric(as.factor(x))), .SDcols = c(sender_cols, receiver_cols, mode_column)]);
+unit_1_rows <- attr(unit_1_context, "tma.unit_rows")
+unit_1_to_last <- seq.int(last(unit_1_rows));
+res <- apply_windows_d(
+  multidim_arr,
+  attr(multidim_arr, "dim"),
+  attr(multidim_arr, "sender_inds") - 1,
+  attr(multidim_arr, "receiver_inds") - 1,
+  attr(multidim_arr, "mode_inds") - 1,
+  unit_1_context_lookup[unit_1_to_last,] - 1,
+  unit_1_rows - 1,
+  as.matrix(unit_1_context[unit_1_to_last, ..codes]),
+  unit_1_context[unit_1_to_last,][[time_column]]
 )
+
+# result_cpp <- accum_multidim_c(
+#   context_model = context_model, multidim_arr = multidim_arr, time_column = time_column, codes = codes
+# )
 
 # etc. this seems to be working now 
 # calculate_1d_index(c(1,0,1,0), as.vector(attr(multidim_arr, "dim"))) -- old version: this should be 5, but it fails and returns 10
 # calculate_1d_index(c(1,0,1,0), as.vector(attr(multidim_arr, "dim"))) -- new version: this should be 5, and it succeeds and returns 5 
 
-result_new <- accum_multidim(
-  mock_data,
-  multidim_arr,
-  time_column,
-  codes,
-  context_model
-)
+# result_new <- accum_multidim(
+#   mock_data,
+#   multidim_arr,
+#   time_column,
+#   codes,
+#   context_model
+# )
 
 # res <- apply_windows_d(
 #   multidim_arr,

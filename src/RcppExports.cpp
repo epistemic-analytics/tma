@@ -78,6 +78,18 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// calculate_1d_index_rev
+int calculate_1d_index_rev(const std::vector<int>& indices, const std::vector<int>& dims);
+RcppExport SEXP _tma_calculate_1d_index_rev(SEXP indicesSEXP, SEXP dimsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const std::vector<int>& >::type indices(indicesSEXP);
+    Rcpp::traits::input_parameter< const std::vector<int>& >::type dims(dimsSEXP);
+    rcpp_result_gen = Rcpp::wrap(calculate_1d_index_rev(indices, dims));
+    return rcpp_result_gen;
+END_RCPP
+}
 // calculate_1d_index
 int calculate_1d_index(const std::vector<int>& indices, const std::vector<int>& dims);
 RcppExport SEXP _tma_calculate_1d_index(SEXP indicesSEXP, SEXP dimsSEXP) {
@@ -116,6 +128,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_tma_accumulate_networks", (DL_FUNC) &_tma_accumulate_networks, 5},
     {"_tma_calculate_adjacency_matrix", (DL_FUNC) &_tma_calculate_adjacency_matrix, 3},
     {"_tma_adjacency_matrix_to_vector", (DL_FUNC) &_tma_adjacency_matrix_to_vector, 2},
+    {"_tma_calculate_1d_index_rev", (DL_FUNC) &_tma_calculate_1d_index_rev, 2},
     {"_tma_calculate_1d_index", (DL_FUNC) &_tma_calculate_1d_index, 2},
     {"_tma_apply_windows_d", (DL_FUNC) &_tma_apply_windows_d, 9},
     {NULL, NULL, 0}

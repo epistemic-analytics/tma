@@ -35,6 +35,11 @@ adjacency_matrix_to_vector <- function(x, full = TRUE) {
 }
 
 #' @export
+calculate_1d_index_rev <- function(indices, dims) {
+    .Call(`_tma_calculate_1d_index_rev`, indices, dims)
+}
+
+#' @export
 calculate_1d_index <- function(indices, dims) {
     .Call(`_tma_calculate_1d_index`, indices, dims)
 }
