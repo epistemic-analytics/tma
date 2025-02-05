@@ -54,6 +54,9 @@ test_that("no senders, no receivers, modality", {
     codes,
     context_model
   )
+  result_cpp <- accum_multidim_c(
+    context_model = context_model, multidim_arr = multidim_arr, time_column = time_column, codes = codes
+  )
   
   # Compare vectors across all 3 units 
   
