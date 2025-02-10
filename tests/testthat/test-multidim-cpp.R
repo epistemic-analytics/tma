@@ -351,7 +351,6 @@ test_that("sender, receiver, no modality", {
   )
   
   
-  
   # Compare vectors across all 3 units 
   
   user1_old <- as.numeric(unname(as.vector(result_old$connection.counts[1,4:length(colnames(result_old$connection.counts))])))
@@ -538,32 +537,52 @@ test_that("senders, receivers, modality", {
   multidim_arr["Mentor", "L2", "Mentor", "good", "resource", "window"] <- 360
   
   
-  result_old <- accum_multidim(
-    mock_data,
-    multidim_arr, 
-    time_column,
-    codes,
-    context_model
-  )
   result_new <- accum_multidim_c(
     context_model = context_model, multidim_arr = multidim_arr, time_column = time_column, codes = codes
   )
   
-  # Compare vectors accross all 3 units 
+  # Get old TMA results
+  #' User 1: A & C = 2, all else 0. good
+  #' User 2: A & B = 3, A & C = 1, C & B = 2.5, B & C = 2.5. good
+  #' User 3: A & A = 1, B & A = 3, C & A = 4, A & C = 4, B & C = 3. good
+  result_old <- data.frame(
+    `A & A` = c(0, 0, 1),
+    `B & A` = c(0, 0, 3),
+    `C & A` = c(0, 0, 4),
+    `A & B` = c(0, 3, 0),
+    `B & B` = c(0, 0, 0),
+    `C & B` = c(0, 2.5, 0),
+    `A & C` = c(2, 1, 4),
+    `B & C` = c(0, 2.5, 3),
+    `C & C` = c(0, 0, 0)
+  )
+  
+  result_old$ENA_UNIT <- c("User1::FirstHalf", "User2::FirstHalf", "User3::FirstHalf")
+  
+  # Reorder columns so ENA_UNIT is the first column
+  result_old <- result_old[, c("ENA_UNIT", colnames(result_old)[-ncol(result_old)])]
+  
+  colnames(result_old) <- c("ENA_UNIT", "A & A", "B & A", "C & A", "A & B", "B & B", "C & B", "A & C", "B & C", "C & C")
   
   # Compare vectors across all 3 units 
   
-  user1_old <- as.numeric(unname(as.vector(result_old$connection.counts[1,4:length(colnames(result_old$connection.counts))])))
+  # Compare vectors across all 3 units 
+  
+  user1_old <- as.numeric(unname(as.vector(result_old[1,2:length(colnames(result_old))])))
   user1_new <- as.numeric(unname(as.vector(result_new$connection.counts[1,4:length(colnames(result_new$connection.counts))])))
+  
   
   testthat::expect_true(all(user1_old == user1_new))
   
-  user2_old <- as.numeric(unname(as.vector(result_old$connection.counts[2,4:length(colnames(result_old$connection.counts))])))
+  user2_old <- as.numeric(unname(as.vector(result_old[2,2:length(colnames(result_old))])))
   user2_new <- as.numeric(unname(as.vector(result_new$connection.counts[2,4:length(colnames(result_new$connection.counts))])))
+  
+  print(user2_old)
+  print(user2_new)
   
   testthat::expect_true(all(user2_old == user2_new))
   
-  user3_old <- as.numeric(unname(as.vector(result_old$connection.counts[3,4:length(colnames(result_old$connection.counts))])))
+  user3_old <- as.numeric(unname(as.vector(result_old[3,2:length(colnames(result_old))])))
   user3_new <- as.numeric(unname(as.vector(result_new$connection.counts[3,4:length(colnames(result_new$connection.counts))])))
   
   testthat::expect_true(all(user3_old == user3_new))

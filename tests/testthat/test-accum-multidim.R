@@ -692,21 +692,27 @@ test_that("senders, receivers, modality", {
   # Reorder columns so ENA_UNIT is the first column
   result_old <- result_old[, c("ENA_UNIT", colnames(result_old)[-ncol(result_old)])]
   
-  # Compare vectors accross all 3 units 
+  colnames(result_old) <- c("ENA_UNIT", "A & A", "B & A", "C & A", "A & B", "B & B", "C & B", "A & C", "B & C", "C & C")
   
   # Compare vectors across all 3 units 
   
-  user1_old <- as.numeric(unname(as.vector(result_old$connection.counts[1,4:length(colnames(result_old$connection.counts))])))
+  # Compare vectors across all 3 units 
+  
+  user1_old <- as.numeric(unname(as.vector(result_old[1,2:length(colnames(result_old))])))
   user1_new <- as.numeric(unname(as.vector(result_new$connection.counts[1,4:length(colnames(result_new$connection.counts))])))
+
   
   testthat::expect_true(all(user1_old == user1_new))
   
-  user2_old <- as.numeric(unname(as.vector(result_old$connection.counts[2,4:length(colnames(result_old$connection.counts))])))
+  user2_old <- as.numeric(unname(as.vector(result_old[2,2:length(colnames(result_old))])))
   user2_new <- as.numeric(unname(as.vector(result_new$connection.counts[2,4:length(colnames(result_new$connection.counts))])))
+  
+  print(user2_old)
+  print(user2_new)
   
   testthat::expect_true(all(user2_old == user2_new))
   
-  user3_old <- as.numeric(unname(as.vector(result_old$connection.counts[3,4:length(colnames(result_old$connection.counts))])))
+  user3_old <- as.numeric(unname(as.vector(result_old[3,2:length(colnames(result_old))])))
   user3_new <- as.numeric(unname(as.vector(result_new$connection.counts[3,4:length(colnames(result_new$connection.counts))])))
   
   testthat::expect_true(all(user3_old == user3_new))

@@ -953,3 +953,160 @@ result_new <- tma:::accum_multidim(
 )
 ```
 
+
+# erm
+```{r}
+data(test_mockdata, package = "tma")
+mock_data <- test_mockdata;
+  mock_data <- mock_data[mock_data$chatGroup == "PAM",]
+  
+  # Initialize TMA units and contexts
+  unit_cols <- c("userID", "condition")
+  codes <- c("A", "B", "C")
+  HOO_rules_model <- tma:::rules(
+    modality %in% "chat" & chatGroup %in% UNIT$chatGroup & condition %in% UNIT$condition, modality %in% "resource" & userID %in% UNIT$userID & condition %in% UNIT$condition
+  )
+  
+  context_model <- tma:::contexts(
+    x = mock_data,
+    units = unit_cols,
+    hoo_rules = HOO_rules_model
+  )
+  
+  time_column = "timeStamp"
+  
+  # Get new TMA results
+  sender_cols <- c("role", "language")
+  receiver_cols <- c("role", "handwriting")
+  mode_column <- "modality"
+  
+  multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, 0, 0)
+  
+  
+  multidim_arr["Player", "L1", "Player", "poor", "chat", "weight"] <- 1
+  multidim_arr["Player", "L1", "Player", "poor", "resource", "weight"] <- 1
+  multidim_arr["Player", "L1", "Player", "good", "chat", "weight"] <- 1
+  multidim_arr["Player", "L1", "Player", "good", "resource", "weight"] <- 8
+  multidim_arr["Player", "L1", "Mentor", "poor", "chat", "weight"] <- 1
+  multidim_arr["Player", "L1", "Mentor", "poor", "resource", "weight"] <- 1
+  multidim_arr["Player", "L1", "Mentor", "good", "chat", "weight"] <- 1
+  multidim_arr["Player", "L1", "Mentor", "good", "resource", "weight"] <- 7
+  multidim_arr["Player", "L2", "Player", "poor", "chat", "weight"] <- 7
+  multidim_arr["Player", "L2", "Player", "poor", "resource", "weight"] <- 4
+  multidim_arr["Player", "L2", "Player", "good", "chat", "weight"] <- 1
+  multidim_arr["Player", "L2", "Player", "good", "resource", "weight"] <- 1
+  multidim_arr["Player", "L2", "Mentor", "poor", "chat", "weight"] <- 1
+  multidim_arr["Player", "L2", "Mentor", "poor", "resource", "weight"] <- 3
+  multidim_arr["Player", "L2", "Mentor", "good", "chat", "weight"] <- 3
+  multidim_arr["Player", "L2", "Mentor", "good", "resource", "weight"] <- 12
+  multidim_arr["Mentor", "L1", "Player", "poor", "chat", "weight"] <- 1
+  multidim_arr["Mentor", "L1", "Player", "poor", "resource", "weight"] <- 10
+  multidim_arr["Mentor", "L1", "Player", "good", "chat", "weight"] <- 1
+  multidim_arr["Mentor", "L1", "Player", "good", "resource", "weight"] <- 9
+  multidim_arr["Mentor", "L1", "Mentor", "poor", "chat", "weight"] <- 1
+  multidim_arr["Mentor", "L1", "Mentor", "poor", "resource", "weight"] <- 1
+  multidim_arr["Mentor", "L1", "Mentor", "good", "chat", "weight"] <- 7
+  multidim_arr["Mentor", "L1", "Mentor", "good", "resource", "weight"] <- 7
+  multidim_arr["Mentor", "L2", "Player", "poor", "chat", "weight"] <- 7
+  multidim_arr["Mentor", "L2", "Player", "poor", "resource", "weight"] <- 1
+  multidim_arr["Mentor", "L2", "Player", "good", "chat", "weight"] <- 6
+  multidim_arr["Mentor", "L2", "Player", "good", "resource", "weight"] <- 2
+  multidim_arr["Mentor", "L2", "Mentor", "poor", "chat", "weight"] <- 1
+  multidim_arr["Mentor", "L2", "Mentor", "poor", "resource", "weight"] <- 3
+  multidim_arr["Mentor", "L2", "Mentor", "good", "chat", "weight"] <- 5
+  multidim_arr["Mentor", "L2", "Mentor", "good", "resource", "weight"] <- 5
+  
+  multidim_arr["Player", "L1", "Player", "poor", "chat", "window"] <- 360
+  multidim_arr["Player", "L1", "Player", "poor", "resource", "window"] <- 10 
+  multidim_arr["Player", "L1", "Player", "good", "chat", "window"] <- 360
+  multidim_arr["Player", "L1", "Player", "good", "resource", "window"] <- 310
+  multidim_arr["Player", "L1", "Mentor", "poor", "chat", "window"] <- 360
+  multidim_arr["Player", "L1", "Mentor", "poor", "resource", "window"] <- 300
+  multidim_arr["Player", "L1", "Mentor", "good", "chat", "window"] <- 360
+  multidim_arr["Player", "L1", "Mentor", "good", "resource", "window"] <- 320
+  multidim_arr["Player", "L2", "Player", "poor", "chat", "window"] <- 360
+  multidim_arr["Player", "L2", "Player", "poor", "resource", "window"] <- 350
+  multidim_arr["Player", "L2", "Player", "good", "chat", "window"] <- 360
+  multidim_arr["Player", "L2", "Player", "good", "resource", "window"] <- 189
+  multidim_arr["Player", "L2", "Mentor", "poor", "chat", "window"] <- 121
+  multidim_arr["Player", "L2", "Mentor", "poor", "resource", "window"] <- 782
+  multidim_arr["Player", "L2", "Mentor", "good", "chat", "window"] <- 333
+  multidim_arr["Player", "L2", "Mentor", "good", "resource", "window"] <- 343
+  multidim_arr["Mentor", "L1", "Player", "poor", "chat", "window"] <- 845
+  multidim_arr["Mentor", "L1", "Player", "poor", "resource", "window"] <- 800
+  multidim_arr["Mentor", "L1", "Player", "good", "chat", "window"] <- 500
+  multidim_arr["Mentor", "L1", "Player", "good", "resource", "window"] <- 20
+  multidim_arr["Mentor", "L1", "Mentor", "poor", "chat", "window"] <- 70
+  multidim_arr["Mentor", "L1", "Mentor", "poor", "resource", "window"] <- 10
+  multidim_arr["Mentor", "L1", "Mentor", "good", "chat", "window"] <- 20
+  multidim_arr["Mentor", "L1", "Mentor", "good", "resource", "window"] <- 100
+  multidim_arr["Mentor", "L2", "Player", "poor", "chat", "window"] <- 360
+  multidim_arr["Mentor", "L2", "Player", "poor", "resource", "window"] <- 200
+  multidim_arr["Mentor", "L2", "Player", "good", "chat", "window"] <- 360
+  multidim_arr["Mentor", "L2", "Player", "good", "resource", "window"] <- 350
+  multidim_arr["Mentor", "L2", "Mentor", "poor", "chat", "window"] <- 360
+  multidim_arr["Mentor", "L2", "Mentor", "poor", "resource", "window"] <- 270
+  multidim_arr["Mentor", "L2", "Mentor", "good", "chat", "window"] <- 180
+  multidim_arr["Mentor", "L2", "Mentor", "good", "resource", "window"] <- 360
+  
+  
+  result_new <- accum_multidim(
+    mock_data,
+    multidim_arr, 
+    time_column,
+    codes,
+    context_model
+  )
+  
+  # Get old TMA results
+  #' User 1: A & C = 2, all else 0. good
+  #' User 2: A & B = 3, A & C = 1, C & B = 2.5, B & C = 2.5. good
+  #' User 3: A & A = 1, B & A = 3, C & A = 4, A & C = 4, B & C = 3. good
+  result_old <- data.frame(
+    `A & A` = c(0, 0, 1),
+    `B & A` = c(0, 0, 3),
+    `C & A` = c(0, 0, 4),
+    `A & B` = c(0, 3, 0),
+    `B & B` = c(0, 0, 0),
+    `C & B` = c(0, 2.5, 0),
+    `A & C` = c(2, 1, 4),
+    `B & C` = c(0, 2.5, 3),
+    `C & C` = c(0, 0, 0)
+  )
+  
+  result_old$ENA_UNIT <- c("User1::FirstHalf", "User2::FirstHalf", "User3::FirstHalf")
+  
+  # Reorder columns so ENA_UNIT is the first column
+  result_old <- result_old[, c("ENA_UNIT", colnames(result_old)[-ncol(result_old)])]
+  
+  colnames(result_old) <- c("ENA_UNIT", "A & A", "B & A", "C & A", "A & B", "B & B", "C & B", "A & C", "B & C", "C & C")
+  
+  # Compare vectors across all 3 units 
+  
+  # Compare vectors across all 3 units 
+  
+  print(result_old)
+  print(result_new$connection.counts)
+  
+  # user1_old <- as.numeric(unname(as.vector(result_old[1,2:length(colnames(result_old))])))
+  # user1_new <- as.numeric(unname(as.vector(result_new$connection.counts[1,4:length(colnames(result_new$connection.counts))])))
+  # 
+  # print(user1_old)
+  # print(user1_new)
+  # 
+  #  testthat::expect_true(all(user1_old == user1_new))
+
+  user2_old <- as.numeric(unname(as.vector(result_old[2,2:length(colnames(result_old))])))
+  user2_new <- as.numeric(unname(as.vector(result_new$connection.counts[2,4:length(colnames(result_new$connection.counts))])))
+  
+  print(user2_old)
+  print(user2_new)
+
+#    testthat::expect_true(all(user2_old == user2_new))
+# 
+#    user3_old <- as.numeric(unname(as.vector(result_old[3,2:length(colnames(result_old))])))
+#   user3_new <- as.numeric(unname(as.vector(result_new$connection.counts[3,4:length(colnames(result_new$connection.counts))])))
+# 
+# testthat::expect_true(all(user3_old == user3_new))
+```
+
