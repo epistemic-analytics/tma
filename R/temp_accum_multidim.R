@@ -262,57 +262,57 @@ apply_windows <- function(
     return(temp_vec)
   }
   
-  # # get response row; r_i is receiver values
-  # context_response_row <- context[.N];
-  # receiver_cols <- as.character(as.vector(receiver_cols))
-  # r_i <- unlist(context_response_row[, ..receiver_cols]);
-  # response_row_time_val <- context_response_row[[time_column]]; # get timestamp in response row
-  # context_ground_rows <- context[QEID != r_vec_qeid]; # get potential ground rows
-  # g_vecs_old <- context_ground_rows[,{
-  #   # matrix with sender and modality values for all relevant ground rows
-  #   sm_mat <- as.matrix(.SD[, c(unlist(sender_cols), mode_column), with = FALSE])
-  # 
-  #   # initialize receivers cols of the querying matrix
-  #   # receivers <- list()
-  #   # for (k in 1:length(receiver_cols)) {
-  #   #   receivers[[k]] <- as.matrix(rep(r_i[[k]], nrow(sm_mat)))
-  #   # }
-  #   # receivers <- do.call(cbind, receivers)
-  #   receivers <- matrix(r_i, nrow = .N, ncol = length(r_i), byrow = TRUE, dimnames = list( NULL, names(r_i)));
-  # 
-  #   # get matrix used to query multidim arr
-  #   # if (nrow(sm_mat) == 1) {
-  #   #   mult_arr_mat <- cbind(t(as.matrix(sm_mat[,1:length(sender_cols)])), receivers, sm_mat[,ncol(sm_mat)], "window")
-  #   # } else {
-  #   #   mult_arr_mat <- cbind(sm_mat[,1:length(sender_cols)], receivers, sm_mat[,ncol(sm_mat)], "window")
-  #   # }
-  #   # mult_arr_mat <- cbind(sm_mat[,1:length(sender_cols), drop = F], receivers, sm_mat[, ncol(sm_mat), drop = FALSE], "window");
-  #   mult_arr_mat <- data.table:::cbind.data.table(.SD[, c(sender_cols, mode_column), with = FALSE], receivers, "window")
-  #   si <- seq_along(sender_cols);
-  #   data.table::setcolorder(mult_arr_mat, c(si, seq_along(receiver_cols) + length(sender_cols) + 1, length(sender_cols) + 1, ncol(mult_arr_mat)))
-  #   mult_arr_mat <- as.matrix(mult_arr_mat);
-  # 
-  #   # ensure vectors project forward in time far enough that they are kept in the ground
-  #   .SD[as.vector((.SD[[time_column]] + as.numeric(multidim_arr[mult_arr_mat])) >= response_row_time_val), ];
-  # }]
+  # get response row; r_i is receiver values
+  context_response_row <- context[.N];
+  receiver_cols <- as.character(as.vector(receiver_cols))
+  r_i <- unlist(context_response_row[, ..receiver_cols]);
+  response_row_time_val <- context_response_row[[time_column]]; # get timestamp in response row
+  context_ground_rows <- context[QEID != r_vec_qeid]; # get potential ground rows
+  g_vecs <- context_ground_rows[,{
+    # matrix with sender and modality values for all relevant ground rows
+    sm_mat <- as.matrix(.SD[, c(unlist(sender_cols), mode_column), with = FALSE])
+
+    # initialize receivers cols of the querying matrix
+    # receivers <- list()
+    # for (k in 1:length(receiver_cols)) {
+    #   receivers[[k]] <- as.matrix(rep(r_i[[k]], nrow(sm_mat)))
+    # }
+    # receivers <- do.call(cbind, receivers)
+    receivers <- matrix(r_i, nrow = .N, ncol = length(r_i), byrow = TRUE, dimnames = list( NULL, names(r_i)));
+
+    # get matrix used to query multidim arr
+    # if (nrow(sm_mat) == 1) {
+    #   mult_arr_mat <- cbind(t(as.matrix(sm_mat[,1:length(sender_cols)])), receivers, sm_mat[,ncol(sm_mat)], "window")
+    # } else {
+    #   mult_arr_mat <- cbind(sm_mat[,1:length(sender_cols)], receivers, sm_mat[,ncol(sm_mat)], "window")
+    # }
+    # mult_arr_mat <- cbind(sm_mat[,1:length(sender_cols), drop = F], receivers, sm_mat[, ncol(sm_mat), drop = FALSE], "window");
+    mult_arr_mat <- data.table:::cbind.data.table(.SD[, c(sender_cols, mode_column), with = FALSE], receivers, "window")
+    si <- seq_along(sender_cols);
+    data.table::setcolorder(mult_arr_mat, c(si, seq_along(receiver_cols) + length(sender_cols) + 1, length(sender_cols) + 1, ncol(mult_arr_mat)))
+    mult_arr_mat <- as.matrix(mult_arr_mat);
+
+    # ensure vectors project forward in time far enough that they are kept in the ground
+    .SD[as.vector((.SD[[time_column]] + as.numeric(multidim_arr[mult_arr_mat])) >= response_row_time_val), ];
+  }]
   # browser()
   
-  context[[time_column]] <- as.POSIXct(context[[time_column]], origin = "1970-01-01") 
-  
-  
-  g_vecs_i <- context[, {
-    times = .SD[[time_column]]
-    difftime(
-      times + 
-      multidim_arr[as.matrix(
-        .SD[, c(sender_cols, receiver_cols, mode_column), with = FALSE][, `:=`("window"="window")][, (receiver_cols) := .SD[.N, c(receiver_cols), with = FALSE]]
-      )],
-      times[.N],
-      time_unit
-    ) >= 0 & QEID != r_vec_qeid
-  }]
-  g_vecs <- context[g_vecs_i,]
-  # browser(expr = !identical(g_vecs_old, g_vecs))
+  # context[[time_column]] <- as.POSIXct(context[[time_column]], origin = "1970-01-01")
+  # 
+  # 
+  # g_vecs_i <- context[, {
+  #   times = .SD[[time_column]]
+  #   difftime(
+  #     times +
+  #     multidim_arr[as.matrix(
+  #       .SD[, c(sender_cols, receiver_cols, mode_column), with = FALSE][, `:=`("window"="window")][, (receiver_cols) := .SD[.N, c(receiver_cols), with = FALSE]]
+  #     )],
+  #     times[.N],
+  #     time_unit
+  #   ) >= 0 & QEID != r_vec_qeid
+  # }]
+  # g_vecs <- context[g_vecs_i,]
+  # # browser(expr = !identical(g_vecs_old, g_vecs))
   
   return(g_vecs)
 }
