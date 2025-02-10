@@ -31,6 +31,22 @@ as.undirected.matrix <- function(x, m = matrix(1, nrow = nrow(x), ncol = ncol(x)
   
   ut_matrix
 }
+
+#' Extract Upper Triangular Elements
+#' 
+#' This function extracts the elements from the upper triangular part of a
+#' matrix.
+#' 
+#' @param x A numeric matrix from which to extract upper triangular elements.
+#' @param diag A logical value indicating whether to include the diagonal
+#'   elements. Defaults to FALSE.
+#' 
+#' @return A vector containing the upper triangular elements of the matrix.
+#' 
+#' @examples
+#' mat <- matrix(1:9, nrow = 3)
+#' extract_upper_tri(mat)
+#' extract_upper_tri(mat, diag = TRUE)
 as.undirected.vector <- function(x, diag = FALSE) {
   upper_tri_indices <- upper.tri(x, diag = diag);
   x[upper_tri_indices]

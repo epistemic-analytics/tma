@@ -433,7 +433,7 @@ Rcpp::List apply_windows_d(
          int row_wgt_idx = calculate_1d_index(row_v, dims_v);
          int row_wgt = multidim_as_vector[row_wgt_idx];
          
-         std::cout << "Ground context row weight: "; print_vector(row_v); std::cout << " -> " << row_wgt << std::endl;
+         // std::cout << "Ground context row weight: "; print_vector(row_v); std::cout << " -> " << row_wgt << std::endl;
          
          ground_row_weights.insert_rows(ground_row_weights.n_rows, 1);
          ground_row_weights(ground_row_weights.n_rows - 1) = row_wgt;
