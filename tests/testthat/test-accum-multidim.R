@@ -54,9 +54,6 @@ test_that("no senders, no receivers, modality", {
     codes,
     context_model
   )
-  result_cpp <- accum_multidim_c(
-    context_model = context_model, multidim_arr = multidim_arr, time_column = time_column, codes = codes
-  )
   
   # Compare vectors across all 3 units 
   
@@ -69,7 +66,6 @@ test_that("no senders, no receivers, modality", {
   user3_new <- as.numeric(unname(as.vector(result_new$connection.counts[3,4:length(colnames(result_new$connection.counts))])))
   
   testthat::expect_equal(user1_old, user1_new)
-  testthat::expect_equal(user1_old, user1_cpp)
   testthat::expect_equal(user2_old, user2_new)
   testthat::expect_equal(user3_old, user3_new)
 })

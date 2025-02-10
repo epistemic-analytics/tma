@@ -1,3 +1,5 @@
+testthat::context("Test C++ 1d indexing into multidimensional array")
+
 test_that("calculate_1d_index works correctly", {
   # Test case 1: Simple 2D case
   indices <- c(1, 2)

@@ -9,7 +9,8 @@ library(tma)
 
 ```{r}
 # Load mock data and source program
-mock_data <- read_csv("./vignettes/mock_data_edited.csv")
+data(test_mockdata, package = "tma")
+mock_data <- test_mockdata;
 ```
 
 ```{r}
@@ -762,7 +763,8 @@ df <- df %>%
   mutate(modality = ifelse(is.na(modality), "chat", modality)) %>% 
   mutate(language = sample(c("L1", "L2"), size = n(), replace = TRUE)) %>% 
   mutate(timeStamp = as.numeric(as.POSIXct(timeStamp, format = "%Y-%m-%d %H:%M:%S", tz = "UTC"))) %>%
-  mutate(timeStamp = timeStamp + duration)
+  mutate(timeStamp = timeStamp + duration) %>% 
+  mutate(handwriting = sample(c("poor", "good"), size = n(), replace = TRUE))
 ```
 
 ```{r}
@@ -783,11 +785,11 @@ time_column = "timeStamp"
 ```
 
 ```{r}
-# Do we get the correct answer with senders, receivers, modality? 
+# Do we get the correct answer with sender, receiver, modality? 
  
 
 sender_cols = list("role")
-receiver_cols = list("language")
+receiver_cols <- list("languge")
 mode_column = "modality"
 
 multidim_arr <- tma:::make_multidim_arr(df, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, 0, 0)
@@ -823,6 +825,7 @@ result_new <- tma:::accum_multidim(
 # print(result_new$connection.counts)
 ```
 
+
 ```{r}
 
 result_old <- tma:::accumulate_contexts (
@@ -857,5 +860,96 @@ result_old <- tma:::accumulate_contexts (
 
 print(result_old$connection.counts)
 print(result_new$connection.counts)
+```
+
+Multiple senders, receivers, modality for full RS data
+```{r}
+
+sender_cols <- list("role", "language")
+receiver_cols <- list("role", "handwriting")
+mode_column <- "modality"
+
+# make sure to drop all NAs from df
+df %>% drop_na("role", "language", "role", "handwriting", "modality")
+
+multidim_arr <- tma:::make_multidim_arr(df, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, 0, 0)
+
+
+multidim_arr["Player", "L1", "Player", "poor", "chat", "weight"] <- 1
+multidim_arr["Player", "L1", "Player", "poor", "resource", "weight"] <- 1
+multidim_arr["Player", "L1", "Player", "good", "chat", "weight"] <- 1
+multidim_arr["Player", "L1", "Player", "good", "resource", "weight"] <- 8
+multidim_arr["Player", "L1", "Mentor", "poor", "chat", "weight"] <- 1
+multidim_arr["Player", "L1", "Mentor", "poor", "resource", "weight"] <- 1
+multidim_arr["Player", "L1", "Mentor", "good", "chat", "weight"] <- 1
+multidim_arr["Player", "L1", "Mentor", "good", "resource", "weight"] <- 7
+multidim_arr["Player", "L2", "Player", "poor", "chat", "weight"] <- 7
+multidim_arr["Player", "L2", "Player", "poor", "resource", "weight"] <- 4
+multidim_arr["Player", "L2", "Player", "good", "chat", "weight"] <- 1
+multidim_arr["Player", "L2", "Player", "good", "resource", "weight"] <- 1
+multidim_arr["Player", "L2", "Mentor", "poor", "chat", "weight"] <- 1
+multidim_arr["Player", "L2", "Mentor", "poor", "resource", "weight"] <- 3
+multidim_arr["Player", "L2", "Mentor", "good", "chat", "weight"] <- 3
+multidim_arr["Player", "L2", "Mentor", "good", "resource", "weight"] <- 12
+multidim_arr["Mentor", "L1", "Player", "poor", "chat", "weight"] <- 1
+multidim_arr["Mentor", "L1", "Player", "poor", "resource", "weight"] <- 10
+multidim_arr["Mentor", "L1", "Player", "good", "chat", "weight"] <- 1
+multidim_arr["Mentor", "L1", "Player", "good", "resource", "weight"] <- 9
+multidim_arr["Mentor", "L1", "Mentor", "poor", "chat", "weight"] <- 1
+multidim_arr["Mentor", "L1", "Mentor", "poor", "resource", "weight"] <- 1
+multidim_arr["Mentor", "L1", "Mentor", "good", "chat", "weight"] <- 7
+multidim_arr["Mentor", "L1", "Mentor", "good", "resource", "weight"] <- 7
+multidim_arr["Mentor", "L2", "Player", "poor", "chat", "weight"] <- 7
+multidim_arr["Mentor", "L2", "Player", "poor", "resource", "weight"] <- 1
+multidim_arr["Mentor", "L2", "Player", "good", "chat", "weight"] <- 6
+multidim_arr["Mentor", "L2", "Player", "good", "resource", "weight"] <- 2
+multidim_arr["Mentor", "L2", "Mentor", "poor", "chat", "weight"] <- 1
+multidim_arr["Mentor", "L2", "Mentor", "poor", "resource", "weight"] <- 3
+multidim_arr["Mentor", "L2", "Mentor", "good", "chat", "weight"] <- 5
+multidim_arr["Mentor", "L2", "Mentor", "good", "resource", "weight"] <- 5
+
+multidim_arr["Player", "L1", "Player", "poor", "chat", "window"] <- 360
+multidim_arr["Player", "L1", "Player", "poor", "resource", "window"] <- 10 
+multidim_arr["Player", "L1", "Player", "good", "chat", "window"] <- 360
+multidim_arr["Player", "L1", "Player", "good", "resource", "window"] <- 310
+multidim_arr["Player", "L1", "Mentor", "poor", "chat", "window"] <- 360
+multidim_arr["Player", "L1", "Mentor", "poor", "resource", "window"] <- 300
+multidim_arr["Player", "L1", "Mentor", "good", "chat", "window"] <- 360
+multidim_arr["Player", "L1", "Mentor", "good", "resource", "window"] <- 320
+multidim_arr["Player", "L2", "Player", "poor", "chat", "window"] <- 360
+multidim_arr["Player", "L2", "Player", "poor", "resource", "window"] <- 350
+multidim_arr["Player", "L2", "Player", "good", "chat", "window"] <- 360
+multidim_arr["Player", "L2", "Player", "good", "resource", "window"] <- 189
+multidim_arr["Player", "L2", "Mentor", "poor", "chat", "window"] <- 121
+multidim_arr["Player", "L2", "Mentor", "poor", "resource", "window"] <- 782
+multidim_arr["Player", "L2", "Mentor", "good", "chat", "window"] <- 333
+multidim_arr["Player", "L2", "Mentor", "good", "resource", "window"] <- 343
+multidim_arr["Mentor", "L1", "Player", "poor", "chat", "window"] <- 845
+multidim_arr["Mentor", "L1", "Player", "poor", "resource", "window"] <- 800
+multidim_arr["Mentor", "L1", "Player", "good", "chat", "window"] <- 500
+multidim_arr["Mentor", "L1", "Player", "good", "resource", "window"] <- 20
+multidim_arr["Mentor", "L1", "Mentor", "poor", "chat", "window"] <- 70
+multidim_arr["Mentor", "L1", "Mentor", "poor", "resource", "window"] <- 10
+multidim_arr["Mentor", "L1", "Mentor", "good", "chat", "window"] <- 20
+multidim_arr["Mentor", "L1", "Mentor", "good", "resource", "window"] <- 100
+multidim_arr["Mentor", "L2", "Player", "poor", "chat", "window"] <- 360
+multidim_arr["Mentor", "L2", "Player", "poor", "resource", "window"] <- 200
+multidim_arr["Mentor", "L2", "Player", "good", "chat", "window"] <- 360
+multidim_arr["Mentor", "L2", "Player", "good", "resource", "window"] <- 350
+multidim_arr["Mentor", "L2", "Mentor", "poor", "chat", "window"] <- 360
+multidim_arr["Mentor", "L2", "Mentor", "poor", "resource", "window"] <- 270
+multidim_arr["Mentor", "L2", "Mentor", "good", "chat", "window"] <- 180
+multidim_arr["Mentor", "L2", "Mentor", "good", "resource", "window"] <- 360
+
+```
+
+```{r}
+result_new <- tma:::accum_multidim(
+    df,
+    multidim_arr, 
+    time_column,
+    codes,
+    context_model
+)
 ```
 

@@ -519,6 +519,19 @@ sender_cols <- c("role")
 receiver_cols <- c("role")
 mode_column <- "modality"
 
+unit_cols <- c("userID", "condition")
+codes <- c("A", "B", "C")
+HOO_rules_model <- tma:::rules(
+  modality %in% "chat" & chatGroup %in% UNIT$chatGroup & condition %in% UNIT$condition, modality %in% "resource" & userID %in% UNIT$userID & condition %in% UNIT$condition
+)
+context_model <- tma:::contexts(
+  x = mock_data,
+  units = unit_cols,
+  hoo_rules = HOO_rules_model
+)
+time_column = "timeStamp"
+# time_column = tma:::ATTR_NAMES$CONTEXT_COL_ID
+
 multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, default_window = 20, default_weight = 1)
 
 # set everything in multidim arr to be unique so we can understand where everything goes in vectorized multidim arr
@@ -543,39 +556,39 @@ multidim_arr["Mentor", "Player", "resource", "window"] <- 14 # (0,1,1,1)
 multidim_arr["Player", "Player", "resource", "window"] <- 15 # (1,1,1,1)
 
 
-context_lookup <- as.matrix(mock_data[, lapply(.SD, function(x) as.numeric(as.factor(x))), .SDcols = c(sender_cols, receiver_cols, mode_column)])
-
-unit_1_context <- context_model$model$contexts[[2]];
-unit_1_context_lookup <- as.matrix(unit_1_context[, lapply(.SD, function(x) as.numeric(as.factor(x))), .SDcols = c(sender_cols, receiver_cols, mode_column)]);
-unit_1_rows <- attr(unit_1_context, "tma.unit_rows")
-unit_1_to_last <- seq.int(last(unit_1_rows));
-res <- apply_windows_d(
-  multidim_arr,
-  attr(multidim_arr, "dim"),
-  attr(multidim_arr, "sender_inds") - 1,
-  attr(multidim_arr, "receiver_inds") - 1,
-  attr(multidim_arr, "mode_inds") - 1,
-  unit_1_context_lookup[unit_1_to_last,] - 1,
-  unit_1_rows - 1,
-  as.matrix(unit_1_context[unit_1_to_last, ..codes]),
-  unit_1_context[unit_1_to_last,][[time_column]]
-)
-
-# result_cpp <- accum_multidim_c(
-#   context_model = context_model, multidim_arr = multidim_arr, time_column = time_column, codes = codes
+# context_lookup <- as.matrix(mock_data[, lapply(.SD, function(x) as.numeric(as.factor(x))), .SDcols = c(sender_cols, receiver_cols, mode_column)])
+# 
+# unit_1_context <- context_model$model$contexts[[2]];
+# unit_1_context_lookup <- as.matrix(unit_1_context[, lapply(.SD, function(x) as.numeric(as.factor(x))), .SDcols = c(sender_cols, receiver_cols, mode_column)]);
+# unit_1_rows <- attr(unit_1_context, "tma.unit_rows")
+# unit_1_to_last <- seq.int(last(unit_1_rows));
+# res <- apply_windows_d(
+#   multidim_arr,
+#   attr(multidim_arr, "dim"),
+#   attr(multidim_arr, "sender_inds") - 1,
+#   attr(multidim_arr, "receiver_inds") - 1,
+#   attr(multidim_arr, "mode_inds") - 1,
+#   unit_1_context_lookup[unit_1_to_last,] - 1,
+#   unit_1_rows - 1,
+#   as.matrix(unit_1_context[unit_1_to_last, ..codes]),
+#   unit_1_context[unit_1_to_last,][[time_column]]
 # )
+
+result_cpp <- accum_multidim_c(
+  context_model = context_model, multidim_arr = multidim_arr, time_column = time_column, codes = codes
+)
 
 # etc. this seems to be working now 
 # calculate_1d_index(c(1,0,1,0), as.vector(attr(multidim_arr, "dim"))) -- old version: this should be 5, but it fails and returns 10
 # calculate_1d_index(c(1,0,1,0), as.vector(attr(multidim_arr, "dim"))) -- new version: this should be 5, and it succeeds and returns 5 
 
-# result_new <- accum_multidim(
-#   mock_data,
-#   multidim_arr,
-#   time_column,
-#   codes,
-#   context_model
-# )
+result_new <- accum_multidim(
+  mock_data,
+  multidim_arr,
+  time_column,
+  codes,
+  context_model
+)
 
 # res <- apply_windows_d(
 #   multidim_arr,
