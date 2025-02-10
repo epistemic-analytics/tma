@@ -21,23 +21,6 @@ test_that("no senders, no receivers, modality", {
   
   time_column = "timeStamp"
   
-  # Get old TMA results
-  result_old <- tma:::accumulate_contexts (
-    x = context_model,
-    codes = codes,
-    weight.by = function(x) { x },
-    decay.function = function(x) {
-      modality_effect <- c("chat" = 360, "resource" = 180)
-      modality_weight_effect <- c("chat" = 1, "resource" = 2)
-      modality <- FULL_CONTEXT[ROWS, modality]
-      weight <- (x < (modality_effect[modality])) * modality_weight_effect[modality]
-      return(weight)
-    },
-    time.column = "timeStamp",
-    return.ena.set = FALSE,
-    mode.column = "modality"
-  )
-  
   # Get new TMA results 
   mode_column = "modality"
   
@@ -47,15 +30,15 @@ test_that("no senders, no receivers, modality", {
   multidim_arr["resource", "weight"] <- 2
   multidim_arr["chat", "window"] <- 360
   multidim_arr["resource", "window"] <- 180
-  
-  result_new <- accum_multidim(
+
+  result_old <- accum_multidim(
     mock_data,
     multidim_arr, 
     time_column,
     codes,
     context_model
   )
-  result_cpp <- accum_multidim_c(
+  result_new <- accum_multidim_c(
     context_model = context_model, multidim_arr = multidim_arr, time_column = time_column, codes = codes
   )
   
@@ -63,14 +46,12 @@ test_that("no senders, no receivers, modality", {
   
   user1_old <- as.numeric(unname(as.vector(result_old$connection.counts[1,4:length(colnames(result_old$connection.counts))])))
   user1_new <- as.numeric(unname(as.vector(result_new$connection.counts[1,4:length(colnames(result_new$connection.counts))])))
-  user1_cpp <- as.numeric(unname(as.vector(result_cpp$connection.counts[1,4:length(colnames(result_cpp$connection.counts))])))
   user2_old <- as.numeric(unname(as.vector(result_old$connection.counts[2,4:length(colnames(result_old$connection.counts))])))
   user2_new <- as.numeric(unname(as.vector(result_new$connection.counts[2,4:length(colnames(result_new$connection.counts))])))
   user3_old <- as.numeric(unname(as.vector(result_old$connection.counts[3,4:length(colnames(result_old$connection.counts))])))
   user3_new <- as.numeric(unname(as.vector(result_new$connection.counts[3,4:length(colnames(result_new$connection.counts))])))
   
   testthat::expect_equal(user1_old, user1_new)
-  testthat::expect_equal(user1_old, user1_cpp)
   testthat::expect_equal(user2_old, user2_new)
   testthat::expect_equal(user3_old, user3_new)
 })
@@ -93,22 +74,6 @@ test_that("sender, no receivers, no modality", {
   
   time_column = "timeStamp"
   
-  # Get old TMA results
-  result_old <- tma:::accumulate_contexts (
-    x = context_model,
-    codes = codes,
-    weight.by = function(x) { x },
-    decay.function = function(x) {
-      role_window_effect <- c("Mentor" = 360, "Player" = 180)
-      role_weight_effect <- c("Mentor" = 1, "Player" = 2)
-      role <- FULL_CONTEXT[ROWS, role]
-      weight <- (x < (role_window_effect[role])) * role_weight_effect[role]
-      return(weight)
-    },
-    time.column = "timeStamp",
-    return.ena.set = FALSE,
-    mode.column = "role"
-  )
   
   # Get new TMA results
   sender_cols = c("role")
@@ -120,12 +85,15 @@ test_that("sender, no receivers, no modality", {
   multidim_arr["Mentor", "window"] <- 360
   multidim_arr["Player", "window"] <- 180
   
-  result_new <- accum_multidim(
-    mock_data, 
+  result_old <- accum_multidim(
+    mock_data,
     multidim_arr, 
     time_column,
     codes,
     context_model
+  )
+  result_new <- accum_multidim_c(
+    context_model = context_model, multidim_arr = multidim_arr, time_column = time_column, codes = codes
   )
   
   # Compare vectors across all 3 units 
@@ -164,22 +132,6 @@ test_that("no senders, receiver, no modality", {
   
   time_column = "timeStamp"
   
-  # Get old TMA results
-  result_old <- tma:::accumulate_contexts (
-    x = context_model,
-    codes = codes,
-    weight.by = function(x) { x },
-    decay.function = function(x) {
-      language_window_effect <- c("L1" = 360, "L2" = 180)
-      language_weight_effect <- c("L1" = 1, "L2" = 5)
-      language <- FULL_CONTEXT[RESPONSE_INDEX, language]
-      weight <- (x < (language_window_effect[language])) * language_weight_effect[language]
-      return(weight)
-    },
-    time.column = "timeStamp",
-    return.ena.set = FALSE,
-    mode.column = "language"
-  )
   
   # Get new TMA results
   receiver_cols = c("language")
@@ -191,12 +143,15 @@ test_that("no senders, receiver, no modality", {
   multidim_arr["L1", "window"] <- 360
   multidim_arr["L2", "window"] <- 180
   
-  result_new <- accum_multidim(
-    mock_data, 
+  result_old <- accum_multidim(
+    mock_data,
     multidim_arr, 
     time_column,
     codes,
     context_model
+  )
+  result_new <- accum_multidim_c(
+    context_model = context_model, multidim_arr = multidim_arr, time_column = time_column, codes = codes
   )
   
   # Compare vectors across all 3 units 
@@ -251,42 +206,17 @@ test_that("sender, no receiver, modality", {
   multidim_arr["Player", "resource", "window"] <- 360
   
   
-  result_new <- accum_multidim(
+  result_old <- accum_multidim(
     mock_data,
     multidim_arr, 
     time_column,
     codes,
     context_model
   )
-  
-  # Get old TMA results
-  result_old <- tma:::accumulate_contexts (
-    x = context_model,
-    codes = codes,
-    weight.by = function(x) { x },
-    decay.function = function(x) {
-      
-      sender <- FULL_CONTEXT[ROWS, role]
-      modality <- FULL_CONTEXT[ROWS, modality]
-      
-      if (length(modality) >= 2) { 
-        window <- diag(multidim_arr[sender, modality, "window"])
-        names(window) <- modality
-        
-        weighter <- diag(multidim_arr[sender, modality, "weight"])
-        names(weighter) <- modality
-        weight <- (x < window) * weighter
-        
-        return(weight)
-      } else {
-        weight <- (x < multidim_arr[sender, modality, "window"]) * multidim_arr[sender, modality, "weight"]
-        return(weight)
-      }
-    },
-    time.column = "timeStamp",
-    return.ena.set = FALSE
-    # mode.column = c("role", "modality")
+  result_new <- accum_multidim_c(
+    context_model = context_model, multidim_arr = multidim_arr, time_column = time_column, codes = codes
   )
+  
   
   
   # Compare vectors across all 3 units 
@@ -343,31 +273,15 @@ test_that("no sender, receiver, modality", {
   multidim_arr["L2", "chat", "window"] <- 60
   multidim_arr["L2", "resource", "window"] <- 120
   
-  result_new <- accum_multidim(
+  result_old <- accum_multidim(
     mock_data,
     multidim_arr, 
     time_column,
     codes,
     context_model
   )
-  
-  
-  # Get old TMA results
-  result_old <- tma:::accumulate_contexts (
-    x = context_model,
-    codes = codes,
-    weight.by = function(x) { x },
-    decay.function = function(x) {
-      
-      receiver <- FULL_CONTEXT[RESPONSE_INDEX, language]
-      modality <- FULL_CONTEXT[ROWS, modality]
-      
-      weight <- (x < multidim_arr[receiver, modality, "window"]) * multidim_arr[receiver, modality, "weight"]
-      return(weight)
-    },
-    time.column = "timeStamp",
-    return.ena.set = FALSE
-    # mode.column = c("language", "modality")
+  result_new <- accum_multidim_c(
+    context_model = context_model, multidim_arr = multidim_arr, time_column = time_column, codes = codes
   )
   
   # Compare vectors across all 3 units 
@@ -425,31 +339,15 @@ test_that("sender, receiver, no modality", {
   multidim_arr["Player", "L1", "window"] <- 250
   multidim_arr["Player", "L2", "window"] <- 200
   
-  result_new <- accum_multidim(
+  result_old <- accum_multidim(
     mock_data,
     multidim_arr, 
     time_column,
     codes,
     context_model
   )
-  
-  
-  # Get old TMA results
-  result_old <- tma:::accumulate_contexts (
-    x = context_model,
-    codes = codes,
-    weight.by = function(x) { x },
-    decay.function = function(x) {
-      
-      sender <- FULL_CONTEXT[ROWS, role]
-      receiver <- FULL_CONTEXT[RESPONSE_INDEX, language]
-      
-      weight <- (x < multidim_arr[sender, receiver, "window"]) * multidim_arr[sender, receiver, "weight"]
-      return(weight)
-    },
-    time.column = "timeStamp",
-    return.ena.set = FALSE
-    # mode.column = c("role", "language")
+  result_new <- accum_multidim_c(
+    context_model = context_model, multidim_arr = multidim_arr, time_column = time_column, codes = codes
   )
   
   
@@ -517,44 +415,15 @@ test_that("sender, receiver, modality", {
   multidim_arr["Player", "L2", "chat", "window"] <- 150
   multidim_arr["Player", "L2", "resource", "window"] <- 360
   
-  
-  result_new <- accum_multidim(
+  result_old <- accum_multidim(
     mock_data,
     multidim_arr, 
     time_column,
     codes,
     context_model
   )
-  
-  # Get old TMA results
-  result_old <- tma:::accumulate_contexts (
-    x = context_model,
-    codes = codes,
-    weight.by = function(x) { x },
-    decay.function = function(x) {
-      
-      sender <- FULL_CONTEXT[ROWS, role]
-      receiver <- FULL_CONTEXT[RESPONSE_INDEX, language]
-      modality <- FULL_CONTEXT[ROWS, modality]
-      
-      
-      if (length(modality) >= 2) {
-        window <- diag(multidim_arr[sender, receiver, modality, "window"])
-        names(window) <- modality
-        
-        weighter <- diag(multidim_arr[sender, receiver, modality, "weight"])
-        names(weighter) <- modality
-        weight <- (x < window) * weighter
-        
-        return(weight)
-      } else {
-        weight <- (x < multidim_arr[sender, receiver, modality, "window"]) * multidim_arr[sender, receiver, modality, "weight"]
-        return(weight)
-      }
-    },
-    time.column = "timeStamp",
-    return.ena.set = FALSE
-    # mode.column = c("role", "language", "modality")
+  result_new <- accum_multidim_c(
+    context_model = context_model, multidim_arr = multidim_arr, time_column = time_column, codes = codes
   )
   
   # Compare vectors across all 3 units 
@@ -669,34 +538,16 @@ test_that("senders, receivers, modality", {
   multidim_arr["Mentor", "L2", "Mentor", "good", "resource", "window"] <- 360
   
   
-  result_new <- accum_multidim(
+  result_old <- accum_multidim(
     mock_data,
     multidim_arr, 
     time_column,
     codes,
     context_model
   )
-  
-  # Get old TMA results
-  #' User 1: A & C = 2, all else 0. good
-  #' User 2: A & B = 3, A & C = 1, C & B = 2.5, B & C = 2.5. good
-  #' User 3: A & A = 1, B & A = 3, C & A = 4, A & C = 4, B & C = 3. good
-  result_old <- data.frame(
-    `A & A` = c(0, 0, 1),
-    `B & A` = c(0, 0, 3),
-    `C & A` = c(0, 0, 4),
-    `A & B` = c(0, 3, 0),
-    `B & B` = c(0, 0, 0),
-    `C & B` = c(0, 2.5, 0),
-    `A & C` = c(2, 1, 4),
-    `B & C` = c(0, 2.5, 3),
-    `C & C` = c(0, 0, 0)
+  result_new <- accum_multidim_c(
+    context_model = context_model, multidim_arr = multidim_arr, time_column = time_column, codes = codes
   )
-  
-  result_old$ENA_UNIT <- c("User1::FirstHalf", "User2::FirstHalf", "User3::FirstHalf")
-  
-  # Reorder columns so ENA_UNIT is the first column
-  result_old <- result_old[, c("ENA_UNIT", colnames(result_old)[-ncol(result_old)])]
   
   # Compare vectors accross all 3 units 
   
