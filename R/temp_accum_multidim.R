@@ -86,8 +86,8 @@ make_multidim_arr <- function(df,
   multidim_arr <- array(rep(c(default_weight, default_window), each = prod(unlist(dims))/2), dim = dims, dimnames = dim_names)
   
   si <- seq_along(sender_cols);
-  ri <- seq_along(receiver_cols) + last(si);
-  mi <- seq_along(ri) + last(ri);
+  ri <- seq_along(receiver_cols) + ifelse(length(si) > 0, si[length(si)], 0);
+  mi <- seq_along(ri) + ifelse(length(ri) > 0, ri[length(ri)], 0);
   
   attr(multidim_arr, "sender_cols") <- sender_cols
   attr(multidim_arr, "receiver_cols") <- receiver_cols
@@ -349,7 +349,6 @@ apply_weights <- function(
   # }
   mult_arr_mat <-cbind(sm_mat[,1:length(sender_cols), drop = FALSE], receivers, sm_mat[,ncol(sm_mat), drop = FALSE], "weight")
   weight_vec <-  as.numeric(multidim_arr[mult_arr_mat])
-  # print(cbind(mult_arr_mat, weight_vec));
   
   # apply to all g_vecs
   g_w_vecs <- as.matrix(g_vecs[,..codes]) * weight_vec
@@ -457,7 +456,7 @@ accum_multidim <- function(
       }
       
       # Query multidimensional array to reweight g^w_vec = w^{srm} * g_vec
-      g_w_vecs <- apply_weights(multidim_arr, sender_cols, receiver_cols, mode_column, codes, context_before_r_vec, g_vecs) 
+      g_w_vecs <- apply_weights(multidim_arr, sender_cols, receiver_cols, mode_column, codes, context_before_r_vec, g_vecs);
       
       # Sum all g^w_vec together as g^{ws}_vec
       g_ws_vec <- colSums(g_w_vecs)
@@ -478,9 +477,13 @@ accum_multidim <- function(
       r_vec <- as.numeric(unname(c(r_vec[, ..codes])))
       g_ws_vec <- as.numeric(g_ws_vec)
       
-      if (return_ena_set == FALSE) { # ONA 
+      # ONA 
+      if (return_ena_set == FALSE) { 
         counting_matrix = (g_ws_vec %*% t(r_vec)) + 0.5 * w_rr * f_diag(r_vec %*% t(r_vec))
-      } else { # ENA (w_rr * rr^T + (qr^T + rq^T))
+      } 
+      
+      # ENA (w_rr * rr^T + (qr^T + rq^T))
+      else { 
         counting_matrix = w_rr * (r_vec %*% t(r_vec)) + (g_ws_vec %*% t(r_vec) + r_vec %*% t(g_ws_vec)) 
       }
       
@@ -544,15 +547,16 @@ accum_multidim <- function(
   
   
   meta_cols <- context_model$`_function.params`$units.by;
-  connection_counts <- data.table::rbindlist(lapply(names(context_model$model$contexts), function(ctx) {
+  connection_counts <- data.table::rbindlist(lapply(units, function(ctx) {
     ctx_model <- context_model$model$contexts[[ctx]]
     ctx_unit <- attr(ctx_model, "tma.unit")
     ctx_adj <- adj_vectors[[ctx]];
     ctx_adj_dt <- as.data.table(matrix(ctx_adj, byrow = TRUE, nrow = 1, dimnames = list(NULL, adj_vector_names)))
   }));
   connection_counts <- connection_counts[, lapply(.SD, reclass, "ena.co.occurrence"), .SDcols = adj_vector_names];
-  connection_counts$ENA_UNIT <- context_model$model$unit.labels;
-  connection_counts <- cbind(connection_counts, data.table::rbindlist(lapply(context_model$model$contexts, attr, "tma.unit")))
+  connection_counts$ENA_UNIT <- units;
+  # connection_counts <- cbind(connection_counts, data.table::rbindlist(lapply(context_model$model$contexts, attr, "tma.unit")))
+  connection_counts <- cbind(connection_counts, data.table::rbindlist(lapply(units, function(u) attr(context_model$model$contexts[[u]], "tma.unit"))))
   
   for(jj in c("ENA_UNIT", meta_cols)) {
     data.table::set(connection_counts, j = jj, value = reclass(connection_counts[[jj]], "ena.metadata"));

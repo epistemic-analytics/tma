@@ -155,7 +155,6 @@ test_that("no senders, receiver, no modality", {
   )
   
   # Compare vectors across all 3 units 
-  
   user1_old <- as.numeric(unname(as.vector(result_old$connection.counts[1,4:length(colnames(result_old$connection.counts))])))
   user1_new <- as.numeric(unname(as.vector(result_new$connection.counts[1,4:length(colnames(result_new$connection.counts))])))
   
@@ -327,7 +326,7 @@ test_that("sender, receiver, no modality", {
   sender_cols = c("role")
   receiver_cols = c("language")
   
-  multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = list(), 0, 0)
+  multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = c(), 0, 0)
   
   multidim_arr["Mentor", "L1", "weight"] <- 1
   multidim_arr["Mentor", "L2", "weight"] <- 5
