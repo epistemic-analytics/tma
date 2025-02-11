@@ -107,7 +107,7 @@ test_that("sender, no receivers, no modality", {
   # Get new TMA results
   sender_cols = c("role")
   
-  multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = list(), mode_column = list(), 0, 0)
+  multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = c(), mode_column = c(), 0, 0)
   
   multidim_arr["Mentor", "weight"] <- 1
   multidim_arr["Player", "weight"] <- 2

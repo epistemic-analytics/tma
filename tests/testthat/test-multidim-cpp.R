@@ -78,7 +78,7 @@ test_that("sender, no receivers, no modality", {
   # Get new TMA results
   sender_cols = c("role")
   
-  multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = list(), mode_column = list(), 0, 0)
+  multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = c(), mode_column = c(), 0, 0)
   
   multidim_arr["Mentor", "weight"] <- 1
   multidim_arr["Player", "weight"] <- 2
@@ -136,7 +136,7 @@ test_that("no senders, receiver, no modality", {
   # Get new TMA results
   receiver_cols = c("language")
   
-  multidim_arr <- make_multidim_arr(mock_data, sender_cols = list(), receiver_cols = receiver_cols, mode_column = list(), 0, 0)
+  multidim_arr <- make_multidim_arr(mock_data, sender_cols = c(), receiver_cols = receiver_cols, mode_column = c(), 0, 0)
   
   multidim_arr["L1", "weight"] <- 1
   multidim_arr["L2", "weight"] <- 5
@@ -193,7 +193,7 @@ test_that("sender, no receiver, modality", {
   sender_cols = c("role")
   mode_column = "modality"
   
-  multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = list(), mode_column = mode_column, 0, 0)
+  multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = c(), mode_column = mode_column, 0, 0)
   
   multidim_arr["Mentor", "chat", "weight"] <- 3
   multidim_arr["Mentor", "resource", "weight"] <- 1
@@ -261,7 +261,7 @@ test_that("no sender, receiver, modality", {
   receiver_cols = c("language")
   mode_column = "modality"
   
-  multidim_arr <- make_multidim_arr(mock_data, sender_cols = list(), receiver_cols = receiver_cols, mode_column = mode_column, 0, 0)
+  multidim_arr <- make_multidim_arr(mock_data, sender_cols = c(), receiver_cols = receiver_cols, mode_column = mode_column, 0, 0)
   
   multidim_arr["L1", "chat", "weight"] <- 5
   multidim_arr["L1", "resource", "weight"] <- 1
