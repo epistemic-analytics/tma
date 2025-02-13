@@ -1,7 +1,8 @@
 .onLoad <- function(libname, pkgname) {
   globalVariables(c(
     "..units_by", "..by", ".I", "QEID", "CID", "..conversations",
-    "KEYCOL"
+    "KEYCOL", "QEUNIT", "..sender_cols", "..receiver_cols", "..mode_column",
+    "..codes"
   ))
 }
 

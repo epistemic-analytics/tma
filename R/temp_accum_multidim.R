@@ -33,11 +33,14 @@ get_unique_values <- function(
 
 # Function to generate multidim arr
 #' @title accum_multidim
+#'
 #' @param sender_cols Sender columns
 #' @param receiver_cols Receiver columns
 #' @param mode_column Mode column
 #' @param default_window Default window
+#' @param df [tbd]
 #' @param default_weight Default weight
+#'
 #' @return A multidim array with [S, R, M, weight/window], with NO standins
 #' @export 
 make_multidim_arr <- function(df, 
@@ -378,20 +381,16 @@ f_diag <- function(
 #'
 #' @param multidim_arr Input multidimensional array. This should be in the format
 #' [sender, receiver, modality, weight/window] (and will be b/c of how we initialize it above)
-#' @param sender_cols Sender columns
-#' @param receiver_cols Receiver columns
 #' @param time_column Time column in contexts
-#' @param mode_column Modality column in contexts
 #' @param codes Codes of interest
 #' @param context_model TMA context model containing contexts for each unit of analysis
-#' @param decay Which decay function to use. By default, this is a simple window 
-#' @param calculate_adj_vectors_using How to compute adj vectors. By default, this is matmul(g^T, r).
-#' @param adj_vec_transform How to transform adj. vecs e.g. binarization. By default, this is empty  
-#' @param accumulate_unit_vectors_by How to compute final adjacency vector from adjacency vectors
-#' accross all of a unit's utterances; by default, this is colSums 
-#' @param normalization How to normalize. Can be \ell_2 or NA
-#' @param summarize_ground_using How to combine ground into one vec. By default, this is colSums
 #' @param return_ena_set Whether or not to return an ENA set. By default, this is ONA
+#' @param df [tbd]
+#' @param duration_column [tbd]
+#' @param norm_by [tbd]
+#' @param units [tbd]
+#' @param time_unit [tbd]
+#' @param ... [tbd]
 #' 
 #' @return T/ONA (or T/ENA) accumulation
 #' @export

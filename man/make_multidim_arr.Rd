@@ -14,6 +14,8 @@ make_multidim_arr(
 )
 }
 \arguments{
+\item{df}{[tbd]}
+
 \item{sender_cols}{Sender columns}
 
 \item{receiver_cols}{Receiver columns}

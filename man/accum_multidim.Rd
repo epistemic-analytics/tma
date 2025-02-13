@@ -19,6 +19,8 @@ accum_multidim(
 )
 }
 \arguments{
+\item{df}{[tbd]}
+
 \item{multidim_arr}{Input multidimensional array. This should be in the format
 [sender, receiver, modality, weight/window] (and will be b/c of how we initialize it above)}
 
@@ -28,26 +30,17 @@ accum_multidim(
 
 \item{context_model}{TMA context model containing contexts for each unit of analysis}
 
+\item{duration_column}{[tbd]}
+
+\item{norm_by}{[tbd]}
+
 \item{return_ena_set}{Whether or not to return an ENA set. By default, this is ONA}
 
-\item{sender_cols}{Sender columns}
+\item{units}{[tbd]}
 
-\item{receiver_cols}{Receiver columns}
+\item{time_unit}{[tbd]}
 
-\item{mode_column}{Modality column in contexts}
-
-\item{decay}{Which decay function to use. By default, this is a simple window}
-
-\item{calculate_adj_vectors_using}{How to compute adj vectors. By default, this is matmul(g^T, r).}
-
-\item{adj_vec_transform}{How to transform adj. vecs e.g. binarization. By default, this is empty}
-
-\item{accumulate_unit_vectors_by}{How to compute final adjacency vector from adjacency vectors
-accross all of a unit's utterances; by default, this is colSums}
-
-\item{normalization}{How to normalize. Can be \ell_2 or NA}
-
-\item{summarize_ground_using}{How to combine ground into one vec. By default, this is colSums}
+\item{...}{[tbd]}
 }
 \value{
 T/ONA (or T/ENA) accumulation

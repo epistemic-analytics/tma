@@ -215,7 +215,6 @@ Rcpp::List accumulate_networks(
   );
 }
 
-//' @export
 // [[Rcpp::export]]
 arma::mat calculate_adjacency_matrix(arma::rowvec ground, arma::rowvec response, double response_weight) {
   arma::mat response_matrix = response.t() * response;
@@ -225,7 +224,6 @@ arma::mat calculate_adjacency_matrix(arma::rowvec ground, arma::rowvec response,
   return ground_by_response + (0.5 * response_weight * response_matrix);
 }
 
-//' @export
 // [[Rcpp::export]]
 arma::rowvec adjacency_matrix_to_vector(arma::mat x, bool full = true) {
  if(full == true) {
@@ -249,7 +247,6 @@ std::vector<std::vector<int>> matrix_to_2d_vector(Rcpp::NumericMatrix mat) {
   return vec;
 }
 
-//' @export
 // [[Rcpp::export]]
 int calculate_1d_index_rev(const std::vector<int>& indices, const std::vector<int>& dims) {
   if (indices.size() != dims.size()) {
@@ -269,7 +266,6 @@ int calculate_1d_index_rev(const std::vector<int>& indices, const std::vector<in
 }
 
 
-//' @export
 // [[Rcpp::export]]
 int calculate_1d_index(const std::vector<int>& indices, const std::vector<int>& dims) {
   if (indices.size() != dims.size()) {
@@ -317,7 +313,6 @@ void print_no_scientific(double x, int prec = 10) {
   std::cout << std::fixed << std::setprecision(prec) << x; // Adjust 10 for desired precision
 }
 
-//' @export
 // [[Rcpp::export]]
 Rcpp::List apply_windows_d(
    Rcpp::NumericVector multidim_as_vector, // vectorized multidim arr

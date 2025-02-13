@@ -42,11 +42,6 @@ as.undirected.matrix <- function(x, m = matrix(1, nrow = nrow(x), ncol = ncol(x)
 #'   elements. Defaults to FALSE.
 #' 
 #' @return A vector containing the upper triangular elements of the matrix.
-#' 
-#' @examples
-#' mat <- matrix(1:9, nrow = 3)
-#' extract_upper_tri(mat)
-#' extract_upper_tri(mat, diag = TRUE)
 as.undirected.vector <- function(x, diag = FALSE) {
   upper_tri_indices <- upper.tri(x, diag = diag);
   x[upper_tri_indices]

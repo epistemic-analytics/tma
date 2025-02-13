@@ -24,27 +24,22 @@ accumulate_networks <- function(x, code_cols, decay_function, time_col = -1L, or
     .Call(`_tma_accumulate_networks`, x, code_cols, decay_function, time_col, ordered)
 }
 
-#' @export
 calculate_adjacency_matrix <- function(ground, response, response_weight) {
     .Call(`_tma_calculate_adjacency_matrix`, ground, response, response_weight)
 }
 
-#' @export
 adjacency_matrix_to_vector <- function(x, full = TRUE) {
     .Call(`_tma_adjacency_matrix_to_vector`, x, full)
 }
 
-#' @export
 calculate_1d_index_rev <- function(indices, dims) {
     .Call(`_tma_calculate_1d_index_rev`, indices, dims)
 }
 
-#' @export
 calculate_1d_index <- function(indices, dims) {
     .Call(`_tma_calculate_1d_index`, indices, dims)
 }
 
-#' @export
 apply_windows_d <- function(multidim_as_vector, dims, dims_sender, dims_receiver, dims_mode, context_matrix, unit_rows, codes, times) {
     .Call(`_tma_apply_windows_d`, multidim_as_vector, dims, dims_sender, dims_receiver, dims_mode, context_matrix, unit_rows, codes, times)
 }

@@ -19,8 +19,3 @@ A vector containing the upper triangular elements of the matrix.
 This function extracts the elements from the upper triangular part of a
 matrix.
 }
-\examples{
-mat <- matrix(1:9, nrow = 3)
-extract_upper_tri(mat)
-extract_upper_tri(mat, diag = TRUE)
-}

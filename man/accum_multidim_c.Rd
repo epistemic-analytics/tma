@@ -2,7 +2,7 @@
 % Please edit documentation in R/accum_multidim_c.R
 \name{accum_multidim_c}
 \alias{accum_multidim_c}
-\title{Title}
+\title{Process Multidimensional Array with Context Model}
 \usage{
 accum_multidim_c(
   context_model,
@@ -13,14 +13,19 @@ accum_multidim_c(
 )
 }
 \arguments{
-\item{context_model}{}
+\item{context_model}{A context model object containing contexts to be applied to the data.}
 
-\item{multidim_arr}{}
+\item{multidim_arr}{A multidimensional array that holds the data to be processed.}
 
-\item{time_column}{}
+\item{time_column}{A string representing the name of the column containing time data in the context model.}
 
-\item{codes}{}
+\item{codes}{A vector of codes used to index relevant information in the context model.}
+
+\item{ordered}{A logical value indicating whether the results should be ordered (default is TRUE).}
+}
+\value{
+A list of results obtained from applying the context model to each context in the multidimensional array.
 }
 \description{
-Title
+This function applies a context model to a multidimensional array, utilizing sender, receiver, and mode columns derived from the input array's attributes.
 }

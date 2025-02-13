@@ -1,14 +1,14 @@
-#' Title
+#' Process Multidimensional Array with Context Model
 #'
-#' @param context_model 
-#' @param multidim_arr 
-#' @param time_column 
-#' @param codes 
+#' This function applies a context model to a multidimensional array, utilizing sender, receiver, and mode columns derived from the input array's attributes.
 #'
-#' @returns
-#' @export
+#' @param context_model A context model object containing contexts to be applied to the data.
+#' @param multidim_arr A multidimensional array that holds the data to be processed.
+#' @param time_column A string representing the name of the column containing time data in the context model.
+#' @param codes A vector of codes used to index relevant information in the context model.
+#' @param ordered A logical value indicating whether the results should be ordered (default is TRUE).
 #'
-#' @examples
+#' @return A list of results obtained from applying the context model to each context in the multidimensional array.
 accum_multidim_c <- function(context_model, multidim_arr, time_column, codes, ordered = TRUE) {
   send_cols = attr(multidim_arr, "sender_cols");
   recv_cols = attr(multidim_arr, "receiver_cols");
