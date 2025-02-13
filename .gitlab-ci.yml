@@ -1,43 +1,119 @@
+# .windows_job:
+#   tags:
+#     - saas-windows-medium-amd64
+#   before_script:
+#     - Set-Variable -Name "time" -Value (date -Format "%H:%m")
+#     - echo ${time}
+#     - echo "started by ${GITLAB_USER_NAME} / @${GITLAB_USER_LOGIN}"
+#     - $dir = $env:TEMP;
+#     - Set-Location $dir
+#     - $urlR = "https://cran.r-project.org/bin/windows/base/R-4.4.2-win.exe"
+#     - $outputR = "$dir\R-win.exe"
+#     - $wcR = New-Object System.Net.WebClient
+#     - $wcR.DownloadFile($urlR, $outputR)
+#     - $dirR = $dir + "\R-win.exe"
+#     - Start-Process -FilePath $dirR -ArgumentList "/S /v/qn" -NoNewWindow -Wait
+#
+# build:
+#   extends:
+#     - .windows_job
+#   stage: build
+#   script:
+#     - |
+#       $dir = $env:TEMP
+#       $dirR = $dir + "\R-win.exe"
+#       echo "running scripts in the build job: $dirR"
+#       $commands = Get-Command "R"
+#       $commands = Get-Command "R-win"
+#       $commands = Get-Command "R-win.exe"
+#       echo "Commands: " + $commands[0]
+
 stages:
-  - setup
   - build
-  - check
-  - test
-  - publish
   - release
-  - tag
 
-include:
-  - project: 'cran-ci/ci-templates'
-    ref: main
-    file: '/templates/build/R-build.gitlab-ci.yml'
-  - project: 'cran-ci/ci-templates'
-    ref: main
-    file: '/templates/setup/setup.gitlab-ci.yml'
-  - project: 'cran-ci/ci-templates'
-    ref: main
-    file: '/templates/check/Rhub-checks-updated.gitlab-ci.yml'
-  - project: 'cran-ci/ci-templates'
-    ref: main
-    file: '/templates/release/pkgdown.gitlab-ci.yml'
-  - project: 'cran-ci/ci-templates'
-    ref: main
-    file: '/templates/cran/CRAN.gitlab-ci.yml'
 
-before_script:
-  - apt-get update -y
-  - apt-get install -y r-base  # Install R in the ruby image
-  
-test:
-  stage: test
-  script:
-    - R -e 'install.packages("devtools")'
-    - R -e 'devtools::install_deps(dependencies = TRUE)'  # Install dependencies
-    - R -e 'devtools::test()'  # Run tests
-    - ls -R tests  # List files to ensure output exists
+check_release:
+  image: rocker/verse
+  stage: build
   artifacts:
-    when: always
-    paths:
-      - tests/testthat.Rout  # Path to the output file
     reports:
-      junit: tests/testthat.Rout  # Path to the JUnit report
+      dotenv: variables.env
+    paths:
+      - archive/
+    expire_in: 30 day
+  before_script:
+    - apt update && apt install -y curl
+  script:
+    - |
+      export VERSION=$(awk -F ':' '/^'Version': /{print $2}' "./DESCRIPTION" | xargs)
+      export PACKAGE="tma_$VERSION.tar.gz"
+      R -e 'install.packages("markdown")'
+      R CMD build .
+      export checked=$(R CMD check $PACKAGE)
+      echo $checked | grep -q "Status: OK"
+      if [ $? -ne 0 ]; then
+        echo "Command failed."
+        exit 1
+      else
+        echo "Success! Move tar to archive!"
+        mkdir -p ./archive/
+        mv $PACKAGE ./archive/
+        ls -al ./archive/
+        echo CRANQE_RELEASE="1" >> ./variables.env
+        echo CRANQE_PKG_VERSION="${PACKAGE}" >> ./variables.env
+      fi
+
+
+variables:
+  PKG: "tma"
+  PKGL: "tma"
+
+# include:
+#   - project: 'epistemic-analytics/qe-packages/cranqe'
+#     ref: main
+#     file: '/public/ci_templates/cranqe_release_template.yml'
+
+.cranqe_template: &cranqe_template
+  stage: release
+  image: rocker/tidyverse:4.1.1
+  artifacts:
+    reports:
+      dotenv: variables.env
+    paths:
+      - archive/
+    expire_in: 1 week
+  script:
+    - printenv
+    - "echo CRANQE_RELEASE: $CRANQE_RELEASE"
+    - "echo DEPLOY_PAGES: $DEPLOY_PAGES"
+    - "echo DEPLOY_PACKAGES: $DEPLOY_PACKAGES"
+    - "echo CRANQE_STEP: $CRANQE_STEP"
+    - "echo CRANQE_PKG_VERSION: $CRANQE_PKG_VERSION"
+    - apt update && apt install -y curl libxt-dev
+    - |
+      curl --trace - --request POST \
+        --form "token=$CI_JOB_TOKEN" \
+        --form "variables[QE_PROJECT_NAME]=tma" \
+        --form "variables[QE_PROJECT_ID]=${CI_PROJECT_ID}" \
+        --form "variables[QE_JOB_ID]=${CI_JOB_ID}" \
+        --form "variables[QE_PKG_VERSION]=${CRANQE_PKG_VERSION}" \
+        -F variables[${CRANQE_STEP}]=true \
+        --form ref=main \
+        https://gitlab.com/api/v4/projects/22522458/trigger/pipeline
+  only:
+    refs:
+      - main
+    variables:
+      #- $CRANQE_RELEASE
+      - $CI_COMMIT_MESSAGE =~ /\[(cranqe[^\]*]*(pkg|pages))/
+
+release:cranqe_pages:
+  <<: *cranqe_template
+  variables:
+    CRANQE_STEP: DEPLOY_PAGES
+
+release:cranqe_package:
+  <<: *cranqe_template
+  variables:
+    CRANQE_STEP: DEPLOY_PACKAGES
