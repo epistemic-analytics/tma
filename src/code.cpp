@@ -295,23 +295,22 @@ void insert_element(arma::uvec& vec, double value) {
   vec(vec.n_rows - 1) = value;
 }
 
-
-void print_vector(const std::vector<int>& row) {
-  for (const auto& elem : row) {
-    std::cout << elem << " ";
-  }
-  std::cout << std::endl;
-}
-
-void print_2d_vector(const std::vector<std::vector<int>>& vec) {
-  for (const auto& row : vec) {
-    print_vector(row);
-  }
-}
-
-void print_no_scientific(double x, int prec = 10) {
-  std::cout << std::fixed << std::setprecision(prec) << x; // Adjust 10 for desired precision
-}
+// void print_vector(const std::vector<int>& row) {
+//   for (const auto& elem : row) {
+//     std::cout << elem << " ";
+//   }
+//   std::cout << std::endl;
+// }
+// 
+// void print_2d_vector(const std::vector<std::vector<int>>& vec) {
+//   for (const auto& row : vec) {
+//     print_vector(row);
+//   }
+// }
+// 
+// void print_no_scientific(double x, int prec = 10) {
+//   std::cout << std::fixed << std::setprecision(prec) << x; // Adjust 10 for desired precision
+// }
 
 // [[Rcpp::export]]
 Rcpp::List apply_windows_d(

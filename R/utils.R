@@ -189,13 +189,13 @@ merge_columns <- function(x, cols = colnames(x), sep = ".") {
 # }
 
 
-# Extract from network.matrix easily using metadata
-#
-# @param x [TBD]
-# @param i [TBD]
-#
-# @return [TBD]
-# @export
+#' Extract from network.matrix easily using metadata
+#'
+#' @param x [TBD]
+#' @param i [TBD]
+#'
+#' @return [TBD]
+#' @export
 "$.network.matrix" <- function (x, i) {
   meta.data <- attr(x, "model")$meta.data;
   meta.cols <- colnames(meta.data);
