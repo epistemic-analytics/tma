@@ -9,6 +9,7 @@
 #' @param ordered A logical value indicating whether the results should be ordered (default is TRUE).
 #'
 #' @return A list of results obtained from applying the context model to each context in the multidimensional array.
+#' @export
 accum_multidim_c <- function(context_model, multidim_arr, time_column, codes, ordered = TRUE) {
   send_cols = attr(multidim_arr, "sender_cols");
   recv_cols = attr(multidim_arr, "receiver_cols");
