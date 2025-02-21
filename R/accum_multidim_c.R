@@ -71,7 +71,7 @@ accum_multidim_c <- function(context_model, multidim_arr, time_column, codes, or
   row_connection_counts <- lapply(names(context_model$model$contexts), function(ctx) {
     ctx_model <- context_model$model$contexts[[ctx]]
     ctx_unit <- attr(ctx_model, "tma.unit")
-    ctx_adj <- result_cpp[[ctx]]$row_connection_counts[, connection_indices];
+    ctx_adj <- result_cpp[[ctx]]$row_connection_counts[, connection_indices, drop = FALSE];
     ctx_adj_dt <- as.data.table(ctx_adj);
     colnames(ctx_adj_dt) <- adj_vector_names;
     ctx_adj_dt$ENA_UNIT = ctx;
@@ -79,6 +79,13 @@ accum_multidim_c <- function(context_model, multidim_arr, time_column, codes, or
     ctx_adj_dt
   });
   context_model$model$row.connection.counts <- row_connection_counts;
+  
+  if(isTRUE(ordered)) {
+    class(context_model) <- c("ena.ordered.set", class(context_model));
+  }
+  else {
+    class(context_model) <- c("ena.unordered.set", class(context_model));
+  }
   
   return(context_model);
 }

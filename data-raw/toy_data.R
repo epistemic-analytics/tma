@@ -15,3 +15,6 @@ usethis::use_data(test_smalldata, overwrite = TRUE)
 test_mockdata = data.table::fread(system.file(package = "tma", 'extdata/mock_data_edited.csv'), stringsAsFactors = FALSE)
 usethis::use_data(test_mockdata, overwrite = TRUE)
 
+RS.data.multimodal = data.table::fread(system.file(package = "tma", 'extdata/RS_data_multimodal.csv'), stringsAsFactors = FALSE)
+RS.data.multimodal$timeStamp = as.numeric(as.POSIXct(RS.data.multimodal$timeStamp, format = c("%Y-%m-%d %H:%M:%OS")))
+usethis::use_data(RS.data.multimodal, overwrite = TRUE)
