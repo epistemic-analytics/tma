@@ -1,4 +1,4 @@
-# TODO: make sure to change the below to deal with accum_multidim_c
+# TODO: make sure to change the below to deal with accumulate
 testthat::context("Test C++ accumulation with multidimensional array")
 data(test_mockdata, package = "tma")
 mock_data <- test_mockdata;
@@ -38,7 +38,7 @@ test_that("no senders, no receivers, modality", {
     codes,
     context_model
   )
-  result_new <- accum_multidim_c(
+  result_new <- accumulate(
     context_model = context_model, multidim_arr = multidim_arr, time_column = time_column, codes = codes
   )
   
@@ -92,7 +92,7 @@ test_that("sender, no receivers, no modality", {
     codes,
     context_model
   )
-  result_new <- accum_multidim_c(
+  result_new <- accumulate(
     context_model = context_model, multidim_arr = multidim_arr, time_column = time_column, codes = codes
   )
   
@@ -150,7 +150,7 @@ test_that("no senders, receiver, no modality", {
     codes,
     context_model
   )
-  result_new <- accum_multidim_c(
+  result_new <- accumulate(
     context_model = context_model, multidim_arr = multidim_arr, time_column = time_column, codes = codes
   )
   
@@ -212,7 +212,7 @@ test_that("sender, no receiver, modality", {
     codes,
     context_model
   )
-  result_new <- accum_multidim_c(
+  result_new <- accumulate(
     context_model = context_model, multidim_arr = multidim_arr, time_column = time_column, codes = codes
   )
   
@@ -279,7 +279,7 @@ test_that("no sender, receiver, modality", {
     codes,
     context_model
   )
-  result_new <- accum_multidim_c(
+  result_new <- accumulate(
     context_model = context_model, multidim_arr = multidim_arr, time_column = time_column, codes = codes
   )
   
@@ -345,7 +345,7 @@ test_that("sender, receiver, no modality", {
     codes,
     context_model
   )
-  result_new <- accum_multidim_c(
+  result_new <- accumulate(
     context_model = context_model, multidim_arr = multidim_arr, time_column = time_column, codes = codes
   )
   
@@ -420,7 +420,7 @@ test_that("sender, receiver, modality", {
     codes,
     context_model
   )
-  result_new <- accum_multidim_c(
+  result_new <- accumulate(
     context_model = context_model, multidim_arr = multidim_arr, time_column = time_column, codes = codes
   )
   
@@ -536,7 +536,7 @@ test_that("senders, receivers, modality", {
   multidim_arr["Mentor", "L2", "Mentor", "good", "resource", "window"] <- 360
   
   
-  result_new <- accum_multidim_c(
+  result_new <- accumulate(
     context_model = context_model, multidim_arr = multidim_arr, time_column = time_column, codes = codes
   )
   

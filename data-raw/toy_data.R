@@ -17,4 +17,6 @@ usethis::use_data(test_mockdata, overwrite = TRUE)
 
 RS.data.multimodal = data.table::fread(system.file(package = "tma", 'extdata/RS_data_multimodal.csv'), stringsAsFactors = FALSE)
 RS.data.multimodal$timeStamp = as.numeric(as.POSIXct(RS.data.multimodal$timeStamp, format = c("%Y-%m-%d %H:%M:%OS")))
+RS_content_ascii <- which(grepl(x = RS.data.multimodal$content, pattern = "[^\\x00-\\x7F]", perl = TRUE))
+RS.data.multimodal$content[RS_content_ascii] <- textclean::replace_non_ascii(x = RS.data.multimodal$content[RS_content_ascii])
 usethis::use_data(RS.data.multimodal, overwrite = TRUE)
