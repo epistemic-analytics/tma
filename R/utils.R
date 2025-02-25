@@ -290,3 +290,98 @@ as.matrix.network.connections <- function(x, ...) {
   code_columns <- which(sapply(x_, inherits, what = "network.connection"));
   as.matrix(x_[, c(code_columns), with = F], ...);
 }
+
+#' Title
+#'
+#' @param x 
+#' @param na.rm 
+#' @param dims 
+#' @param binary 
+#'
+#' @returns
+#' @export
+'colSums.ena.matrix' <- function(x, na.rm = FALSE, dims = 1L, binary = FALSE) {
+  x_mat <- as.matrix(x);
+  if(isTRUE(binary)) {
+    x_mat[x_mat > 0] <- 1;
+  }
+  colSums(x_mat);  
+}
+
+#' Unorder Connections in a Matrix
+#'
+#' This function takes a matrix and creates an unordered version of its connections, combining upper and lower triangular elements.
+#'
+#' @param x A matrix or data frame containing the connections. The input should be a square matrix.
+#'
+#' @return A data.table with ordered connections, reclassified as "unordered.ena.connections", "ena.connections", and "ena.matrix".
+#'
+#' @export
+'as.unordered.ordered.ena.connections' <- function(x) {
+  m <- as.matrix(x);
+  sq_size <- sqrt(ncol(m));
+  ind_mat <- matrix(seq.int(ncol(m)), nrow = sq_size, ncol = sq_size);
+  ind_ut <- ind_mat[upper.tri(ind_mat)];
+  ind_lt <- ind_mat[lower.tri(ind_mat)];
+  
+  # m_unordered <- data.table::as.data.table(m[, ind_ut, drop = FALSE] + m[, ind_lt, drop = FALSE]);
+  m_unordered <- data.table::as.data.table(t(apply(m, 1, function(mm) (mm[as.vector(ind_mat)] + mm[as.vector(t(ind_mat))])[ind_ut], simplify = T)));
+  m_unordered <- m_unordered[, lapply(.SD, reclass, "ena.co.occurrence"), .SDcols = colnames(m_unordered)];
+  
+  m_unordered <- cbind(x[,rENA::find_meta_cols(x), with = FALSE], m_unordered);
+  m_unordered <- reclass(x = m_unordered, c("unordered.ena.connections", "ena.connections", "ena.matrix"));
+  
+  m_unordered
+}
+
+#' Title
+#'
+#' @param x 
+#'
+#' @return
+#' @export
+'as.unordered.ordered.row.connections' <- function(x) {
+  m <- as.matrix(x);
+  sq_size <- sqrt(ncol(m));
+  ind_mat <- matrix(seq.int(ncol(m)), nrow = sq_size, ncol = sq_size);
+  ind_ut <- ind_mat[upper.tri(ind_mat, diag = FALSE)];
+  ind_lt <- ind_mat[lower.tri(ind_mat, diag = FALSE)];
+  
+  # m_unordered <- data.table::as.data.table(m[, ind_ut, drop = FALSE] + m[, ind_lt, drop = FALSE]);
+  m_unordered <- data.table::as.data.table(t(apply(m, 1, function(mm) (mm[as.vector(ind_mat)] + mm[as.vector(t(ind_mat))])[ind_ut], simplify = T)));
+  m_unordered <- m_unordered[, lapply(.SD, reclass, "ena.co.occurrence"), .SDcols = colnames(m_unordered)];
+  
+  m_unordered <- cbind(x[,rENA::find_meta_cols(x), with = FALSE], m_unordered);
+  m_unordered <- reclass(x = m_unordered, c("unordered.row.connections", "row.connections", "ena.matrix"));
+  
+  m_unordered
+}
+
+#' Default Method for X
+#'
+#' This function provides the default method for handling the input `x`.
+#' It prints a message indicating that the default method is being executed.
+#'
+#' @param x Any object that you want to apply the default method to.
+#'
+#' @return NULL
+#'
+#' @export
+'as.unordered.default' <- function(x){
+  cat("This is the default method. \n")
+}
+
+#' Convert to Unordered Factor
+#'
+#' This function is a generic method to convert an object to an unordered factor.
+#' It dispatches methods based on the class of the input object.
+#'
+#' @param x An object to be converted to an unordered factor.
+#'
+#' @return An unordered factor representation of the input object.
+#'
+#' @export
+#' @importFrom methods UseMethod
+'as.unordered' <- function(x) {
+  UseMethod("as.unordered")
+}

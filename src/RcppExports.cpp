@@ -54,15 +54,16 @@ BEGIN_RCPP
 END_RCPP
 }
 // calculate_adjacency_matrix
-arma::mat calculate_adjacency_matrix(arma::rowvec ground, arma::rowvec response, double response_weight);
-RcppExport SEXP _tma_calculate_adjacency_matrix(SEXP groundSEXP, SEXP responseSEXP, SEXP response_weightSEXP) {
+arma::mat calculate_adjacency_matrix(arma::rowvec ground, arma::rowvec response, double response_weight, bool ordered);
+RcppExport SEXP _tma_calculate_adjacency_matrix(SEXP groundSEXP, SEXP responseSEXP, SEXP response_weightSEXP, SEXP orderedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::rowvec >::type ground(groundSEXP);
     Rcpp::traits::input_parameter< arma::rowvec >::type response(responseSEXP);
     Rcpp::traits::input_parameter< double >::type response_weight(response_weightSEXP);
-    rcpp_result_gen = Rcpp::wrap(calculate_adjacency_matrix(ground, response, response_weight));
+    Rcpp::traits::input_parameter< bool >::type ordered(orderedSEXP);
+    rcpp_result_gen = Rcpp::wrap(calculate_adjacency_matrix(ground, response, response_weight, ordered));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -103,8 +104,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // apply_windows_d
-Rcpp::List apply_windows_d(Rcpp::NumericVector multidim_as_vector, Rcpp::IntegerVector dims, std::vector<int> dims_sender, std::vector<int> dims_receiver, std::vector<int> dims_mode, Rcpp::NumericMatrix context_matrix, std::vector<int> unit_rows, arma::mat codes, Rcpp::NumericVector times);
-RcppExport SEXP _tma_apply_windows_d(SEXP multidim_as_vectorSEXP, SEXP dimsSEXP, SEXP dims_senderSEXP, SEXP dims_receiverSEXP, SEXP dims_modeSEXP, SEXP context_matrixSEXP, SEXP unit_rowsSEXP, SEXP codesSEXP, SEXP timesSEXP) {
+Rcpp::List apply_windows_d(Rcpp::NumericVector multidim_as_vector, Rcpp::IntegerVector dims, std::vector<int> dims_sender, std::vector<int> dims_receiver, std::vector<int> dims_mode, Rcpp::NumericMatrix context_matrix, std::vector<int> unit_rows, arma::mat codes, Rcpp::NumericVector times, bool ordered);
+RcppExport SEXP _tma_apply_windows_d(SEXP multidim_as_vectorSEXP, SEXP dimsSEXP, SEXP dims_senderSEXP, SEXP dims_receiverSEXP, SEXP dims_modeSEXP, SEXP context_matrixSEXP, SEXP unit_rowsSEXP, SEXP codesSEXP, SEXP timesSEXP, SEXP orderedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -117,7 +118,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< std::vector<int> >::type unit_rows(unit_rowsSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type codes(codesSEXP);
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type times(timesSEXP);
-    rcpp_result_gen = Rcpp::wrap(apply_windows_d(multidim_as_vector, dims, dims_sender, dims_receiver, dims_mode, context_matrix, unit_rows, codes, times));
+    Rcpp::traits::input_parameter< bool >::type ordered(orderedSEXP);
+    rcpp_result_gen = Rcpp::wrap(apply_windows_d(multidim_as_vector, dims, dims_sender, dims_receiver, dims_mode, context_matrix, unit_rows, codes, times, ordered));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -126,11 +128,11 @@ static const R_CallMethodDef CallEntries[] = {
     {"_tma_choose_two", (DL_FUNC) &_tma_choose_two, 1},
     {"_tma_accumulate_network", (DL_FUNC) &_tma_accumulate_network, 6},
     {"_tma_accumulate_networks", (DL_FUNC) &_tma_accumulate_networks, 5},
-    {"_tma_calculate_adjacency_matrix", (DL_FUNC) &_tma_calculate_adjacency_matrix, 3},
+    {"_tma_calculate_adjacency_matrix", (DL_FUNC) &_tma_calculate_adjacency_matrix, 4},
     {"_tma_adjacency_matrix_to_vector", (DL_FUNC) &_tma_adjacency_matrix_to_vector, 2},
     {"_tma_calculate_1d_index_rev", (DL_FUNC) &_tma_calculate_1d_index_rev, 2},
     {"_tma_calculate_1d_index", (DL_FUNC) &_tma_calculate_1d_index, 2},
-    {"_tma_apply_windows_d", (DL_FUNC) &_tma_apply_windows_d, 9},
+    {"_tma_apply_windows_d", (DL_FUNC) &_tma_apply_windows_d, 10},
     {NULL, NULL, 0}
 };
 

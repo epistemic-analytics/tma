@@ -90,7 +90,13 @@ make_multidim_arr <- function(df,
   
   si <- seq_along(sender_cols);
   ri <- seq_along(receiver_cols) + ifelse(length(si) > 0, si[length(si)], 0);
-  mi <- seq_along(ri) + ifelse(length(ri) > 0, ri[length(ri)], 0);
+  
+  if(length(ri) > 0) {
+    mi <- seq_along(ri) + ri[length(ri)];
+  }
+  else {
+    mi <- 1;
+  }
   
   attr(multidim_arr, "sender_cols") <- sender_cols
   attr(multidim_arr, "receiver_cols") <- receiver_cols
