@@ -293,12 +293,12 @@ as.matrix.network.connections <- function(x, ...) {
 
 #' Title
 #'
-#' @param x 
-#' @param na.rm 
-#' @param dims 
-#' @param binary 
+#' @param x TBD
+#' @param na.rm TBD
+#' @param dims TBD
+#' @param binary TBD
 #'
-#' @returns
+#' @return TBD
 #' @export
 'colSums.ena.matrix' <- function(x, na.rm = FALSE, dims = 1L, binary = FALSE) {
   x_mat <- as.matrix(x);
@@ -334,11 +334,11 @@ as.matrix.network.connections <- function(x, ...) {
   m_unordered
 }
 
-#' Title
+#' Title 
 #'
-#' @param x 
+#' @param x TBD
 #'
-#' @return
+#' @return TBD
 #' @export
 'as.unordered.ordered.row.connections' <- function(x) {
   m <- as.matrix(x);

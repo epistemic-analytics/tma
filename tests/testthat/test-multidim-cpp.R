@@ -39,17 +39,17 @@ test_that("no senders, no receivers, modality", {
     context_model
   )
   result_new <- accumulate(
-    context_model = context_model, multidim_arr = multidim_arr, time_column = time_column, codes = codes
+    context_model = context_model, multidim_arr = multidim_arr, time_column = time_column, codes = codes, binary = TRUE
   )
   
   # Compare vectors across all 3 units 
   
-  user1_old <- as.numeric(unname(as.vector(result_old$connection.counts[1,4:length(colnames(result_old$connection.counts))])))
-  user1_new <- as.numeric(unname(as.vector(result_new$connection.counts[1,4:length(colnames(result_new$connection.counts))])))
-  user2_old <- as.numeric(unname(as.vector(result_old$connection.counts[2,4:length(colnames(result_old$connection.counts))])))
-  user2_new <- as.numeric(unname(as.vector(result_new$connection.counts[2,4:length(colnames(result_new$connection.counts))])))
-  user3_old <- as.numeric(unname(as.vector(result_old$connection.counts[3,4:length(colnames(result_old$connection.counts))])))
-  user3_new <- as.numeric(unname(as.vector(result_new$connection.counts[3,4:length(colnames(result_new$connection.counts))])))
+  user1_old <- as.matrix(result_old$connection.counts[1,])
+  user1_new <- as.matrix(result_new$connection.counts[1,])
+  user2_old <- as.matrix(result_old$connection.counts[2,])
+  user2_new <- as.matrix(result_new$connection.counts[2,])
+  user3_old <- as.matrix(result_old$connection.counts[3,])
+  user3_new <- as.matrix(result_new$connection.counts[3,])
   
   testthat::expect_equal(user1_old, user1_new)
   testthat::expect_equal(user2_old, user2_new)
@@ -98,19 +98,15 @@ test_that("sender, no receivers, no modality", {
   
   # Compare vectors across all 3 units 
   
-  user1_old <- as.numeric(unname(as.vector(result_old$connection.counts[1,4:length(colnames(result_old$connection.counts))])))
-  user1_new <- as.numeric(unname(as.vector(result_new$connection.counts[1,4:length(colnames(result_new$connection.counts))])))
+  user1_old <- as.matrix(result_old$connection.counts[1,])
+  user1_new <- as.matrix(result_new$connection.counts[1,])
+  user2_old <- as.matrix(result_old$connection.counts[2,])
+  user2_new <- as.matrix(result_new$connection.counts[2,])
+  user3_old <- as.matrix(result_old$connection.counts[3,])
+  user3_new <- as.matrix(result_new$connection.counts[3,])
   
   testthat::expect_true(all(user1_old == user1_new))
-  
-  user2_old <- as.numeric(unname(as.vector(result_old$connection.counts[2,4:length(colnames(result_old$connection.counts))])))
-  user2_new <- as.numeric(unname(as.vector(result_new$connection.counts[2,4:length(colnames(result_new$connection.counts))])))
-  
   testthat::expect_true(all(user2_old == user2_new))
-  
-  user3_old <- as.numeric(unname(as.vector(result_old$connection.counts[3,4:length(colnames(result_old$connection.counts))])))
-  user3_new <- as.numeric(unname(as.vector(result_new$connection.counts[3,4:length(colnames(result_new$connection.counts))])))
-  
   testthat::expect_true(all(user3_old == user3_new))
 })
 
@@ -155,19 +151,16 @@ test_that("no senders, receiver, no modality", {
   )
   
   # Compare vectors across all 3 units 
-  user1_old <- as.numeric(unname(as.vector(result_old$connection.counts[1,4:length(colnames(result_old$connection.counts))])))
-  user1_new <- as.numeric(unname(as.vector(result_new$connection.counts[1,4:length(colnames(result_new$connection.counts))])))
-  
-  user2_old <- as.numeric(unname(as.vector(result_old$connection.counts[2,4:length(colnames(result_old$connection.counts))])))
-  user2_new <- as.numeric(unname(as.vector(result_new$connection.counts[2,4:length(colnames(result_new$connection.counts))])))
-  
-  user3_old <- as.numeric(unname(as.vector(result_old$connection.counts[3,4:length(colnames(result_old$connection.counts))])))
-  user3_new <- as.numeric(unname(as.vector(result_new$connection.counts[3,4:length(colnames(result_new$connection.counts))])))
+  user1_old <- as.matrix(result_old$connection.counts[1,])
+  user1_new <- as.matrix(result_new$connection.counts[1,])
+  user2_old <- as.matrix(result_old$connection.counts[2,])
+  user2_new <- as.matrix(result_new$connection.counts[2,])
+  user3_old <- as.matrix(result_old$connection.counts[3,])
+  user3_new <- as.matrix(result_new$connection.counts[3,])
   
   testthat::expect_equal(user1_old, user1_new)
   testthat::expect_equal(user2_old, user2_new)
   testthat::expect_equal(user3_old, user3_new)
-  
 })
 
 test_that("sender, no receiver, modality", {
@@ -220,22 +213,16 @@ test_that("sender, no receiver, modality", {
   
   # Compare vectors across all 3 units 
   
-  user1_old <- as.numeric(unname(as.vector(result_old$connection.counts[1,4:length(colnames(result_old$connection.counts))])))
-  user1_new <- as.numeric(unname(as.vector(result_new$connection.counts[1,4:length(colnames(result_new$connection.counts))])))
+  user1_old <- as.matrix(result_old$connection.counts[1,])
+  user1_new <- as.matrix(result_new$connection.counts[1,])
+  user2_old <- as.matrix(result_old$connection.counts[2,])
+  user2_new <- as.matrix(result_new$connection.counts[2,])
+  user3_old <- as.matrix(result_old$connection.counts[3,])
+  user3_new <- as.matrix(result_new$connection.counts[3,])
   
   testthat::expect_true(all(user1_old == user1_new))
-  
-  user2_old <- as.numeric(unname(as.vector(result_old$connection.counts[2,4:length(colnames(result_old$connection.counts))])))
-  user2_new <- as.numeric(unname(as.vector(result_new$connection.counts[2,4:length(colnames(result_new$connection.counts))])))
-  
   testthat::expect_true(all(user2_old == user2_new))
-  
-  user3_old <- as.numeric(unname(as.vector(result_old$connection.counts[3,4:length(colnames(result_old$connection.counts))])))
-  user3_new <- as.numeric(unname(as.vector(result_new$connection.counts[3,4:length(colnames(result_new$connection.counts))])))
-  
   testthat::expect_true(all(user3_old == user3_new))
-  
-  
 })
 
 test_that("no sender, receiver, modality", {
@@ -285,21 +272,16 @@ test_that("no sender, receiver, modality", {
   
   # Compare vectors across all 3 units 
   
-  user1_old <- as.numeric(unname(as.vector(result_old$connection.counts[1,4:length(colnames(result_old$connection.counts))])))
-  user1_new <- as.numeric(unname(as.vector(result_new$connection.counts[1,4:length(colnames(result_new$connection.counts))])))
+  user1_old <- as.matrix(result_old$connection.counts[1,])
+  user1_new <- as.matrix(result_new$connection.counts[1,])
+  user2_old <- as.matrix(result_old$connection.counts[2,])
+  user2_new <- as.matrix(result_new$connection.counts[2,])
+  user3_old <- as.matrix(result_old$connection.counts[3,])
+  user3_new <- as.matrix(result_new$connection.counts[3,])
   
   testthat::expect_true(all(user1_old == user1_new))
-  
-  user2_old <- as.numeric(unname(as.vector(result_old$connection.counts[2,4:length(colnames(result_old$connection.counts))])))
-  user2_new <- as.numeric(unname(as.vector(result_new$connection.counts[2,4:length(colnames(result_new$connection.counts))])))
-  
   testthat::expect_true(all(user2_old == user2_new))
-  
-  user3_old <- as.numeric(unname(as.vector(result_old$connection.counts[3,4:length(colnames(result_old$connection.counts))])))
-  user3_new <- as.numeric(unname(as.vector(result_new$connection.counts[3,4:length(colnames(result_new$connection.counts))])))
-  
   testthat::expect_true(all(user3_old == user3_new))
-  
 })
 
 test_that("sender, receiver, no modality", {
@@ -352,19 +334,15 @@ test_that("sender, receiver, no modality", {
   
   # Compare vectors across all 3 units 
   
-  user1_old <- as.numeric(unname(as.vector(result_old$connection.counts[1,4:length(colnames(result_old$connection.counts))])))
-  user1_new <- as.numeric(unname(as.vector(result_new$connection.counts[1,4:length(colnames(result_new$connection.counts))])))
+  user1_old <- as.matrix(result_old$connection.counts[1,])
+  user1_new <- as.matrix(result_new$connection.counts[1,])
+  user2_old <- as.matrix(result_old$connection.counts[2,])
+  user2_new <- as.matrix(result_new$connection.counts[2,])
+  user3_old <- as.matrix(result_old$connection.counts[3,])
+  user3_new <- as.matrix(result_new$connection.counts[3,])
   
   testthat::expect_true(all(user1_old == user1_new))
-  
-  user2_old <- as.numeric(unname(as.vector(result_old$connection.counts[2,4:length(colnames(result_old$connection.counts))])))
-  user2_new <- as.numeric(unname(as.vector(result_new$connection.counts[2,4:length(colnames(result_new$connection.counts))])))
-  
   testthat::expect_true(all(user2_old == user2_new))
-  
-  user3_old <- as.numeric(unname(as.vector(result_old$connection.counts[3,4:length(colnames(result_old$connection.counts))])))
-  user3_new <- as.numeric(unname(as.vector(result_new$connection.counts[3,4:length(colnames(result_new$connection.counts))])))
-  
   testthat::expect_true(all(user3_old == user3_new))
 })
 
@@ -426,19 +404,15 @@ test_that("sender, receiver, modality", {
   
   # Compare vectors across all 3 units 
   
-  user1_old <- as.numeric(unname(as.vector(result_old$connection.counts[1,4:length(colnames(result_old$connection.counts))])))
-  user1_new <- as.numeric(unname(as.vector(result_new$connection.counts[1,4:length(colnames(result_new$connection.counts))])))
+  user1_old <- as.matrix(result_old$connection.counts[1,])
+  user1_new <- as.matrix(result_new$connection.counts[1,])
+  user2_old <- as.matrix(result_old$connection.counts[2,])
+  user2_new <- as.matrix(result_new$connection.counts[2,])
+  user3_old <- as.matrix(result_old$connection.counts[3,])
+  user3_new <- as.matrix(result_new$connection.counts[3,])
   
   testthat::expect_true(all(user1_old == user1_new))
-  
-  user2_old <- as.numeric(unname(as.vector(result_old$connection.counts[2,4:length(colnames(result_old$connection.counts))])))
-  user2_new <- as.numeric(unname(as.vector(result_new$connection.counts[2,4:length(colnames(result_new$connection.counts))])))
-  
   testthat::expect_true(all(user2_old == user2_new))
-  
-  user3_old <- as.numeric(unname(as.vector(result_old$connection.counts[3,4:length(colnames(result_old$connection.counts))])))
-  user3_new <- as.numeric(unname(as.vector(result_new$connection.counts[3,4:length(colnames(result_new$connection.counts))])))
-  
   testthat::expect_true(all(user3_old == user3_new))
   
 })
@@ -567,22 +541,14 @@ test_that("senders, receivers, modality", {
   
   # Compare vectors across all 3 units 
   
-  user1_old <- as.numeric(unname(as.vector(result_old[1,2:length(colnames(result_old))])))
-  user1_new <- as.numeric(unname(as.vector(result_new$connection.counts[1,4:length(colnames(result_new$connection.counts))])))
-  
+  user1_old <- as.matrix(result_old[1,-1])
+  user1_new <- as.matrix(result_new$connection.counts[1,])
+  user2_old <- as.matrix(result_old[2,-1])
+  user2_new <- as.matrix(result_new$connection.counts[2,])
+  user3_old <- as.matrix(result_old[3,-1])
+  user3_new <- as.matrix(result_new$connection.counts[3,])
   
   testthat::expect_true(all(user1_old == user1_new))
-  
-  user2_old <- as.numeric(unname(as.vector(result_old[2,2:length(colnames(result_old))])))
-  user2_new <- as.numeric(unname(as.vector(result_new$connection.counts[2,4:length(colnames(result_new$connection.counts))])))
-  
-  print(user2_old)
-  print(user2_new)
-  
   testthat::expect_true(all(user2_old == user2_new))
-  
-  user3_old <- as.numeric(unname(as.vector(result_old[3,2:length(colnames(result_old))])))
-  user3_new <- as.numeric(unname(as.vector(result_new$connection.counts[3,4:length(colnames(result_new$connection.counts))])))
-  
   testthat::expect_true(all(user3_old == user3_new))
 })

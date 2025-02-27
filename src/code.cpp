@@ -473,68 +473,53 @@ Rcpp::List apply_windows_d(
 }
 
 /*** R
-# data(test_mockdata, package = "tma")
-# mock_data <- test_mockdata;
-# mock_data <- mock_data[mock_data$chatGroup == "PAM",]
-# 
-# # Initialize TMA units and contexts
-# unit_cols <- c("userID", "condition")
-# codes <- c("A", "B", "C")
-# HOO_rules_model <- tma:::rules(
-#   modality %in% "chat" & chatGroup %in% UNIT$chatGroup & condition %in% UNIT$condition, modality %in% "resource" & userID %in% UNIT$userID & condition %in% UNIT$condition
-# )
-# 
-# context_model <- tma:::contexts(
-#   x = mock_data,
-#   units = unit_cols,
-#   hoo_rules = HOO_rules_model
-# )
-# 
-# time_column = "timeStamp"
-# 
-# 
-# # Get new TMA results
-# receiver_cols = c("language")
-# 
-# multidim_arr <- make_multidim_arr(mock_data, sender_cols = c(), receiver_cols = receiver_cols, mode_column = c(), 0, 0)
-# 
-# multidim_arr["L1", "weight"] <- 1
-# multidim_arr["L2", "weight"] <- 5
-# multidim_arr["L1", "window"] <- 360
-# multidim_arr["L2", "window"] <- 180
-# 
-# result_old <- accum_multidim(
-#   mock_data,
-#   multidim_arr,
-#   time_column,
-#   codes,
-#   context_model,
-#   units = context_model$model$unit.labels[[2]]
-# )
-# # result_new <- accum_multidim_c(
-# #   context_model = context_model, multidim_arr = multidim_arr, time_column = time_column, codes = codes
-# # )
-# 
-# send_cols = attr(multidim_arr, "sender_cols");
-# recv_cols = attr(multidim_arr, "receiver_cols");
-# mode_cols = attr(multidim_arr, "mode_column");
-# 
-# ctx <- context_model$model$contexts[[2]];
-# unit_context_lookup <- as.matrix(ctx[, lapply(.SD, function(x) as.numeric(as.factor(x))), .SDcols = c(send_cols, recv_cols, mode_cols)]);
-# unit_rows <- attr(ctx, "tma.unit_rows")
-# unit_to_last <- seq.int(last(unit_rows));
-# res <- apply_windows_d(
-#   multidim_arr,
-#   attr(multidim_arr, "dim"),
-#   attr(multidim_arr, "sender_inds") - 1,
-#   attr(multidim_arr, "receiver_inds") - 1,
-#   attr(multidim_arr, "mode_inds") - 1,
-#   unit_context_lookup[unit_to_last,, drop = FALSE] - 1,
-#   unit_rows - 1,
-#   as.matrix(ctx[unit_to_last, ..codes]),
-#   ctx[unit_to_last,][[time_column]]
-# );
-# 
+data(test_mockdata, package = "tma")
+mock_data <- test_mockdata;
+mock_data <- mock_data[mock_data$chatGroup == "PAM",]
+
+# Initialize TMA units and contexts
+unit_cols <- c("userID", "condition")
+codes <- c("A", "B", "C")
+HOO_rules_model <- tma:::rules(
+  modality %in% "chat" & chatGroup %in% UNIT$chatGroup & condition %in% UNIT$condition, modality %in% "resource" & userID %in% UNIT$userID & condition %in% UNIT$condition
+)
+
+context_model <- tma:::contexts(
+  x = mock_data,
+  units = unit_cols,
+  hoo_rules = HOO_rules_model
+)
+
+time_column = "timeStamp"
+
+# Get new TMA results 
+send_cols <- c()
+recv_cols <- c()
+mode_column = "modality"
+
+multidim_arr <- make_multidim_arr(mock_data, sender_cols = c(), receiver_cols = c(), mode_column, 0, 0)
+
+multidim_arr["chat", "weight"] <- 1
+multidim_arr["resource", "weight"] <- 2
+multidim_arr["chat", "window"] <- 360
+multidim_arr["resource", "window"] <- 180
+
+ctx <- context_model$model$contexts[[3]];
+unit_context_lookup <- as.matrix(ctx[, lapply(.SD, function(x) as.numeric(as.factor(x))), .SDcols = c(send_cols, recv_cols, mode_column)]);
+unit_rows <- attr(ctx, "tma.unit_rows")
+unit_to_last <- seq.int(last(unit_rows));
+res <- apply_windows_d(
+  multidim_arr,
+  attr(multidim_arr, "dim"),
+  attr(multidim_arr, "sender_inds") - 1,
+  attr(multidim_arr, "receiver_inds") - 1,
+  attr(multidim_arr, "mode_inds") - 1,
+  unit_context_lookup[unit_to_last,, drop = FALSE] - 1,
+  unit_rows - 1,
+  as.matrix(ctx[unit_to_last, ..codes]),
+  ctx[unit_to_last,][[time_column]]
+);
+print(res$connection_counts)
 # user2_old <- as.numeric(unname(as.vector(result_old$connection.counts[1,4:length(colnames(result_old$connection.counts))])))
 # # user2_new <- as.numeric(unname(as.vector(result_new$connection.counts[2,4:length(colnames(result_new$connection.counts))])))
 # user2_new <- res$connection_counts[1,]
@@ -554,35 +539,5 @@ Rcpp::List apply_windows_d(
 # );
 # print(res$connection_counts)
 # print(res_2$connection_counts)
-# 
-# w_rr = 1
-# r_vec = 3:1
-# g_ws_vec = 1:3
-# ordered = FALSE
-# 
-# rv <- function() {
-#   if(ordered == TRUE){
-#     (g_ws_vec %*% t(r_vec)) + 0.5 * w_rr * tma:::f_diag(r_vec %*% t(r_vec))
-#   }
-#   else {
-#     w_rr * (r_vec %*% t(r_vec)) + (g_ws_vec %*% t(r_vec) + r_vec %*% t(g_ws_vec))
-#   }
-# }
-# 
-# calculate_adjacency_matrix(g_ws_vec, r_vec, w_rr, ordered)
-# rv()
-
-mma <- get("multidim_arr", envir = test_env)
-res_2 <- apply_windows_d(
-  mma,
-  attr(mma, "dim"),
-  attr(mma, "sender_inds") - 1,
-  attr(mma, "receiver_inds") - 1,
-  attr(mma, "mode_inds") - 1,
-  get("ctx_lookup", envir = test_env)[1:8,, drop = FALSE],
-  7,
-  get("codes", envir = test_env),
-  get("times", envir = test_env),
-  ordered = FALSE
-)
+#
 */

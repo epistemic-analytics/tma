@@ -131,7 +131,7 @@ accumulate_contexts <- function(
   if(use.meta) {
     meta_cols <- unique(meta_cols, c(f.meta.data[!is.na(f.meta.data)]));
   }
-  output.meta.data <- f.raw[0, c(meta_cols), with = FALSE];
+  output.meta.data <- as.data.frame(f.raw[0, c(meta_cols), with = FALSE]);
   
   # initialize adjacency vector matrices
   undirected.adjacency.vectors = data.frame(matrix(0, nrow = 1, ncol = ncol(adjacency_key(f.codes))))[0,]
@@ -341,7 +341,7 @@ accumulate_contexts <- function(
   #   lapply(output.meta.data, reclass, cl = "ena.metadata"), 
   #   class = c("ena.matrix", "data.table", "data.frame")
   # );
-  x$meta.data <- data.table::copy(output.meta.data);
+  x$meta.data <- data.table::copy(data.table::as.data.table(output.meta.data));
   set(x$meta.data, j = "ENA_UNIT", value = do.call(paste, c(lapply(x$`_function.params`$units.by, function(u) x$meta.data[[u]]), sep = "::")))
   for( i in colnames(x$meta.data) ) {
     data.table::set(x$meta.data, j = i, value = reclass(x$meta.data[[i]], "ena.metadata"))

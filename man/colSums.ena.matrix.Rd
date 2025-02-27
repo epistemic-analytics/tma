@@ -7,13 +7,16 @@
 colSums.ena.matrix(x, na.rm = FALSE, dims = 1L, binary = FALSE)
 }
 \arguments{
-\item{x}{}
+\item{x}{TBD}
 
-\item{na.rm}{}
+\item{na.rm}{TBD}
 
-\item{dims}{}
+\item{dims}{TBD}
 
-\item{binary}{}
+\item{binary}{TBD}
+}
+\value{
+TBD
 }
 \description{
 Title

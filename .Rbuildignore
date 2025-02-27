@@ -9,6 +9,7 @@
 ^demo/backup/
 ^demo/scripts/
 ^demo/markdown/
+^demo/
 
 ^.*.\.tar\.gz$
 ^\.git/.*

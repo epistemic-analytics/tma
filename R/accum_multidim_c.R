@@ -91,7 +91,10 @@ accumulate <- function(context_model, multidim_arr, codes, time_column = NULL, o
   if(isTRUE(ordered)) {
     class(context_model) <- c("ena.ordered.set", class(context_model));
     
-    connection_counts <- data.table::as.data.table(do.call(rbind, lapply(result_cpp, colSums.ena.matrix, binary = binary)));
+    # connection_counts <- data.table::as.data.table(do.call(rbind, lapply(result_cpp, colSums.ena.matrix, binary = FALSE)));
+    connection_counts <- data.table::as.data.table(do.call(rbind, lapply(result_cpp, function(rcpp) {
+      colSums(rENA:::as.matrix.ena.matrix(rcpp))  
+    })));
     connection_counts <- reclass(x = connection_counts, c("ordered.ena.connections", "ena.connections", "ena.matrix"));
     connection_counts <- connection_counts[, lapply(.SD, reclass, "ena.co.occurrence"), .SDcols = colnames(connection_counts)];
     

@@ -7,7 +7,10 @@
 \method{as.unordered}{ordered.row.connections}(x)
 }
 \arguments{
-\item{x}{}
+\item{x}{TBD}
+}
+\value{
+TBD
 }
 \description{
 Title
