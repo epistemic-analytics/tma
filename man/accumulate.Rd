@@ -6,19 +6,19 @@
 \usage{
 accumulate(
   context_model,
-  multidim_arr,
   codes,
+  win_weights = windows_weights(context_model$model$raw.input),
   time_column = NULL,
   ordered = TRUE,
-  binary = TRUE
+  binary = FALSE
 )
 }
 \arguments{
 \item{context_model}{A context model object containing contexts to be applied to the data.}
 
-\item{multidim_arr}{A multidimensional array that holds the data to be processed.}
-
 \item{codes}{A vector of codes used to index relevant information in the context model.}
+
+\item{win_weights}{A multidimensional array that holds the data to be processed.}
 
 \item{time_column}{A string representing the name of the column containing time data in the context model.}
 

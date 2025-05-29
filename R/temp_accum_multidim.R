@@ -31,25 +31,26 @@ get_unique_values <- function(
 }
 
 
-# Function to generate multidim arr
-#' @title accum_multidim
+# Function to generate multidimensional array
+#' @title windows_weights
 #'
+#' @param df data.frame
 #' @param sender_cols Sender columns
 #' @param receiver_cols Receiver columns
 #' @param mode_column Mode column
 #' @param default_window Default window
-#' @param df [tbd]
 #' @param default_weight Default weight
 #'
-#' @return A multidim array with [S, R, M, weight/window], with NO standins
+#' @return A multidimensional array with [S, R, M, weight/window]
 #' @export 
-make_multidim_arr <- function(df, 
-                  sender_cols, 
-                  receiver_cols, 
-                  mode_column, 
-                  default_window,
-                  default_weight) {
-  
+windows_weights <- function(
+  df, 
+  sender_cols = NULL, 
+  receiver_cols = NULL, 
+  mode_column = ATTR_NAMES$CONTEXT_ID, 
+  default_window = 1,
+  default_weight = 1
+) {
   unique_list = get_unique_values(df, sender_cols, receiver_cols, mode_column)
   weight_window_axis <- c("weight", "window");
   
@@ -391,7 +392,6 @@ f_diag <- function(
 #' @param codes Codes of interest
 #' @param context_model TMA context model containing contexts for each unit of analysis
 #' @param return_ena_set Whether or not to return an ENA set. By default, this is ONA
-#' @param df [tbd]
 #' @param duration_column [tbd]
 #' @param norm_by [tbd]
 #' @param units [tbd]
@@ -401,19 +401,19 @@ f_diag <- function(
 #' @return T/ONA (or T/ENA) accumulation
 #' @export
 accum_multidim <- function(
-    df, # original df; needed to get unique_senders, unique_receivers, unique_modes in preprocess
-    multidim_arr, 
-    time_column,
-    codes, 
-    context_model,
-    duration_column = "", 
-    norm_by = "No", # TODO: implement l1 normalization
-    return_ena_set = FALSE,
-    units = context_model[["model"]][["unit.labels"]],
-    time_unit = 'auto',
-    ... # TODO: implement binarization for T/ENA
+  time_column,
+  codes, 
+  context_model,
+  multidim_arr = windows_weights(context_model$model$raw.input), 
+  duration_column = "", 
+  norm_by = "No", # TODO: implement l1 normalization
+  return_ena_set = FALSE,
+  units = context_model[["model"]][["unit.labels"]],
+  time_unit = 'auto',
+  ... # TODO: implement binarization for T/ENA
 ) {
-  result <- preprocess(df, multidim_arr)
+  df <- context_model$model$raw.input;
+  result <- preprocess(df, multidim_arr);
   
   multidim_arr <- result$multidim_arr
   sender_cols <- result$sender_cols

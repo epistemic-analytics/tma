@@ -52,7 +52,7 @@ test_that("calculate_1d_index using multidim array", {
   receiver_cols <- c("role")
   mode_column <- "modality"
   
-  multidim_arr <- make_multidim_arr(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, default_window = 10, default_weight = 20)
+  multidim_arr <- windows_weights(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, default_window = 10, default_weight = 20)
   # multidim_arr[seq.int(prod(dim(multidim_arr)))] <- seq.int(prod(dim(multidim_arr)))
   
   testthat::expect_equal(multidim_arr[1,1,1,1], 20)

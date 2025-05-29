@@ -429,6 +429,7 @@ Rcpp::List apply_windows_d(
         arma::mat ground_codes = codes.rows(ground_rows_to_include);
         
         // apply weights w/ hadamard (element-wise) product
+        // Rcpp::Rcout << "Ground weight vector: " << ground_row_weights << std::endl;
         arma::mat ground_codes_by_weight = ground_codes.each_col() % ground_row_weights;
         
         // sum codes 
@@ -448,6 +449,7 @@ Rcpp::List apply_windows_d(
     response_context_lookup[response_context_lookup.size() - 1] = WEIGHT_DIM;
     int response_wgt_idx = calculate_1d_index(response_context_lookup, dims_v); // same thing as above, except for receiver weight 
     int response_weight = multidim_as_vector[response_wgt_idx];
+    // Rcpp::Rcout << "Response weight vector: " << response_weight << std::endl;
    
     // make g_w_vec, adjacency matrix
     // Rcpp::Rcout << "Ordered: " << ordered << std::endl;

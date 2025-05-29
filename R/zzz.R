@@ -8,5 +8,6 @@
 
 
 ATTR_NAMES <- list(
+  CONTEXT_ID = "__CONTEXT_TBL__",
   CONTEXT_COL_ID = "__CONTEXT_ROWID__"
 )

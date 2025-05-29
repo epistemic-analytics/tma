@@ -17,6 +17,7 @@ units <- function(x, by) {
     class(model) <- c("ena.set", class(model))
   }
   
+  model$model$raw.input[[ATTR_NAMES$CONTEXT_ID]] <- 1;
   model$model$raw.input$QEID <- seq(nrow(model$model$raw.input));
   data.table::setkeyv(x = model$model$raw.input, cols = c("QEID"));
   

@@ -5,11 +5,10 @@
 \title{accum_multidim}
 \usage{
 accum_multidim(
-  df,
-  multidim_arr,
   time_column,
   codes,
   context_model,
+  multidim_arr = windows_weights(context_model$model$raw.input),
   duration_column = "",
   norm_by = "No",
   return_ena_set = FALSE,
@@ -19,16 +18,14 @@ accum_multidim(
 )
 }
 \arguments{
-\item{df}{[tbd]}
-
-\item{multidim_arr}{Input multidimensional array. This should be in the format
-[sender, receiver, modality, weight/window] (and will be b/c of how we initialize it above)}
-
 \item{time_column}{Time column in contexts}
 
 \item{codes}{Codes of interest}
 
 \item{context_model}{TMA context model containing contexts for each unit of analysis}
+
+\item{multidim_arr}{Input multidimensional array. This should be in the format
+[sender, receiver, modality, weight/window] (and will be b/c of how we initialize it above)}
 
 \item{duration_column}{[tbd]}
 

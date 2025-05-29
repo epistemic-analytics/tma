@@ -341,7 +341,8 @@ as.matrix.network.connections <- function(x, ...) {
 #' @return TBD
 #' @export
 'as.unordered.ordered.row.connections' <- function(x) {
-  m <- as.matrix(x);
+  # m <- as.matrix(x);
+  m <- rENA:::as.matrix.ena.matrix(x);
   sq_size <- sqrt(ncol(m));
   ind_mat <- matrix(seq.int(ncol(m)), nrow = sq_size, ncol = sq_size);
   ind_ut <- ind_mat[upper.tri(ind_mat, diag = FALSE)];
@@ -381,7 +382,6 @@ as.matrix.network.connections <- function(x, ...) {
 #' @return An unordered factor representation of the input object.
 #'
 #' @export
-#' @importFrom methods UseMethod
 'as.unordered' <- function(x) {
   UseMethod("as.unordered")
 }
