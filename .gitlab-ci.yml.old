@@ -1,0 +1,43 @@
+stages:
+  - setup
+  - build
+  - check
+  - test
+  - publish
+  - release
+  - tag
+
+include:
+  - project: 'cran-ci/ci-templates'
+    ref: main
+    file: '/templates/build/R-build.gitlab-ci.yml'
+  - project: 'cran-ci/ci-templates'
+    ref: main
+    file: '/templates/setup/setup.gitlab-ci.yml'
+  - project: 'cran-ci/ci-templates'
+    ref: main
+    file: '/templates/check/Rhub-checks-updated.gitlab-ci.yml'
+  - project: 'cran-ci/ci-templates'
+    ref: main
+    file: '/templates/release/pkgdown.gitlab-ci.yml'
+  - project: 'cran-ci/ci-templates'
+    ref: main
+    file: '/templates/cran/CRAN.gitlab-ci.yml'
+
+before_script:
+  - apt-get update -y
+  - apt-get install -y r-base  # Install R in the ruby image
+  
+test:
+  stage: test
+  script:
+    - R -e 'install.packages("devtools")'
+    - R -e 'devtools::install_deps(dependencies = TRUE)'  # Install dependencies
+    - R -e 'devtools::test()'  # Run tests
+    - ls -R tests  # List files to ensure output exists
+  artifacts:
+    when: always
+    paths:
+      - tests/testthat.Rout  # Path to the output file
+    reports:
+      junit: tests/testthat.Rout  # Path to the JUnit report

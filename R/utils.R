@@ -5,15 +5,14 @@
 #
 # @return matrix
 adjacency_key <- function(codes, upper = TRUE) {
-  n <- length(codes);
+  expanded <- expand.grid(codes, codes);
+  rownames(expanded) <- apply(expanded, 1, paste, collapse = " & ");
   if(upper == TRUE) {
-    matrix(c(
-      codes[sequence((1:n-1))],
-      codes[rep((2:n), times = (1:(n-1)))]
-    ), byrow = TRUE, nrow = 2)
+    upper_inds <- which(upper.tri(matrix(nrow = length(codes), ncol = length(codes))));
+    t(expanded[upper_inds,])
   }
   else {
-    stop("Not implemented")
+    t(expanded);
   }
 }
 
@@ -32,6 +31,17 @@ as.undirected.matrix <- function(x, m = matrix(1, nrow = nrow(x), ncol = ncol(x)
   
   ut_matrix
 }
+
+#' Extract Upper Triangular Elements
+#' 
+#' This function extracts the elements from the upper triangular part of a
+#' matrix.
+#' 
+#' @param x A numeric matrix from which to extract upper triangular elements.
+#' @param diag A logical value indicating whether to include the diagonal
+#'   elements. Defaults to FALSE.
+#' 
+#' @return A vector containing the upper triangular elements of the matrix.
 as.undirected.vector <- function(x, diag = FALSE) {
   upper_tri_indices <- upper.tri(x, diag = diag);
   x[upper_tri_indices]
@@ -179,13 +189,13 @@ merge_columns <- function(x, cols = colnames(x), sep = ".") {
 # }
 
 
-# Extract from network.matrix easily using metadata
-#
-# @param x [TBD]
-# @param i [TBD]
-#
-# @return [TBD]
-# @export
+#' Extract from network.matrix easily using metadata
+#'
+#' @param x [TBD]
+#' @param i [TBD]
+#'
+#' @return [TBD]
+#' @export
 "$.network.matrix" <- function (x, i) {
   meta.data <- attr(x, "model")$meta.data;
   meta.cols <- colnames(meta.data);
@@ -279,4 +289,153 @@ as.matrix.network.connections <- function(x, ...) {
   class(x_) <- x_cls[ (which(x_cls == "network.matrix") + 1):length(x_cls) ];
   code_columns <- which(sapply(x_, inherits, what = "network.connection"));
   as.matrix(x_[, c(code_columns), with = F], ...);
+}
+
+#' Title
+#'
+#' @param x TBD
+#' @param na.rm TBD
+#' @param dims TBD
+#' @param binary TBD
+#'
+#' @return TBD
+#' @export
+'colSums.ena.matrix' <- function(x, na.rm = FALSE, dims = 1L, binary = FALSE) {
+  x_mat <- as.matrix(x);
+  if(isTRUE(binary)) {
+    x_mat[x_mat > 0] <- 1;
+  }
+  colSums(x_mat);  
+}
+
+#' Unorder Connections in a Matrix
+#'
+#' This function takes a matrix and creates an unordered version of its connections, combining upper and lower triangular elements.
+#'
+#' @param x A matrix or data frame containing the connections. The input should be a square matrix.
+#'
+#' @return A data.table with ordered connections, reclassified as "unordered.ena.connections", "ena.connections", and "ena.matrix".
+#'
+#' @export
+'as.unordered.ordered.ena.connections' <- function(x) {
+  m <- as.matrix(x);
+  sq_size <- sqrt(ncol(m));
+  ind_mat <- matrix(seq.int(ncol(m)), nrow = sq_size, ncol = sq_size);
+  ind_ut <- ind_mat[upper.tri(ind_mat)];
+  ind_lt <- ind_mat[lower.tri(ind_mat)];
+  
+  # m_unordered <- data.table::as.data.table(m[, ind_ut, drop = FALSE] + m[, ind_lt, drop = FALSE]);
+  m_unordered <- data.table::as.data.table(t(apply(m, 1, function(mm) (mm[as.vector(ind_mat)] + mm[as.vector(t(ind_mat))])[ind_ut], simplify = T)));
+  m_unordered <- m_unordered[, lapply(.SD, reclass, "ena.co.occurrence"), .SDcols = colnames(m_unordered)];
+  
+  m_unordered <- cbind(x[,find_meta_cols(x), with = FALSE], m_unordered);
+  m_unordered <- reclass(x = m_unordered, c("unordered.ena.connections", "ena.connections", "ena.matrix"));
+  
+  m_unordered
+}
+
+#' Title 
+#'
+#' @param x TBD
+#'
+#' @return TBD
+#' @export
+'as.unordered.ordered.row.connections' <- function(x) {
+  # m <- as.matrix(x);
+  m <- as.matrix.ena.matrix(x);
+  sq_size <- sqrt(ncol(m));
+  ind_mat <- matrix(seq.int(ncol(m)), nrow = sq_size, ncol = sq_size);
+  ind_ut <- ind_mat[upper.tri(ind_mat, diag = FALSE)];
+  ind_lt <- ind_mat[lower.tri(ind_mat, diag = FALSE)];
+  
+  # m_unordered <- data.table::as.data.table(m[, ind_ut, drop = FALSE] + m[, ind_lt, drop = FALSE]);
+  m_unordered <- data.table::as.data.table(t(apply(m, 1, function(mm) (mm[as.vector(ind_mat)] + mm[as.vector(t(ind_mat))])[ind_ut], simplify = T)));
+  m_unordered <- m_unordered[, lapply(.SD, reclass, "ena.co.occurrence"), .SDcols = colnames(m_unordered)];
+  
+  m_unordered <- cbind(x[,find_meta_cols(x), with = FALSE], m_unordered);
+  m_unordered <- reclass(x = m_unordered, c("unordered.row.connections", "row.connections", "ena.matrix"));
+  
+  m_unordered
+}
+
+#' Default Method for X
+#'
+#' This function provides the default method for handling the input `x`.
+#' It prints a message indicating that the default method is being executed.
+#'
+#' @param x Any object that you want to apply the default method to.
+#'
+#' @return NULL
+#'
+#' @export
+'as.unordered.default' <- function(x){
+  cat("This is the default method. \n")
+}
+
+#' Convert to Unordered Factor
+#'
+#' This function is a generic method to convert an object to an unordered factor.
+#' It dispatches methods based on the class of the input object.
+#'
+#' @param x An object to be converted to an unordered factor.
+#'
+#' @return An unordered factor representation of the input object.
+#'
+#' @export
+'as.unordered' <- function(x) {
+  UseMethod("as.unordered")
+}
+
+#region Moved from rENA ----
+
+#' Find metadata columns
+#'
+#' @param x data.table (or frame) to search for columns of class ena.metadata
+#'
+#' @return logical vector
+#' @export
+find_meta_cols <- function(x) {
+   sapply(x, is, class2 = "ena.metadata")
+}
+
+#' Remove meta columns from a data.table or data.frame
+#'
+#' This function removes columns of class `ena.meta.data` from the input object.
+#'
+#' @param x A `data.table` or `data.frame` object from which meta columns should be removed.
+#'
+#' @return A `data.frame` with columns of class `ena.meta.data` removed.
+#' @export
+remove_meta_data <- function(x) {
+   as.data.frame(x)[, !find_meta_cols(x), drop = F]
+}
+
+#' Matrix without metadata
+#'
+#' @param x Object to convert to  a matrix
+#' @param ... 	additional arguments to be passed to or from methods
+#'
+#' @return matrix
+#' @export
+as.matrix.ena.matrix <- function(x, ...) {
+  class(x) = class(x)[-1]
+  x = remove_meta_data(x)
+  as.matrix(x, ...)
+}
+
+##
+#' @title Names to Adjacency Key
+#'
+#' @description Convert a vector of strings, representing names of a square matrix, to an adjacency
+#'
+#' @details Returns a matrix of 2 rows by choose(length(vector), 2) columns
+#'
+#' @param vector Vector representing the names of a square matrix
+#' @param upper_triangle Not Implemented
+#'
+#' @export
+##
+namesToAdjacencyKey <- function(vector, upper_triangle = TRUE) {
+  upperTriIndices = triIndices(length(vector)) + 1;
+  matrix(vector[upperTriIndices], nrow=2)
 }

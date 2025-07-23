@@ -4,11 +4,13 @@
 
 ^\.gitlab-ci\.yml
 
-^inst/extdata/
-^inst/docker/
-^demo/backup/
-^demo/scripts/
-^demo/markdown/
+inst/extdata/
+inst/docker/
+demo/backup/
+demo/scripts/
+demo/markdown/
+demo
+.pkgdown.yml
 
 ^.*.\.tar\.gz$
 ^\.git/.*
