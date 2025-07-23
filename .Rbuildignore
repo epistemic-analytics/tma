@@ -10,7 +10,9 @@ demo/backup/
 demo/scripts/
 demo/markdown/
 demo
-.pkgdown.yml
+_pkgdown.yml
+
+
 
 ^.*.\.tar\.gz$
 ^\.git/.*
@@ -34,3 +36,5 @@ public/
 vignettes/
 
 lastMiKTeXException
+
+src/.*\.o
