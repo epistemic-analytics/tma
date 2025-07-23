@@ -98,7 +98,7 @@ accumulate <- function(
     
     # connection_counts <- data.table::as.data.table(do.call(rbind, lapply(result_cpp, colSums.ena.matrix, binary = FALSE)));
     connection_counts <- data.table::as.data.table(do.call(rbind, lapply(result_cpp, function(rcpp) {
-      colSums(rENA:::as.matrix.ena.matrix(rcpp))  
+      colSums(as.matrix.ena.matrix(rcpp))  
     })));
     connection_counts <- reclass(x = connection_counts, c("ordered.ena.connections", "ena.connections", "ena.matrix"));
     connection_counts <- connection_counts[, lapply(.SD, reclass, "ena.co.occurrence"), .SDcols = colnames(connection_counts)];

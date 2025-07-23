@@ -328,7 +328,7 @@ as.matrix.network.connections <- function(x, ...) {
   m_unordered <- data.table::as.data.table(t(apply(m, 1, function(mm) (mm[as.vector(ind_mat)] + mm[as.vector(t(ind_mat))])[ind_ut], simplify = T)));
   m_unordered <- m_unordered[, lapply(.SD, reclass, "ena.co.occurrence"), .SDcols = colnames(m_unordered)];
   
-  m_unordered <- cbind(x[,rENA::find_meta_cols(x), with = FALSE], m_unordered);
+  m_unordered <- cbind(x[,find_meta_cols(x), with = FALSE], m_unordered);
   m_unordered <- reclass(x = m_unordered, c("unordered.ena.connections", "ena.connections", "ena.matrix"));
   
   m_unordered
@@ -342,7 +342,7 @@ as.matrix.network.connections <- function(x, ...) {
 #' @export
 'as.unordered.ordered.row.connections' <- function(x) {
   # m <- as.matrix(x);
-  m <- rENA:::as.matrix.ena.matrix(x);
+  m <- as.matrix.ena.matrix(x);
   sq_size <- sqrt(ncol(m));
   ind_mat <- matrix(seq.int(ncol(m)), nrow = sq_size, ncol = sq_size);
   ind_ut <- ind_mat[upper.tri(ind_mat, diag = FALSE)];
@@ -352,7 +352,7 @@ as.matrix.network.connections <- function(x, ...) {
   m_unordered <- data.table::as.data.table(t(apply(m, 1, function(mm) (mm[as.vector(ind_mat)] + mm[as.vector(t(ind_mat))])[ind_ut], simplify = T)));
   m_unordered <- m_unordered[, lapply(.SD, reclass, "ena.co.occurrence"), .SDcols = colnames(m_unordered)];
   
-  m_unordered <- cbind(x[,rENA::find_meta_cols(x), with = FALSE], m_unordered);
+  m_unordered <- cbind(x[,find_meta_cols(x), with = FALSE], m_unordered);
   m_unordered <- reclass(x = m_unordered, c("unordered.row.connections", "row.connections", "ena.matrix"));
   
   m_unordered
@@ -384,4 +384,58 @@ as.matrix.network.connections <- function(x, ...) {
 #' @export
 'as.unordered' <- function(x) {
   UseMethod("as.unordered")
+}
+
+#region Moved from rENA ----
+
+#' Find metadata columns
+#'
+#' @param x data.table (or frame) to search for columns of class ena.metadata
+#'
+#' @return logical vector
+#' @export
+find_meta_cols <- function(x) {
+   sapply(x, is, class2 = "ena.metadata")
+}
+
+#' Remove meta columns from a data.table or data.frame
+#'
+#' This function removes columns of class `ena.meta.data` from the input object.
+#'
+#' @param x A `data.table` or `data.frame` object from which meta columns should be removed.
+#'
+#' @return A `data.frame` with columns of class `ena.meta.data` removed.
+#' @export
+remove_meta_data <- function(x) {
+   as.data.frame(x)[, !find_meta_cols(x), drop = F]
+}
+
+#' Matrix without metadata
+#'
+#' @param x Object to convert to  a matrix
+#' @param ... 	additional arguments to be passed to or from methods
+#'
+#' @return matrix
+#' @export
+as.matrix.ena.matrix <- function(x, ...) {
+  class(x) = class(x)[-1]
+  x = remove_meta_data(x)
+  as.matrix(x, ...)
+}
+
+##
+#' @title Names to Adjacency Key
+#'
+#' @description Convert a vector of strings, representing names of a square matrix, to an adjacency
+#'
+#' @details Returns a matrix of 2 rows by choose(length(vector), 2) columns
+#'
+#' @param vector Vector representing the names of a square matrix
+#' @param upper_triangle Not Implemented
+#'
+#' @export
+##
+namesToAdjacencyKey <- function(vector, upper_triangle = TRUE) {
+  upperTriIndices = triIndices(length(vector)) + 1;
+  matrix(vector[upperTriIndices], nrow=2)
 }

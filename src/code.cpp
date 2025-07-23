@@ -474,6 +474,45 @@ Rcpp::List apply_windows_d(
   return(return_list);
 }
 
+
+// @title Indices representing an adjacnecey key
+// @description Create a matrix of indices representing a co-occurrence
+//              adjacency vector.  `len` represents the length of a side in a
+//              square matrix.
+// @param len Integer
+// @param row Which row(s) to return, default to -1, returning both rows. 0
+//            returns the top row, 1 will return the bottom row
+//
+// @return matrix with two rows
+// [[Rcpp::export]]
+arma::umat triIndices(int len, int row = -1) {
+  int vL = len;
+  int vS = ( (vL * (vL + 1)) / 2) - vL ;
+  int s = 0;
+
+  arma::umat vR = arma::umat(2, vS, arma::fill::zeros);
+  arma::umat vRone = arma::umat(1, vS, arma::fill::zeros);
+  for( int i = 2; i <= vL; i++ ) {
+    for (int j = 0; j < i-1; j++ ) {
+      vR(0, s) = j;
+      vR(1, s) = i-1;
+      if(row == 0) {
+        vRone[s] = j;
+      } else if (row == 1) {
+        vRone[s] = i -1;
+      }
+      s++;
+    }
+  }
+
+  if(row == -1) {
+    return vR;
+  } else {
+    return vRone;
+  }
+}
+
+
 /*** R
 data(test_mockdata, package = "tma")
 mock_data <- test_mockdata;

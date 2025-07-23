@@ -123,6 +123,18 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// triIndices
+arma::umat triIndices(int len, int row);
+RcppExport SEXP _tma_triIndices(SEXP lenSEXP, SEXP rowSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type len(lenSEXP);
+    Rcpp::traits::input_parameter< int >::type row(rowSEXP);
+    rcpp_result_gen = Rcpp::wrap(triIndices(len, row));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_tma_choose_two", (DL_FUNC) &_tma_choose_two, 1},
@@ -133,6 +145,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_tma_calculate_1d_index_rev", (DL_FUNC) &_tma_calculate_1d_index_rev, 2},
     {"_tma_calculate_1d_index", (DL_FUNC) &_tma_calculate_1d_index, 2},
     {"_tma_apply_windows_d", (DL_FUNC) &_tma_apply_windows_d, 10},
+    {"_tma_triIndices", (DL_FUNC) &_tma_triIndices, 2},
     {NULL, NULL, 0}
 };
 

@@ -538,7 +538,7 @@ accum_multidim <- function(
     adj_key <- t(expand.grid(codes, codes))
   }
   else {
-    adj_key <- rENA:::namesToAdjacencyKey(codes)
+    adj_key <- namesToAdjacencyKey(codes)
   }
   adj_vector_names <- apply(adj_key, 2, paste, collapse = " & ")
   

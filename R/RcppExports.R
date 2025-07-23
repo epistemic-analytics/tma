@@ -44,3 +44,7 @@ apply_windows_d <- function(multidim_as_vector, dims, dims_sender, dims_receiver
     .Call(`_tma_apply_windows_d`, multidim_as_vector, dims, dims_sender, dims_receiver, dims_mode, context_matrix, unit_rows, codes, times, ordered)
 }
 
+triIndices <- function(len, row = -1L) {
+    .Call(`_tma_triIndices`, len, row)
+}
+
