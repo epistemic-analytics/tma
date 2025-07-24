@@ -4,11 +4,15 @@
 
 ^\.gitlab-ci\.yml
 
-^inst/extdata/
-^inst/docker/
-^demo/backup/
-^demo/scripts/
-^demo/markdown/
+inst/extdata/
+inst/docker/
+demo/backup/
+demo/scripts/
+demo/markdown/
+demo
+_pkgdown.yml
+
+
 
 ^.*.\.tar\.gz$
 ^\.git/.*
@@ -24,9 +28,13 @@ cran-comments.md
 
 ^doc$
 ^Meta$
-
 .bash_history
 
 ^data-raw$
 
 public/
+vignettes/
+
+lastMiKTeXException
+
+src/.*\.o

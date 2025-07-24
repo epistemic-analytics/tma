@@ -1,7 +1,0 @@
-GroupName,UserName,Condition,Context,Timestamp,A,B,C
-Group_1,User1,FirstGame,Private,9/17/13 9:43,1,0,0
-Group_1,User2,FirstGame,Public,9/17/13 9:46,0,1,1
-Group_1,User3,FirstGame,Public,9/17/13 9:49,1,0,0
-Group_1,User1,FirstGame,Public,9/17/13 9:52,0,0,1
-Group_1,User2,FirstGame,Public,9/17/13 9:55,0,1,0
-Group_1,User3,FirstGame,Public,9/17/13 9:58,1,0,1

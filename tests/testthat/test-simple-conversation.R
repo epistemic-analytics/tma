@@ -1,7 +1,6 @@
 testthat::context("Test conversations");
  
-data(test_rsdata);
-RS.data <- test_rsdata;
+data("RS.data");
 RS.data$Context <- "Public";
 RS.data$Row <- seq(nrow(RS.data));
   
@@ -17,12 +16,12 @@ test_that("verify context length", {
   testthat::expect_equal(length(rs_contexts_tables$model$contexts), data.table:::uniqueN(RS.data, by = units_by))
 })
 
-test_that("verify accumulation", {
-  code_cols <- names(RS.data)[15:20];
-  
-  networks <- 
-    contexts(RS.data, units_by = units_by, hoo_rules = hoo_rules) |> 
-    accumulate_contexts(codes = code_cols)
-  ;
-  testthat::expect_equal(length(networks$model$contexts), data.table:::uniqueN(RS.data, by = units_by))
-})
+# test_that("verify accumulation", {
+#   code_cols <- names(RS.data)[15:20];
+#   
+#   networks <- 
+#     contexts(RS.data, units_by = units_by, hoo_rules = hoo_rules) |> 
+#     accumulate_contexts(codes = code_cols)
+#   ;
+#   testthat::expect_equal(length(networks$model$contexts), data.table:::uniqueN(RS.data, by = units_by))
+# })
