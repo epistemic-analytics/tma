@@ -37,7 +37,7 @@ window and weight values for each unique combination in your data, which is usef
 }
 \examples{
 df <- data.frame(sender = c("A", "B"), receiver = c("X", "Y"), mode = c("chat", "resource"))
-arr <- context_tensordf, sender_cols = "sender", receiver_cols = "receiver", mode_column = "mode")
+arr <- context_tensor(df, sender_cols = "sender", receiver_cols = "receiver", mode_column = "mode")
 arr["A", "X", "chat", "weight"] # Access the weight for sender A, receiver X, mode chat
 
 }

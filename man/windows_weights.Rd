@@ -6,6 +6,9 @@
 \usage{
 windows_weights(...)
 }
+\arguments{
+\item{...}{Arguments passed to `context_tensor()`}
+}
 \value{
 A multidimensional array with dimensions [sender(s), receiver(s), mode(s), weight/window], where the last axis has two levels: "weight" and "window".
         The array is initialized with the default weight and window values, and has named dimensions for easy indexing.
@@ -17,7 +20,7 @@ window and weight values for each unique combination in your data, which is usef
 }
 \examples{
 df <- data.frame(sender = c("A", "B"), receiver = c("X", "Y"), mode = c("chat", "resource"))
-arr <- context_tensordf, sender_cols = "sender", receiver_cols = "receiver", mode_column = "mode")
+arr <- context_tensor(df, sender_cols = "sender", receiver_cols = "receiver", mode_column = "mode")
 arr["A", "X", "chat", "weight"] # Access the weight for sender A, receiver X, mode chat
 
 }
