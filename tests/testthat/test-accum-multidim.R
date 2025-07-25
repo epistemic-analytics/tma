@@ -82,7 +82,7 @@ test_that("no senders, no receivers, modality", {
   # Get new TMA results 
   mode_column = "modality"
   
-  multidim_arr <- windows_weights(mock_data, sender_cols = c(), receiver_cols = c(), mode_column, 0, 0)
+  multidim_arr <- context_tensor(mock_data, sender_cols = c(), receiver_cols = c(), mode_column, 0, 0)
   
   multidim_arr["chat", "weight"] <- 1
   multidim_arr["resource", "weight"] <- 2
@@ -90,7 +90,7 @@ test_that("no senders, no receivers, modality", {
   multidim_arr["resource", "window"] <- 180
   
   result_new <- accum_multidim(
-    multidim_arr = multidim_arr, 
+    tensor = multidim_arr, 
     time_column = time_column,
     codes = codes,
     context_model = context_model
@@ -148,7 +148,7 @@ test_that("sender, no receivers, no modality", {
   # Get new TMA results
   sender_cols = c("role")
   
-  multidim_arr <- windows_weights(mock_data, sender_cols = sender_cols, receiver_cols = c(), mode_column = c(), 0, 0)
+  multidim_arr <- context_tensor(mock_data, sender_cols = sender_cols, receiver_cols = c(), mode_column = c(), 0, 0)
   
   multidim_arr["Mentor", "weight"] <- 1
   multidim_arr["Player", "weight"] <- 2
@@ -156,7 +156,7 @@ test_that("sender, no receivers, no modality", {
   multidim_arr["Player", "window"] <- 180
   
   result_new <- accum_multidim(
-    multidim_arr = multidim_arr, 
+    tensor = multidim_arr, 
     time_column = time_column,
     codes = codes,
     context_model = context_model
@@ -218,7 +218,7 @@ test_that("no senders, receiver, no modality", {
   # Get new TMA results
   receiver_cols = c("language")
   
-  multidim_arr <- windows_weights(mock_data, sender_cols = list(), receiver_cols = receiver_cols, mode_column = list(), 0, 0)
+  multidim_arr <- context_tensor(mock_data, sender_cols = list(), receiver_cols = receiver_cols, mode_column = list(), 0, 0)
   
   multidim_arr["L1", "weight"] <- 1
   multidim_arr["L2", "weight"] <- 5
@@ -226,7 +226,7 @@ test_that("no senders, receiver, no modality", {
   multidim_arr["L2", "window"] <- 180
   
   result_new <- accum_multidim(
-    multidim_arr = multidim_arr, 
+    tensor = multidim_arr, 
     time_column = time_column,
     codes = codes,
     context_model = context_model
@@ -271,7 +271,7 @@ test_that("sender, no receiver, modality", {
   sender_cols = c("role")
   mode_column = "modality"
   
-  multidim_arr <- windows_weights(mock_data, sender_cols = sender_cols, receiver_cols = list(), mode_column = mode_column, 0, 0)
+  multidim_arr <- context_tensor(mock_data, sender_cols = sender_cols, receiver_cols = list(), mode_column = mode_column, 0, 0)
   
   multidim_arr["Mentor", "chat", "weight"] <- 3
   multidim_arr["Mentor", "resource", "weight"] <- 1
@@ -285,7 +285,7 @@ test_that("sender, no receiver, modality", {
   
   
   result_new <- accum_multidim(
-    multidim_arr = multidim_arr, 
+    tensor = multidim_arr, 
     time_column = time_column,
     codes = codes,
     context_model = context_model
@@ -363,7 +363,7 @@ test_that("no sender, receiver, modality", {
   receiver_cols = c("language")
   mode_column = "modality"
   
-  multidim_arr <- windows_weights(mock_data, sender_cols = list(), receiver_cols = receiver_cols, mode_column = mode_column, 0, 0)
+  multidim_arr <- context_tensor(mock_data, sender_cols = list(), receiver_cols = receiver_cols, mode_column = mode_column, 0, 0)
   
   multidim_arr["L1", "chat", "weight"] <- 5
   multidim_arr["L1", "resource", "weight"] <- 1
@@ -376,7 +376,7 @@ test_that("no sender, receiver, modality", {
   multidim_arr["L2", "resource", "window"] <- 120
   
   result_new <- accum_multidim(
-    multidim_arr = multidim_arr, 
+    tensor = multidim_arr, 
     time_column = time_column,
     codes = codes,
     context_model = context_model
@@ -444,7 +444,7 @@ test_that("sender, receiver, no modality", {
   sender_cols = c("role")
   receiver_cols = c("language")
   
-  multidim_arr <- windows_weights(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = list(), 0, 0)
+  multidim_arr <- context_tensor(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = list(), 0, 0)
   
   multidim_arr["Mentor", "L1", "weight"] <- 1
   multidim_arr["Mentor", "L2", "weight"] <- 5
@@ -457,7 +457,7 @@ test_that("sender, receiver, no modality", {
   multidim_arr["Player", "L2", "window"] <- 200
   
   result_new <- accum_multidim(
-    multidim_arr = multidim_arr, 
+    tensor = multidim_arr, 
     time_column = time_column,
     codes = codes,
     context_model = context_model
@@ -525,7 +525,7 @@ test_that("sender, receiver, modality", {
   receiver_cols = c("language")
   mode_column = "modality"
   
-  multidim_arr <- windows_weights(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, 0, 0)
+  multidim_arr <- context_tensor(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, 0, 0)
   
   multidim_arr["Mentor", "L1", "chat", "weight"] <- 5
   multidim_arr["Mentor", "L1", "resource", "weight"] <- 5
@@ -549,7 +549,7 @@ test_that("sender, receiver, modality", {
   
   
   result_new <- accum_multidim(
-    multidim_arr = multidim_arr, 
+    tensor = multidim_arr, 
     time_column = time_column,
     codes = codes,
     context_model = context_model
@@ -602,7 +602,6 @@ test_that("sender, receiver, modality", {
   user3_new <- as.numeric(unname(as.vector(result_new$connection.counts[3,4:length(colnames(result_new$connection.counts))])))
   
   testthat::expect_true(all(user3_old == user3_new))
-  
 })
 
 test_that("senders, receivers, modality", {
@@ -628,7 +627,7 @@ test_that("senders, receivers, modality", {
   receiver_cols <- c("role", "handwriting")
   mode_column <- "modality"
   
-  multidim_arr <- windows_weights(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, 0, 0)
+  multidim_arr <- context_tensor(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, 0, 0)
   
   
   multidim_arr["Player", "L1", "Player", "poor", "chat", "weight"] <- 1
@@ -699,7 +698,7 @@ test_that("senders, receivers, modality", {
   
   
   result_new <- accum_multidim(
-    multidim_arr = multidim_arr, 
+    tensor = multidim_arr, 
     time_column = time_column,
     codes = codes,
     context_model = context_model

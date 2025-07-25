@@ -2,22 +2,33 @@
 % Please edit documentation in R/hoo.R
 \name{contexts}
 \alias{contexts}
-\title{contexts}
+\title{Create Contexts for Units of Analysis}
 \usage{
 contexts(x, hoo_rules, units_by = NULL, split_rules = NULL)
 }
 \arguments{
-\item{x}{TBD}
+\item{x}{A data.frame or TMA model object containing the raw input data.}
 
-\item{hoo_rules}{TBD}
+\item{hoo_rules}{A list of logical expressions (see [rules()]) specifying how to subset the data for each context/unit.}
 
-\item{units_by}{TBD}
+\item{units_by}{Character vector of column names to use for defining units of analysis (e.g., c("userID", "condition")).}
 
-\item{split_rules}{TBD}
+\item{split_rules}{Optional. Either a function or an expression specifying how to further split each context (e.g., by time period or other grouping variable).}
 }
 \value{
-TBD
+A TMA model object with updated contexts for each unit, where each context is a data.table containing only the relevant rows for that unit and context. The object includes attributes for unit labels and context row indices.
 }
 \description{
-contexts
+This function generates context data for each unit of analysis in your dataset, applying subsetting rules ("hoo rules") and optional splitting rules to organize the data for network accumulation.
+}
+\details{
+This function is a core part of the TMA workflow. It first applies the specified `hoo_rules` to subset the data for each unit, then (optionally) applies `split_rules` to further divide each context. The resulting contexts are used in subsequent accumulation and network analysis steps.
+}
+\examples{
+# Example usage:
+# df <- data.table::data.table(userID = c("A", "B"), condition = c("X", "Y"), modality = c("chat", "resource"))
+# hoo_rules <- rules(modality \%in\% "chat" & userID \%in\% UNIT$userID)
+# model <- contexts(df, hoo_rules, units_by = c("userID", "condition"))
+# str(model$model$contexts)
+
 }

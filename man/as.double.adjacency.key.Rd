@@ -2,18 +2,18 @@
 % Please edit documentation in R/utils.R
 \name{as.double.adjacency.key}
 \alias{as.double.adjacency.key}
-\title{TBD}
+\title{Convert Adjacency Key to Double (S3 method)}
 \usage{
 \method{as.double}{adjacency.key}(x, ...)
 }
 \arguments{
-\item{x}{TBD}
+\item{x}{An adjacency key object (matrix or list) to convert to numeric.}
 
-\item{...}{TBD}
+\item{...}{Additional arguments (unused).}
 }
 \value{
-TBD
+A numeric vector representation of the adjacency key.
 }
 \description{
-TBD
+This S3 method converts an adjacency key object to a numeric (double) vector, applying as.numeric to each element.
 }

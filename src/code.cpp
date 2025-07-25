@@ -4,7 +4,6 @@
 
 //' @title n choose 2
 //' @param n int
-//' @export
 // [[Rcpp::export]]
 int choose_two(int n) {
   return (n * (n - 1)) / 2;
@@ -175,7 +174,6 @@ Rcpp::List accumulate_network(
 //' @param time_col TBD
 //' @param ordered TBD
 //' 
-//' @export
 // [[Rcpp::export]]
 Rcpp::List accumulate_networks(
     Rcpp::List x,
@@ -306,34 +304,40 @@ void insert_element(arma::uvec& vec, double value) {
   vec(vec.n_rows - 1) = value;
 }
 
-// void print_vector(const std::vector<int>& row) {
-//   for (const auto& elem : row) {
-//     std::cout << elem << " ";
-//   }
-//   std::cout << std::endl;
-// }
-// 
-// void print_2d_vector(const std::vector<std::vector<int>>& vec) {
-//   for (const auto& row : vec) {
-//     print_vector(row);
-//   }
-// }
-// 
-// void print_no_scientific(double x, int prec = 10) {
-//   std::cout << std::fixed << std::setprecision(prec) << x; // Adjust 10 for desired precision
-// }
 
+//' Apply windowing and weighting to context data for network accumulation (C++ backend)
+//'
+//' This function implements the core logic for accumulating network connections using a multidimensional parameter array (context_tensor),
+//' efficiently applying window and weight parameters to each response line in a unit's context. It is designed for use in the TMA package
+//' to speed up accumulation calculations by leveraging C++ and Armadillo for matrix operations.
+//'
+//' @param tensor NumericVector. The multi-dimensional context_tensor array created in R can be supplied as-is; it is automatically converted to a 1D vector when passed to this function via Rcpp.
+//' @param dims IntegerVector. The dimensions of the original context_tensor array.
+//' @param dims_sender std::vector<int>. Indices of sender dimensions in the array.
+//' @param dims_receiver std::vector<int>. Indices of receiver dimensions in the array.
+//' @param dims_mode std::vector<int>. Indices of mode dimensions in the array.
+//' @param context_matrix NumericMatrix. Matrix representation of the context for a single unit (rows = context lines, columns = factors).
+//' @param unit_rows std::vector<int>. Indices of the response rows for the unit in the context.
+//' @param codes arma::mat. Matrix of codes (nrow = context lines, ncol = number of codes).
+//' @param times NumericVector. Vector of time values for each context line.
+//' @param ordered bool. If TRUE, returns a full adjacency matrix; if FALSE, returns only upper triangle (ENA style).
+//'
+//' @return A list with two elements:
+//'   - row_connection_counts: A matrix of connection counts for each response line (rows = response lines, columns = connections).
+//'   - connection_counts: A vector of accumulated connection counts for the unit (length = number of connections).
+//'
+//' @export
 // [[Rcpp::export]]
-Rcpp::List apply_windows_d(
-   Rcpp::NumericVector multidim_as_vector, // vectorized multidim arr
-   Rcpp::IntegerVector dims, // colnames of senders, receivers, and modes along with weight/window
+Rcpp::List apply_tensor(
+   Rcpp::NumericVector tensor,
+   Rcpp::IntegerVector dims,
    std::vector<int> dims_sender,
    std::vector<int> dims_receiver,
    std::vector<int> dims_mode,
-   Rcpp::NumericMatrix context_matrix, // matrix of this unit's context 
-   std::vector<int> unit_rows, // vector of indices of unit's (response) rows in context
-   arma::mat codes, // matrix of nrows(context) x |codes| 
-   Rcpp::NumericVector times, // vector of times of length nrows(context))
+   Rcpp::NumericMatrix context_matrix,
+   std::vector<int> unit_rows,
+   arma::mat codes,
+   Rcpp::NumericVector times,
    bool ordered = true
 ) {
   const int WINDOW_DIM = 1;
@@ -370,7 +374,7 @@ Rcpp::List apply_windows_d(
    
     // calculate_1d_index calculates index offsetted into 1d multidim_arr (vectorized); this gets idx of receiver vals, and then we get them
     int response_win_idx = calculate_1d_index(response_context_lookup, dims_v); 
-    int response_win = multidim_as_vector[response_win_idx];
+    int response_win = tensor[response_win_idx];
    
     // vector of rows to keep 
     arma::uvec ground_rows_to_include;
@@ -405,7 +409,7 @@ Rcpp::List apply_windows_d(
         // std::reverse(row_v.begin(), row_v.end());
        
         int row_win_idx = calculate_1d_index(row_v, dims_v);
-        double row_win = multidim_as_vector[row_win_idx]; // get ground window 
+        double row_win = tensor[row_win_idx]; // get ground window 
         // std::cout << "Row window: " << row_win << std::endl;
        
         double ground_row_time_adj = ground_row_time + row_win; // this computation for the TIF makes sense, I think (?)
@@ -418,7 +422,7 @@ Rcpp::List apply_windows_d(
          
           // apply weights
           int row_wgt_idx = calculate_1d_index(row_v, dims_v);
-          int row_wgt = multidim_as_vector[row_wgt_idx];
+          int row_wgt = tensor[row_wgt_idx];
          
           ground_row_weights.insert_rows(ground_row_weights.n_rows, 1);
           ground_row_weights(ground_row_weights.n_rows - 1) = row_wgt;
@@ -448,7 +452,7 @@ Rcpp::List apply_windows_d(
     // set the end of response line (set to 1 earlier) to 0; indicates that we are getting weights
     response_context_lookup[response_context_lookup.size() - 1] = WEIGHT_DIM;
     int response_wgt_idx = calculate_1d_index(response_context_lookup, dims_v); // same thing as above, except for receiver weight 
-    int response_weight = multidim_as_vector[response_wgt_idx];
+    int response_weight = tensor[response_wgt_idx];
     // Rcpp::Rcout << "Response weight vector: " << response_weight << std::endl;
    
     // make g_w_vec, adjacency matrix
@@ -549,7 +553,7 @@ ctx <- context_model$model$contexts[[3]];
 unit_context_lookup <- as.matrix(ctx[, lapply(.SD, function(x) as.numeric(as.factor(x))), .SDcols = c(send_cols, recv_cols, mode_column)]);
 unit_rows <- attr(ctx, "tma.unit_rows")
 unit_to_last <- seq.int(last(unit_rows));
-res <- apply_windows_d(
+res <- apply_tensor(
   multidim_arr,
   attr(multidim_arr, "dim"),
   attr(multidim_arr, "sender_inds") - 1,

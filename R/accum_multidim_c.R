@@ -1,27 +1,37 @@
-#' Process Multidimensional Array with Context Model
+#' Accumulate Connections from a Multidimensional Array and Context Model
 #'
-#' This function applies a context model to a multidimensional array, utilizing sender, receiver, and mode columns derived from the input array's attributes.
+#' This function processes a context model and a multidimensional array of window/weight parameters to compute connection counts for each unit of analysis.
+#' It applies the context model to the array, using sender, receiver, and mode columns (as defined in the array attributes), and accumulates co-occurrence or adjacency matrices for each unit. The result is a set of connection counts and row-level connection matrices, suitable for network analysis (e.g., ENA/ONA).
 #'
-#' @param context_model A context model object containing contexts to be applied to the data.
-#' @param win_weights A multidimensional array that holds the data to be processed.
-#' @param time_column A string representing the name of the column containing time data in the context model.
-#' @param codes A vector of codes used to index relevant information in the context model.
-#' @param ordered A logical value indicating whether the results should be ordered (default is TRUE).
-#' @param binary A logical value indicating whether the connection should be binary (default is TRUE).
+#' @param context_model A context model object (as produced by `tma::contexts`) containing contexts for each unit of analysis.
+#' @param codes Character vector of code names to use for constructing adjacency matrices.
+#' @param tensor A multidimensional array (see `context_tensor`) containing window and weight values for each sender/receiver/mode combination. Defaults to an array generated from the context model's raw input.
+#' @param time_column Character string giving the name of the time column in the context model. If NULL, uses the default context column ID.
+#' @param ordered Logical; if TRUE (default), computes ordered adjacency matrices (ONA); if FALSE, computes unordered (ENA-style) matrices.
+#' @param binary Logical; if TRUE (default), binarizes the connection counts (not currently implemented in this function).
 #'
-#' @return A list of results obtained from applying the context model to each context in the multidimensional array.
+#' @return The input `context_model` with additional fields:
+#'   \item{connection.counts}{A data.table of accumulated connection counts for each unit.}
+#'   \item{model$row.connection.counts}{A data.table of row-level connection matrices for each unit.}
+#'   \item{meta.data}{A data.table of metadata columns for each unit.}
+#'   The class of the returned object is updated to reflect the type of accumulation (ordered or unordered).
+#'
+#' @details
+#' This function is used to perform accumulation of network connections for each unit, based on the context model and tensor parameters. It supports both ordered and unordered accumulation, and returns results suitable for further network analysis or visualization.
+#'
 #' @export
 accumulate <- function(
-  context_model, 
-  codes, 
-  win_weights = windows_weights(context_model$model$raw.input), 
-  time_column = NULL, 
-  ordered = TRUE, binary = FALSE
+  context_model,
+  codes,
+  tensor = context_tensor(context_model$model$raw.input),
+  time_column = NULL,
+  ordered = TRUE,
+  binary = FALSE
 ) {
-  send_cols = attr(win_weights, "sender_cols");
-  recv_cols = attr(win_weights, "receiver_cols");
-  mode_cols = attr(win_weights, "mode_column");
-  
+  send_cols = attr(tensor, "sender_cols");
+  recv_cols = attr(tensor, "receiver_cols");
+  mode_cols = attr(tensor, "mode_column");
+
   if(is.null(time_column)) {
     time_column <- ATTR_NAMES$CONTEXT_COL_ID;
   }
@@ -44,12 +54,12 @@ accumulate <- function(
       this_unit <- attr(ctx__, "tma.unit");
       
       unit_to_last <- seq.int(last(unit_rows));
-      res2 <- apply_windows_d(
-        win_weights,
-        attr(win_weights, "dim"),
-        attr(win_weights, "sender_inds") - 1,
-        attr(win_weights, "receiver_inds") - 1,
-        attr(win_weights, "mode_inds") - 1,
+      res2 <- apply_tensor(
+        tensor,
+        attr(tensor, "dim"),
+        attr(tensor, "sender_inds") - 1,
+        attr(tensor, "receiver_inds") - 1,
+        attr(tensor, "mode_inds") - 1,
         unit_context_lookup[unit_to_last,, drop = FALSE] - 1,
         unit_rows - 1,
         as.matrix(ctx__[unit_to_last, ..codes]),

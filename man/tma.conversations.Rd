@@ -16,28 +16,34 @@ tma.conversations(
 )
 }
 \arguments{
-\item{x}{[TBD]}
+\item{x}{A data.frame or context model containing conversation data.}
 
-\item{units}{[TBD]}
+\item{units}{Character vector of unit identifiers to extract conversations for.}
 
-\item{units.by}{[TBD]}
+\item{units.by}{Character vector of column names specifying unit grouping (default: from context model attributes).}
 
-\item{codes}{[TBD]}
+\item{codes}{Character vector of code columns to use for identifying coded rows.}
 
-\item{conversation.by}{[TBD]}
+\item{conversation.by}{Character vector of column names to group by conversation.}
 
-\item{window}{[TBD]}
+\item{window}{Integer; window size for co-occurrence (default: 4).}
 
-\item{conversation.exclude}{[TBD]}
+\item{conversation.exclude}{Character vector of conversation keys to exclude.}
 
-\item{id_col}{TBD}
+\item{id_col}{Character; column name for unit IDs (default: "QEUNIT").}
 }
 \value{
-list containing row indices representing conversations
+A list with elements:
+  \item{conversations}{List of row indices for each conversation.}
+  \item{unitConvs}{Unique conversation keys for the specified units.}
+  \item{allRows}{All row indices included for the units.}
+  \item{unitRows}{Row indices for the units with codes.}
+  \item{convRows}{All row indices for the unit's conversations.}
+  \item{toRemove}{Rows not meeting co-occurrence criteria.}
 }
 \description{
-Find rows of conversations by unit
+Identify and extract rows corresponding to conversations for specified units in a dataset or context model. Useful for subsetting and analyzing conversational windows in network analysis.
 }
 \details{
-[TBD]
+This function groups rows by conversation (using `conversation.by` columns), identifies which rows are associated with the specified units and codes, and returns indices for each conversation, as well as metadata about which rows to include or exclude.
 }

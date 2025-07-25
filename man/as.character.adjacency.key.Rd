@@ -2,18 +2,18 @@
 % Please edit documentation in R/utils.R
 \name{as.character.adjacency.key}
 \alias{as.character.adjacency.key}
-\title{TBD}
+\title{Convert Adjacency Key to Character (S3 method)}
 \usage{
 \method{as.character}{adjacency.key}(x, ...)
 }
 \arguments{
-\item{x}{TBD}
+\item{x}{An adjacency key object (matrix or list) to convert to character.}
 
-\item{...}{TBD}
+\item{...}{Additional arguments (unused).}
 }
 \value{
-TBD
+A character vector where each element is a concatenation of the adjacency key pair.
 }
 \description{
-TBD
+This S3 method converts an adjacency key object (typically a 2-row matrix or list of pairs) into a character vector, concatenating each pair with ' & '.
 }

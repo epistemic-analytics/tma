@@ -104,37 +104,43 @@ merge_columns <- function(x, cols = colnames(x), sep = ".") {
   do.call(paste, c(as.data.frame(x)[, cols, drop = FALSE], sep = sep))
 }
 
-#' TBD
+##
+#' Convert Adjacency Key to Character (S3 method)
 #'
-#' @param x TBD
-#' @param ... TBD
+#' This S3 method converts an adjacency key object (typically a 2-row matrix or list of pairs) into a character vector, concatenating each pair with ' & '.
 #'
-#' @return TBD
+#' @param x An adjacency key object (matrix or list) to convert to character.
+#' @param ... Additional arguments (unused).
+#'
+#' @return A character vector where each element is a concatenation of the adjacency key pair.
 #' @export
 'as.character.adjacency.key' <- function(x, ...) {
-  # collapse = " & "
-  # apply(x, 1, paste, collapse = " & ")
   mapply(paste, x[[1]], x[[2]], MoreArgs = list(sep = " & "))
 }
-#' TBD
+
+#' Convert Adjacency Key to Double (S3 method)
 #'
-#' @param x TBD
-#' @param ... TBD
+#' This S3 method converts an adjacency key object to a numeric (double) vector, applying as.numeric to each element.
 #'
-#' @return TBD
+#' @param x An adjacency key object (matrix or list) to convert to numeric.
+#' @param ... Additional arguments (unused).
+#'
+#' @return A numeric vector representation of the adjacency key.
 #' @export
 'as.double.adjacency.key' <- function(x, ...) {
   sapply(x, as.numeric)
 }
 
-# @export
-#' Title
+##
+#' Print Method for Network Matrix (S3 method)
 #'
-#' @param x TBD
-#' @param include.meta TBD
-#' @param ... TBD
+#' This S3 method prints a network matrix object, optionally including metadata. It adjusts the class and attaches adjacency key names for improved readability.
 #'
-#' @return TBD
+#' @param x An object of class "network.matrix" to print.
+#' @param include.meta Logical; whether to include metadata in the printout (currently not used).
+#' @param ... Additional arguments passed to lower-level print methods.
+#'
+#' @return Invisibly returns the printed object.
 #' @export
 'print.network.matrix' <- function(x, include.meta = TRUE, ...) {
   # print("Test: add the meta")
@@ -152,49 +158,15 @@ merge_columns <- function(x, cols = colnames(x), sep = ".") {
   print(x_);
 }
 
-#  Title
-# 
-#  @param x TBD
-#  @param ... TBD
-#  @param with.meta TBD
-# 
-#  @return TBD
-# @export
-# '[.network.matrix' <- function(
-#   x, with.meta = FALSE, ...
-# ) {
-#   browser()
-#   x_ <- data.table::copy(x);
-#   x_cls <- class(x);
-#   class(x_) <- x_cls[ (which(x_cls == "network.matrix") + 1):length(x_cls) ];
-#   
-#   # x_subset <- data.table:::`[.data.table`(x_, ...);
-#   
-#   # meta_ <- NULL;
-#   meta_ <- attr(x, "model")$meta.data;
-#   if(with.meta == TRUE) {
-#     # meta_subset <- data.table:::`[.data.table`(attr(x, "model")$meta.data, ...);
-#   
-#     y_ <- data.table::cbind.data.table(meta_, x_);
-#     
-#     # browser()
-#     y_subset <- data.table::`[.data.table`(y_, ...);
-#   }
-#   else {
-#     y_rows <- data.table::`[.data.table`(meta_, ..., which = TRUE);
-#     y_subset <- data.table::`[.data.table`(x_, y_rows);
-#   }
-# 
-#   y_subset; 
-# }
-
-
-#' Extract from network.matrix easily using metadata
+##
+#' Extract Metadata or Columns from Network Matrix (S3 method)
 #'
-#' @param x [TBD]
-#' @param i [TBD]
+#' This S3 method allows convenient extraction of metadata columns from a network matrix object using the $ operator. If the requested column is metadata, it is returned from the model's meta.data; otherwise, the standard extraction is performed.
 #'
-#' @return [TBD]
+#' @param x An object of class "network.matrix".
+#' @param i Name of the column or metadata field to extract.
+#'
+#' @return The requested column or metadata field from the network matrix.
 #' @export
 "$.network.matrix" <- function (x, i) {
   meta.data <- attr(x, "model")$meta.data;
@@ -232,36 +204,6 @@ merge_columns <- function(x, cols = colnames(x), sep = ".") {
   }
 }
 
-
-# Extract metadata easily
-#
-# @param x [TBD]
-# @param i [TBD]
-#
-# @return [TBD]
-# @export
-# "$.network.metadata" <- function(x, i, which.rows = TRUE) {
-#   browser()
-#   parts <- unlist(strsplit(
-#     x = as.character(sys.call())[2], split = "\\$"
-#   ))[1:2];
-#   
-#   col <- as.character(sys.call(1)[[2]])[3];
-#   val <- as.character(sys.call(1)[[3]]);
-# 
-#   set <- get(parts[1], envir = parent.frame())
-#   m <- set[[parts[2]]];
-#   rows <- as.vector(m[[col]]) == val;
-#   if(which.rows == TRUE) {
-#     rows;
-#   }
-#   else {
-#     data.table:::`[.data.table`(m, rows);
-#   }
-# }
-
-
-
 #' Re-class vector as network.connection
 #'
 #' @param x Vector to re-class
@@ -276,12 +218,16 @@ as.network.connection <- function(x) {
   x
 }
 
-#' Title
+##
+#' Convert Network Connections to Matrix (S3 method)
 #'
-#' @param x TBD 
-#' @param ... TBD
+#' This S3 method extracts the connection columns from a network connections object and returns them as a numeric matrix. It is used to facilitate matrix operations on network connection data.
 #'
-#' @return TBD
+#' @param x An object of class "network.connections" (or compatible data.table/data.frame) containing connection columns (of class "network.connection").
+#' @param ... Additional arguments passed to `as.matrix`.
+#'
+#' @return A numeric matrix of network connections (rows = units/contexts, columns = connections).
+#'
 #' @export
 as.matrix.network.connections <- function(x, ...) {
   x_ <- data.table::copy(x);
@@ -291,14 +237,18 @@ as.matrix.network.connections <- function(x, ...) {
   as.matrix(x_[, c(code_columns), with = F], ...);
 }
 
-#' Title
+##
+#' Column Sums for ENA Matrices (S3 method)
 #'
-#' @param x TBD
-#' @param na.rm TBD
-#' @param dims TBD
-#' @param binary TBD
+#' This S3 method computes column sums for ENA matrix objects, with optional binarization. It is used to summarize connection counts across rows (e.g., for each unit or context).
 #'
-#' @return TBD
+#' @param x An object of class "ena.matrix" (or compatible matrix/data.frame) containing connection data.
+#' @param na.rm Logical; whether to remove missing values (passed to `colSums`).
+#' @param dims Integer; which dimensions to sum over (passed to `colSums`).
+#' @param binary Logical; if TRUE, binarizes the matrix before summing (i.e., all nonzero values become 1).
+#'
+#' @return A numeric vector of column sums for the matrix.
+#'
 #' @export
 'colSums.ena.matrix' <- function(x, na.rm = FALSE, dims = 1L, binary = FALSE) {
   x_mat <- as.matrix(x);
@@ -334,11 +284,15 @@ as.matrix.network.connections <- function(x, ...) {
   m_unordered
 }
 
-#' Title 
+##
+#' Convert Ordered Row Connections to Unordered (S3 method)
 #'
-#' @param x TBD
+#' This S3 method takes a matrix or data frame of ordered row connections (e.g., from ONA) and produces an unordered version by summing upper and lower triangular elements for each connection.
 #'
-#' @return TBD
+#' @param x An object of class "ordered.row.connections" (or compatible matrix/data.frame) containing ordered connection data. The input should be a square matrix or have square number of columns.
+#'
+#' @return A data.table with unordered row connections, reclassified as "unordered.row.connections", "row.connections", and "ena.matrix".
+#'
 #' @export
 'as.unordered.ordered.row.connections' <- function(x) {
   # m <- as.matrix(x);

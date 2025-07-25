@@ -31,19 +31,29 @@ get_unique_values <- function(
 }
 
 
-# Function to generate multidimensional array
-#' @title windows_weights
+#' Generate a multidimensional array for window and weight parameters
 #'
-#' @param df data.frame
-#' @param sender_cols Sender columns
-#' @param receiver_cols Receiver columns
-#' @param mode_column Mode column
-#' @param default_window Default window
-#' @param default_weight Default weight
+#' This function constructs a multidimensional array representing all combinations of sender(s), receiver(s), and mode(s),
+#' with an additional axis for weight and window parameters. The resulting array can be used to efficiently look up or modify
+#' window and weight values for each unique combination in your data, which is useful for network accumulation and modeling.
 #'
-#' @return A multidimensional array with [S, R, M, weight/window]
-#' @export 
-windows_weights <- function(
+#' @param df A data.frame containing the data to extract unique values for senders, receivers, and modes.
+#' @param sender_cols Character vector of column names in `df` to use as sender(s). Can be empty or NULL if not applicable.
+#' @param receiver_cols Character vector of column names in `df` to use as receiver(s). Can be empty or NULL if not applicable.
+#' @param mode_column Character string giving the column name in `df` to use as the mode (e.g., modality, channel). Can be empty or NULL if not applicable.
+#' @param default_window Numeric value to use as the default window for all combinations (default: 1).
+#' @param default_weight Numeric value to use as the default weight for all combinations (default: 1).
+#'
+#' @return A multidimensional array with dimensions [sender(s), receiver(s), mode(s), weight/window], where the last axis has two levels: "weight" and "window".
+#'         The array is initialized with the default weight and window values, and has named dimensions for easy indexing.
+#'
+#' @examples
+#' df <- data.frame(sender = c("A", "B"), receiver = c("X", "Y"), mode = c("chat", "resource"))
+#' arr <- context_tensordf, sender_cols = "sender", receiver_cols = "receiver", mode_column = "mode")
+#' arr["A", "X", "chat", "weight"] # Access the weight for sender A, receiver X, mode chat
+#'
+#' @export
+context_tensor <- function(
   df, 
   sender_cols = NULL, 
   receiver_cols = NULL, 
@@ -109,6 +119,16 @@ windows_weights <- function(
   attr(multidim_arr, "default_weight") <- default_weight
   
   return(multidim_arr)
+}
+
+
+#' Use `context_tensor()` instead. This alias will be removed in a future release.
+#' 
+#' @inherit context_tensor
+#' @export
+windows_weights <- function(...) {
+  .Deprecated("context_tensor", "tma v0.2.0");
+  do.call(context_tensor, list(...))
 }
 
 
@@ -238,7 +258,7 @@ preprocess <- function(
   
   # Return the updated multidimensional array and the new column identifiers
   result <- list(
-    multidim_arr = new_multidim_arr,
+    tensor = new_multidim_arr,
     sender_cols = sender_cols,
     receiver_cols = receiver_cols,
     mode_column = mode_column
@@ -262,8 +282,7 @@ apply_windows <- function(
   context, 
   codes, 
   time_unit = 'auto'
-) {
-  
+) {  
   # first line is response line--since we aren't including response lines, just provide a dummy vec w/ 0s @ codes
   if (nrow(context) == 1) { 
     temp_vec <- context[.N,]
@@ -384,27 +403,11 @@ f_diag <- function(
   return(mat)
 }
 
-#' @title accum_multidim
-#'
-#' @param multidim_arr Input multidimensional array. This should be in the format
-#' [sender, receiver, modality, weight/window] (and will be b/c of how we initialize it above)
-#' @param time_column Time column in contexts
-#' @param codes Codes of interest
-#' @param context_model TMA context model containing contexts for each unit of analysis
-#' @param return_ena_set Whether or not to return an ENA set. By default, this is ONA
-#' @param duration_column [tbd]
-#' @param norm_by [tbd]
-#' @param units [tbd]
-#' @param time_unit [tbd]
-#' @param ... [tbd]
-#' 
-#' @return T/ONA (or T/ENA) accumulation
-#' @export
 accum_multidim <- function(
   time_column,
   codes, 
   context_model,
-  multidim_arr = windows_weights(context_model$model$raw.input), 
+  tensor = context_tensor(context_model$model$raw.input), 
   duration_column = "", 
   norm_by = "No", # TODO: implement l1 normalization
   return_ena_set = FALSE,
@@ -412,10 +415,13 @@ accum_multidim <- function(
   time_unit = 'auto',
   ... # TODO: implement binarization for T/ENA
 ) {
+  .Deprecated("accumulate", "tma v0.2.0");
+  multidim_arr <- tensor;
+
   df <- context_model$model$raw.input;
   result <- preprocess(df, multidim_arr);
   
-  multidim_arr <- result$multidim_arr
+  multidim_arr <- result$tensor
   sender_cols <- result$sender_cols
   receiver_cols <- result$receiver_cols
   mode_column <- result$mode_column

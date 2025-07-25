@@ -2,33 +2,22 @@
 % Please edit documentation in R/temp_accum_multidim.R
 \name{windows_weights}
 \alias{windows_weights}
-\title{windows_weights}
+\title{Use `context_tensor()` instead. This alias will be removed in a future release.}
 \usage{
-windows_weights(
-  df,
-  sender_cols = NULL,
-  receiver_cols = NULL,
-  mode_column = ATTR_NAMES$CONTEXT_ID,
-  default_window = 1,
-  default_weight = 1
-)
-}
-\arguments{
-\item{df}{data.frame}
-
-\item{sender_cols}{Sender columns}
-
-\item{receiver_cols}{Receiver columns}
-
-\item{mode_column}{Mode column}
-
-\item{default_window}{Default window}
-
-\item{default_weight}{Default weight}
+windows_weights(...)
 }
 \value{
-A multidimensional array with [S, R, M, weight/window]
+A multidimensional array with dimensions [sender(s), receiver(s), mode(s), weight/window], where the last axis has two levels: "weight" and "window".
+        The array is initialized with the default weight and window values, and has named dimensions for easy indexing.
 }
 \description{
-windows_weights
+This function constructs a multidimensional array representing all combinations of sender(s), receiver(s), and mode(s),
+with an additional axis for weight and window parameters. The resulting array can be used to efficiently look up or modify
+window and weight values for each unique combination in your data, which is useful for network accumulation and modeling.
+}
+\examples{
+df <- data.frame(sender = c("A", "B"), receiver = c("X", "Y"), mode = c("chat", "resource"))
+arr <- context_tensordf, sender_cols = "sender", receiver_cols = "receiver", mode_column = "mode")
+arr["A", "X", "chat", "weight"] # Access the weight for sender A, receiver X, mode chat
+
 }

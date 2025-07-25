@@ -2,7 +2,7 @@
 % Please edit documentation in R/view.R
 \name{view}
 \alias{view}
-\title{Title}
+\title{Interactive Conversation Viewer}
 \usage{
 view(
   x,
@@ -18,29 +18,29 @@ view(
 )
 }
 \arguments{
-\item{x}{TBD}
+\item{x}{A context model or data.frame containing conversation data.}
 
-\item{wh}{TBD}
+\item{wh}{Character or integer; unit(s) to view.}
 
-\item{text_col}{TBD}
+\item{text_col}{Character; column name for text (default: "text").}
 
-\item{units.by}{TBD}
+\item{units.by}{Character vector of unit grouping columns (default: from context model attributes).}
 
-\item{conversation.by}{TBD}
+\item{conversation.by}{Character vector of conversation grouping columns (default: from context model attributes).}
 
-\item{codes}{TBD}
+\item{codes}{Character vector of code columns (default: from context model attributes).}
 
-\item{window_size}{TBD}
+\item{window_size}{Integer; window size for co-occurrence (default: from context model attributes).}
 
-\item{more_cols}{TBD}
+\item{more_cols}{Character vector of additional columns to include in the viewer.}
 
-\item{in_browser}{TBD}
+\item{in_browser}{Logical; if TRUE, open in system browser, otherwise use RStudio viewer (default: FALSE).}
 
-\item{id_col}{TBD}
+\item{id_col}{Character; column name for unit IDs (default: "QEUNIT").}
 }
 \value{
-TBD
+A list containing the viewer data and metadata (invisibly). The function is called for its side effect of launching the viewer.
 }
 \description{
-Title
+Launch an interactive HTML viewer for conversations and codes for a specified unit or set of units. Useful for exploring and validating conversation windows and code assignments in the TMA workflow.
 }

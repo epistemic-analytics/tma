@@ -2,18 +2,18 @@
 % Please edit documentation in R/decay.R
 \name{simple_window}
 \alias{simple_window}
-\title{simple window decay}
+\title{Internal: Simple window decay (legacy)}
 \usage{
 simple_window(x, args = NULL)
 }
 \arguments{
-\item{x}{numeric vector}
+\item{x}{Numeric vector of time differences.}
 
-\item{args}{TBD}
+\item{args}{List of arguments (expects `window_size`).}
 }
 \value{
-numeric vector
+Numeric vector (0/1) indicating whether each value is within the window.
 }
 \description{
-simple window decay
+Internal helper for window decay, used in TMA v0.1.0. Not exported. Kept for backward compatibility with legacy decay function creation.
 }

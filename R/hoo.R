@@ -1,9 +1,13 @@
-# Set units on an object
-#
-# @param x TBD
-# @param by TBD 
-#
-# @return TBD
+##' Set Units of Analysis for a TMA Model
+#'
+#' Internal helper to initialize and label units of analysis in a TMA model object.
+#' Given a data.frame and a set of columns, this function creates a model structure
+#' with unit labels and context placeholders for each unique unit.
+#'
+#' @param x A data.frame or TMA model object containing the raw input data.
+#' @param by Character vector of column names to use for defining units of analysis (e.g., c("userID", "condition")).
+#'
+#' @return A TMA model object with unit labels and empty context slots for each unit.
 units <- function(x, by) {
   model <- x;
   if ( is.data.frame(x) ) {
@@ -39,6 +43,16 @@ units <- function(x, by) {
   return(model);
 }
 
+##' Apply a Subsetting Rule to TMA Contexts (Internal)
+#'
+#' Internal helper to apply a logical subsetting rule ("hoo rule") to each unit's context in a TMA model object.
+#' Updates the contexts for each unit by including only rows that match the rule.
+#'
+#' @param x A TMA model object as produced by [units()].
+#' @param ... Logical expression(s) specifying the subsetting rule to apply. If not provided, uses the `rule` argument.
+#' @param rule A single logical expression to use as the subsetting rule (alternative to ...).
+#'
+#' @return The input TMA model object with updated contexts for each unit, where each context contains only rows matching the rule.
 hoo <- function(x, ..., rule = NULL) {
   units <- x$`_function.params`$units;
   unit_contexts <- x$model$contexts;
@@ -49,18 +63,6 @@ hoo <- function(x, ..., rule = NULL) {
   }
 
   raw_input <- x$model$raw.input;
-  # apply(unique(units), 1, function(this_unit) {
-  #   unit_label <- paste(this_unit, collapse = "::");
-  #   # this_unit_rows <- raw_input[as.list(this_unit), , on = names(this_unit)];
-  #   # UNIT <- sapply(this_unit_rows, unique);
-  #   UNIT <- raw_input[as.list(this_unit), , on = names(this_unit)];
-  # 
-  #   this_context <- unit_contexts[[unit_label]];
-  #   new_context <- unique(c(this_context, raw_input[eval(hoo_args), , which = TRUE]));
-  # 
-  #   unit_contexts[[unit_label]] <<- new_context; #@Q[!duplicated(new_context$QEID),];
-  #   # data.table::setorder(unit_contexts[[unit_label]], "QEID");
-  # });
   
   unique_units <- unique(units);
   updated_contexts <- lapply(seq(nrow(unique_units)), function(i) {
@@ -83,18 +85,21 @@ hoo <- function(x, ..., rule = NULL) {
   x
 }
 
-
-## Possible improvement: 
-# rules((Condition & GroupName & UserName)) --->
-#   bq = base::bquote(...);
-#   bq[[2]][[3]] <- quote(UserName == UNIT$UserName)
-#
-
-#' rules
+#' Capture Subsetting Rules as Expressions
 #'
-#' @param ... TBD
+#' Allows users to supply conditions for subsetting rows from their data. The collected unevaluated expressions are intended to be used as the `hoo_rules` parameter in the `contexts()` function within the TMA workflow.
 #'
-#' @return TBD
+#' @param ... Logical expressions specifying the conditions for subsetting data. These expressions are captured unevaluated and returned as a list.
+#'
+#' @return A list of unevaluated expressions representing subsetting rules.
+#' 
+#' @examples
+#' 
+#' rules(
+#'   modality %in% "chat" & chatGroup %in% UNIT$chatGroup & condition %in% UNIT$condition, 
+#'   modality %in% "resource" & userID %in% UNIT$userID & condition %in% UNIT$condition
+#' )
+#' 
 #' @export
 rules <- function(...) {
   rlang::exprs(...)
@@ -110,22 +115,30 @@ conversation_rules <- function(...) {
   rlang::exprs(...)
 }
 
-#' contexts
+##' Create Contexts for Units of Analysis
 #'
-#' @param x TBD
-#' @param units_by TBD
-#' @param hoo_rules TBD
-#' @param split_rules TBD
+#' This function generates context data for each unit of analysis in your dataset, applying subsetting rules ("hoo rules") and optional splitting rules to organize the data for network accumulation.
 #'
-#' @return TBD
+#' @param x A data.frame or TMA model object containing the raw input data.
+#' @param hoo_rules A list of logical expressions (see [rules()]) specifying how to subset the data for each context/unit.
+#' @param units_by Character vector of column names to use for defining units of analysis (e.g., c("userID", "condition")).
+#' @param split_rules Optional. Either a function or an expression specifying how to further split each context (e.g., by time period or other grouping variable).
+#'
+#' @return A TMA model object with updated contexts for each unit, where each context is a data.table containing only the relevant rows for that unit and context. The object includes attributes for unit labels and context row indices.
+#'
+#' @details
+#' This function is a core part of the TMA workflow. It first applies the specified `hoo_rules` to subset the data for each unit, then (optionally) applies `split_rules` to further divide each context. The resulting contexts are used in subsequent accumulation and network analysis steps.
+#'
+#' @examples
+#' # Example usage:
+#' # df <- data.table::data.table(userID = c("A", "B"), condition = c("X", "Y"), modality = c("chat", "resource"))
+#' # hoo_rules <- rules(modality %in% "chat" & userID %in% UNIT$userID)
+#' # model <- contexts(df, hoo_rules, units_by = c("userID", "condition"))
+#' # str(model$model$contexts)
+#'
 #' @export
 contexts <- function(x, hoo_rules, units_by = NULL, split_rules = NULL) {
   x_ <- units(x, units_by);
-  # if(!is.null( units )) {
-  # }
-  # else {
-  #   x_ <- x;
-  # }
   
   for(r in hoo_rules) {
     x_ <- hoo(x_, rule = r);
