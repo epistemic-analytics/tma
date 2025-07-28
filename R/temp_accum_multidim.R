@@ -318,7 +318,7 @@ apply_windows <- function(
     #   mult_arr_mat <- cbind(sm_mat[,1:length(sender_cols)], receivers, sm_mat[,ncol(sm_mat)], "window")
     # }
     # mult_arr_mat <- cbind(sm_mat[,1:length(sender_cols), drop = F], receivers, sm_mat[, ncol(sm_mat), drop = FALSE], "window");
-    mult_arr_mat <- data.table:::cbind.data.table(.SD[, c(sender_cols, mode_column), with = FALSE], receivers, "window")
+    mult_arr_mat <- cbind(.SD[, c(sender_cols, mode_column), with = FALSE], receivers, "window")
     si <- seq_along(sender_cols);
     data.table::setcolorder(mult_arr_mat, c(si, seq_along(receiver_cols) + length(sender_cols) + 1, length(sender_cols) + 1, ncol(mult_arr_mat)))
     mult_arr_mat <- as.matrix(mult_arr_mat);

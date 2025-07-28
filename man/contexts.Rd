@@ -26,7 +26,10 @@ This function is a core part of the TMA workflow. It first applies the specified
 }
 \examples{
 # Example usage:
-# df <- data.table::data.table(userID = c("A", "B"), condition = c("X", "Y"), modality = c("chat", "resource"))
+# df <- data.table::data.table(
+#           userID = c("A", "B"), 
+#           condition = c("X", "Y"), 
+#           modality = c("chat", "resource"))
 # hoo_rules <- rules(modality \%in\% "chat" & userID \%in\% UNIT$userID)
 # model <- contexts(df, hoo_rules, units_by = c("userID", "condition"))
 # str(model$model$contexts)

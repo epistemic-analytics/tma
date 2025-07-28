@@ -152,7 +152,6 @@ merge_columns <- function(x, cols = colnames(x), sep = ".") {
   if(!is.null(x_model)) {
     adj_key <- x_model$rotation$adjacency.key;
     attr(x_, "names") <- as.character(adj_key);
-    # data.table:::print.data.table(data.table:::cbind.data.table(y$meta.data, y$networks)); 
   }
   
   print(x_);
