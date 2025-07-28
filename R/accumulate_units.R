@@ -318,7 +318,7 @@ accumulate_contexts <- function(
     
     undirected.adjacency.vectors <- rbind( undirected.adjacency.vectors, colSums(unit.undirected.adjacency.vectors) );
     
-    output.meta.data <- rbind(output.meta.data, as.list(this.unit[, c(meta_cols), with = FALSE]), use.names = FALSE)
+    output.meta.data <- rbind(output.meta.data, this.unit[, c(meta_cols), with = FALSE]);
   }
   
   #### Construct ENA Sets ----
@@ -396,6 +396,7 @@ accumulate_contexts <- function(
       rep(1:code_length, code_length)),
       byrow = TRUE, nrow = 2
     ))
+    browser()
     dena_data$connection.counts <- data.table::as.data.table(cbind(dena_data$meta.data, directed.adjacency.vectors))
     dena_data$model$row.connection.counts = data.table::as.data.table(cbind(dena_data$meta.data, directed.adjacency.vectors))
     
