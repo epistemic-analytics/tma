@@ -38,3 +38,5 @@ vignettes/
 lastMiKTeXException
 
 src/.*\.o
+
+LICENSE
