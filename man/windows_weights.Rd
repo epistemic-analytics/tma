@@ -2,25 +2,16 @@
 % Please edit documentation in R/temp_accum_multidim.R
 \name{windows_weights}
 \alias{windows_weights}
-\title{Use `context_tensor()` instead. This alias will be removed in a future release.}
+\title{Deprecated Alias for context_tensor}
 \usage{
 windows_weights(...)
 }
 \arguments{
-\item{...}{Arguments passed to `context_tensor()`}
-}
-\value{
-A multidimensional array with dimensions [sender(s), receiver(s), mode(s), weight/window], where the last axis has two levels: "weight" and "window".
-        The array is initialized with the default weight and window values, and has named dimensions for easy indexing.
+\item{...}{Arguments passed to \code{context_tensor()}.}
 }
 \description{
-This function constructs a multidimensional array representing all combinations of sender(s), receiver(s), and mode(s),
-with an additional axis for weight and window parameters. The resulting array can be used to efficiently look up or modify
-window and weight values for each unique combination in your data, which is useful for network accumulation and modeling.
+Use \code{context_tensor()} instead. This alias will be removed in a future release.
 }
-\examples{
-df <- data.frame(sender = c("A", "B"), receiver = c("X", "Y"), mode = c("chat", "resource"))
-arr <- context_tensor(df, sender_cols = "sender", receiver_cols = "receiver", mode_column = "mode")
-arr["A", "X", "chat", "weight"] # Access the weight for sender A, receiver X, mode chat
-
+\seealso{
+\code{\link{context_tensor}}
 }

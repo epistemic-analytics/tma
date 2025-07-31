@@ -143,8 +143,6 @@ merge_columns <- function(x, cols = colnames(x), sep = ".") {
 #' @return Invisibly returns the printed object.
 #' @export
 'print.network.matrix' <- function(x, include.meta = TRUE, ...) {
-  # print("Test: add the meta")
-  # browser()
   x_ <- data.table::copy(x);
   x_model <- attr(x, "model");
   x_cls <- class(x);
@@ -311,18 +309,16 @@ as.matrix.network.connections <- function(x, ...) {
   m_unordered
 }
 
-#' Default Method for X
+#' Default Method for as.unordered
 #'
-#' This function provides the default method for handling the input `x`.
-#' It prints a message indicating that the default method is being executed.
+#' This function provides the default method for handling the input \code{x} when no specific method is available.
 #'
 #' @param x Any object that you want to apply the default method to.
 #'
-#' @return NULL
-#'
+#' @return The input object \code{x}, unchanged.
 #' @export
 'as.unordered.default' <- function(x){
-  cat("This is the default method. \n")
+  x
 }
 
 #' Convert to Unordered Factor
@@ -376,18 +372,22 @@ as.matrix.ena.matrix <- function(x, ...) {
   as.matrix(x, ...)
 }
 
-##
+namesToAdjacencyKey <- function(vector, upper_triangle = TRUE) {
+  upperTriIndices = triIndices(length(vector)) + 1;
+  matrix(vector[upperTriIndices], nrow=2)
+}
+
 #' @title Names to Adjacency Key
 #'
-#' @description Convert a vector of strings, representing names of a square matrix, to an adjacency
+#' @description Convert a vector of strings, representing the names of a square matrix, to an adjacency key matrix.
 #'
-#' @details Returns a matrix of 2 rows by choose(length(vector), 2) columns
+#' @details Returns a matrix with 2 rows and choose(length(vector), 2) columns, where each column represents a unique pair of names from the input vector, corresponding to the upper triangle of a square matrix.
 #'
-#' @param vector Vector representing the names of a square matrix
-#' @param upper_triangle Not Implemented
+#' @param vector Vector representing the names of a square matrix.
+#' @param upper_triangle Not Implemented.
 #'
+#' @return A character matrix with 2 rows and choose(length(vector), 2) columns. Each column contains a pair of names representing a unique adjacency (edge) between nodes in the original square matrix.
 #' @export
-##
 namesToAdjacencyKey <- function(vector, upper_triangle = TRUE) {
   upperTriIndices = triIndices(length(vector)) + 1;
   matrix(vector[upperTriIndices], nrow=2)

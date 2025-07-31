@@ -122,11 +122,13 @@ context_tensor <- function(
 }
 
 
-#' Use `context_tensor()` instead. This alias will be removed in a future release.
-#' 
-#' @param ... Arguments passed to `context_tensor()`
-#' 
-#' @inherit context_tensor
+#' Deprecated Alias for context_tensor
+#'
+#' Use \code{context_tensor()} instead. This alias will be removed in a future release.
+#'
+#' @param ... Arguments passed to \code{context_tensor()}.
+#'
+#' @seealso \code{\link{context_tensor}}
 #' @export
 windows_weights <- function(...) {
   .Deprecated("context_tensor", "tma v0.2.0");

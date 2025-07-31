@@ -6,12 +6,12 @@ Authors@R: c(person("Cody L", "Marquart", role = c("aut", "cre"), email="cody.ma
 Maintainer: Cody L Marquart <cody.marquart@wisc.edu>
 Version: 0.2.0
 Encoding: UTF-8
-Description: Transmodal Analysis (TMA), a robust computational framework for analyzing complex multimodal data. It extends existing state-dependent models to account for diverse data streams, addressing challenges like varying temporal scales and learner characteristics to improve the robustness and interpretability of findings.
+Description: A robust computational framework for analyzing complex multimodal data. Extends existing state-dependent models to account for diverse data streams, addressing challenges such as varying temporal scales and learner characteristics to improve the robustness and interpretability of findings. For methodological details, see Shaffer, Wang, and Ruis (2025) "Transmodal Analysis" <doi:10.18608/jla.2025.8423>.
 LazyData: TRUE
 Depends:
     R (>= 3.6),
     data.table
-License: GPL-3 | file LICENSE
+License: GPL-3
 Imports:
     stats,
     methods,

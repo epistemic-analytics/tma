@@ -396,7 +396,7 @@ accumulate_contexts <- function(
       rep(1:code_length, code_length)),
       byrow = TRUE, nrow = 2
     ))
-    browser()
+    
     dena_data$connection.counts <- data.table::as.data.table(cbind(dena_data$meta.data, directed.adjacency.vectors))
     dena_data$model$row.connection.counts = data.table::as.data.table(cbind(dena_data$meta.data, directed.adjacency.vectors))
     

@@ -25,13 +25,20 @@ This function generates context data for each unit of analysis in your dataset, 
 This function is a core part of the TMA workflow. It first applies the specified `hoo_rules` to subset the data for each unit, then (optionally) applies `split_rules` to further divide each context. The resulting contexts are used in subsequent accumulation and network analysis steps.
 }
 \examples{
-# Example usage:
-# df <- data.table::data.table(
-#           userID = c("A", "B"), 
-#           condition = c("X", "Y"), 
-#           modality = c("chat", "resource"))
-# hoo_rules <- rules(modality \%in\% "chat" & userID \%in\% UNIT$userID)
-# model <- contexts(df, hoo_rules, units_by = c("userID", "condition"))
-# str(model$model$contexts)
+data(test_mockdata, package = "tma")
+mock_data <- test_mockdata[test_mockdata$chatGroup == "PAM",]
+unit_cols <- c("userID", "condition")
+codes <- c("A", "B", "C")
+HOO_rules_model <- rules(
+  modality \%in\% "chat" & chatGroup \%in\% UNIT$chatGroup & condition \%in\% UNIT$condition, 
+  modality \%in\% "resource" & userID \%in\% UNIT$userID & condition \%in\% UNIT$condition
+)
+ 
+context_model <- contexts(
+  x = mock_data,
+  units = unit_cols,
+  hoo_rules = HOO_rules_model
+)
+str(context_model$model$contexts)
 
 }
