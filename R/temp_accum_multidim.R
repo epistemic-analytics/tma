@@ -17,7 +17,11 @@ get_unique_values <- function(
   # Extract unique values for the mode column
   if (length(mode_column) == 0) {
     unique_modes <- list()
-  } else {
+  } 
+  # else if (mode_column == ATTR_NAMES$CONTEXT_ID) {
+  #   unique_modes <- ATTR_NAMES$CONTEXT_ID;
+  # }
+  else {
     unique_modes <- sort(unique(df[[mode_column]]))
   }
   
@@ -121,12 +125,14 @@ context_tensor <- function(
   return(multidim_arr)
 }
 
-
 #' Deprecated Alias for context_tensor
 #'
 #' Use \code{context_tensor()} instead. This alias will be removed in a future release.
 #'
 #' @param ... Arguments passed to \code{context_tensor()}.
+#' 
+#' @return A multidimensional array with dimensions [sender(s), receiver(s), mode(s), weight/window], where the last axis has two levels: "weight" and "window".
+#'         The array is initialized with the default weight and window values, and has named dimensions for easy indexing.
 #'
 #' @seealso \code{\link{context_tensor}}
 #' @export
@@ -134,8 +140,6 @@ windows_weights <- function(...) {
   .Deprecated("context_tensor", "tma v0.2.0");
   do.call(context_tensor, list(...))
 }
-
-
 
 # If sender_cols, receiver_cols, or mode_column are empty, have our standin. Be sure to fill in 
 # standin as expected in multidim_arr. 

@@ -9,6 +9,10 @@ windows_weights(...)
 \arguments{
 \item{...}{Arguments passed to \code{context_tensor()}.}
 }
+\value{
+A multidimensional array with dimensions [sender(s), receiver(s), mode(s), weight/window], where the last axis has two levels: "weight" and "window".
+        The array is initialized with the default weight and window values, and has named dimensions for easy indexing.
+}
 \description{
 Use \code{context_tensor()} instead. This alias will be removed in a future release.
 }
