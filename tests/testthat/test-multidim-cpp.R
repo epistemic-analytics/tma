@@ -40,7 +40,12 @@ test_that("no senders, no receivers, modality", {
     )
   })
   result_new <- accumulate(
-    context_model = context_model, tensor = multidim_arr, time_column = time_column, codes = codes, binary = TRUE, ordered = TRUE
+    context_model = context_model, 
+    tensor = multidim_arr, 
+    time_column = time_column, 
+    codes = codes, 
+    binary = TRUE, 
+    ordered = TRUE
   )
   
   # Compare vectors across all 3 units 

@@ -95,6 +95,19 @@ reclass <- function(x, cl, stringsAsFactors = FALSE) {
   x
 }
 
+# Reclass columns of a data.frame or data.table
+# @param df data.frame or data.table
+# @param class_vec character vector of new classes, length must equal ncol(df)
+# 
+# @return data.frame or data.table with re-classed columns
+reclass_columns <- function(df, class_vec) {
+  stopifnot(length(class_vec) == ncol(df))
+  for (i in seq_along(class_vec)) {
+    df[[i]] <- reclass(df[[i]], class_vec[i])
+  }
+  df
+}
+
 # paste columns to together
 #
 # @param x coerced to data.frame prior to subseting cols

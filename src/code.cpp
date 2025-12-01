@@ -113,9 +113,10 @@ Rcpp::List accumulate_network(
     
     arma::mat ground_codes_mat = Rcpp::as<arma::mat>(ground_codes_raw);
     arma::mat codes_decayed(ground_codes_mat.n_rows, ground_codes_mat.n_cols);
-    for(int j = 0; j < codes_decayed.n_rows; j ++) {
-      codes_decayed.row(j) = ground_codes_mat.row(j) * decay_effect[j];
-    }
+    // for(int j = 0; j < codes_decayed.n_rows; j ++) {
+    //   codes_decayed.row(j) = ground_codes_mat.row(j) * decay_effect[j];
+    // }
+    codes_decayed = ground_codes_mat.each_col() % decay_effect;
 
     arma::rowvec response_row = codes_decayed.tail_rows(1);
     arma::rowvec ground_summarized = arma::sum(codes_decayed);
@@ -295,6 +296,115 @@ void insert_element(arma::uvec& vec, double value) {
   vec(vec.n_rows - 1) = value;
 }
 
+// [[Rcpp::export]]
+Rcpp::List apply_tensor(
+   Rcpp::NumericVector tensor,
+   Rcpp::IntegerVector dims,
+   std::vector<int> dims_sender,
+   std::vector<int> dims_receiver,
+   std::vector<int> dims_mode,
+   Rcpp::NumericMatrix context_matrix,
+   std::vector<int> unit_rows,
+   arma::mat codes,
+   Rcpp::NumericVector times,
+   bool ordered = true
+) {
+  const int WINDOW_DIM = 1;
+  const int WEIGHT_DIM = 0;
+  const bool IS_DEFAULT_CASE = (dims.size() == 1 && dims[0] == 2);
+
+  std::vector<int> dims_v(dims.begin(), dims.end());
+  int code_cnt = codes.n_cols;
+  arma::mat g_w_vec(code_cnt, code_cnt, arma::fill::zeros);
+  arma::mat unit_row_connection_counts(unit_rows.size(), code_cnt * code_cnt);
+
+  // Convert context_matrix to Armadillo for direct access
+  arma::imat context_lookup = arma::conv_to<arma::imat>::from(Rcpp::as<arma::mat>(context_matrix));
+
+  int response_win = 0, response_weight = 0;
+  if(IS_DEFAULT_CASE) {
+    response_win = tensor[1];
+    response_weight = tensor[0];
+  }
+
+  for(int i = 0; i < unit_rows.size(); ++i) {
+    int unit_row_i = unit_rows[i];
+    arma::rowvec row_vec = codes.row(unit_row_i);
+    double response_time = times[unit_row_i];
+
+    // Build response_context_lookup
+    std::vector<int> response_context_lookup(context_lookup.n_cols + 1);
+    for(int j = 0; j < context_lookup.n_cols; ++j)
+      response_context_lookup[j] = context_lookup(unit_row_i, j);
+    response_context_lookup[context_lookup.n_cols] = WINDOW_DIM;
+
+    if(!IS_DEFAULT_CASE) {
+      int response_win_idx = calculate_1d_index(response_context_lookup, dims_v);
+      response_win = tensor[response_win_idx];
+    }
+
+    std::vector<int> ground_rows_to_include;
+    std::vector<double> ground_row_weights;
+    arma::rowvec g_ws_vec(code_cnt, arma::fill::zeros);
+
+    if(unit_row_i > 0) {
+      for (int ground_row = unit_row_i - 1; ground_row >= 0; --ground_row) {
+        std::vector<int> row_v(context_lookup.n_cols + 1);
+        for(int j = 0; j < context_lookup.n_cols; ++j)
+          row_v[j] = context_lookup(ground_row, j);
+        row_v[context_lookup.n_cols] = WINDOW_DIM;
+        for (const auto& dim : dims_receiver)
+          row_v[dim] = response_context_lookup[dim];
+
+        double row_win = response_win;
+        if(!IS_DEFAULT_CASE) {
+          int row_win_idx = calculate_1d_index(row_v, dims_v);
+          row_win = tensor[row_win_idx];
+        }
+
+        double ground_row_time_adj = times[ground_row] + row_win;
+        double diff = ground_row_time_adj - response_time;
+
+        if(diff > 0) {
+          ground_rows_to_include.push_back(ground_row);
+          row_v[context_lookup.n_cols] = WEIGHT_DIM;
+          int row_wgt = response_weight;
+          if(!IS_DEFAULT_CASE) {
+            int row_wgt_idx = calculate_1d_index(row_v, dims_v);
+            row_wgt = tensor[row_wgt_idx];
+          }
+          ground_row_weights.push_back(row_wgt);
+        }
+      }
+
+      if(!ground_rows_to_include.empty()) {
+        arma::mat ground_codes(ground_rows_to_include.size(), code_cnt);
+        for(size_t k = 0; k < ground_rows_to_include.size(); ++k)
+          ground_codes.row(k) = codes.row(ground_rows_to_include[k]);
+        arma::colvec weights = arma::conv_to<arma::colvec>::from(ground_row_weights);
+        arma::mat ground_codes_by_weight = ground_codes.each_col() % weights;
+        g_ws_vec = arma::sum(ground_codes_by_weight, 0);
+      }
+    }
+
+    if(!IS_DEFAULT_CASE) {
+      response_context_lookup[context_lookup.n_cols] = WEIGHT_DIM;
+      int response_wgt_idx = calculate_1d_index(response_context_lookup, dims_v);
+      response_weight = tensor[response_wgt_idx];
+    }
+
+    arma::mat resp = calculate_adjacency_matrix(g_ws_vec, row_vec, response_weight, ordered);
+    g_w_vec += resp;
+    unit_row_connection_counts.row(i) = arma::vectorise(resp).t();
+  }
+
+  arma::rowvec unit_connection_counts = arma::vectorise(g_w_vec).t();
+
+  return Rcpp::List::create(
+    Rcpp::Named("row_connection_counts") = unit_row_connection_counts,
+    Rcpp::Named("connection_counts") = unit_connection_counts
+  );
+}
 
 //' Apply windowing and weighting to context data for network accumulation (C++ backend)
 //'
@@ -319,7 +429,7 @@ void insert_element(arma::uvec& vec, double value) {
 //'
 //' @export
 // [[Rcpp::export]]
-Rcpp::List apply_tensor(
+Rcpp::List apply_tensor_old(
    Rcpp::NumericVector tensor,
    Rcpp::IntegerVector dims,
    std::vector<int> dims_sender,
@@ -526,53 +636,53 @@ arma::umat triIndices(int len, int row = -1) {
 
 
 /*** R
-data(test_mockdata, package = "tma")
-mock_data <- test_mockdata;
-mock_data <- mock_data[mock_data$chatGroup == "PAM",]
-
-# Initialize TMA units and contexts
-unit_cols <- c("userID", "condition")
-codes <- c("A", "B", "C")
-HOO_rules_model <- tma:::rules(
-  modality %in% "chat" & chatGroup %in% UNIT$chatGroup & condition %in% UNIT$condition, modality %in% "resource" & userID %in% UNIT$userID & condition %in% UNIT$condition
-)
-
-context_model <- tma:::contexts(
-  x = mock_data,
-  units = unit_cols,
-  hoo_rules = HOO_rules_model
-)
-
-time_column = "timeStamp"
-
-# Get new TMA results 
-send_cols <- c()
-recv_cols <- c()
-mode_column = "modality"
-
-multidim_arr <- make_multidim_arr(mock_data, sender_cols = c(), receiver_cols = c(), mode_column, 0, 0)
-
-multidim_arr["chat", "weight"] <- 1
-multidim_arr["resource", "weight"] <- 2
-multidim_arr["chat", "window"] <- 360
-multidim_arr["resource", "window"] <- 180
-
-ctx <- context_model$model$contexts[[3]];
-unit_context_lookup <- as.matrix(ctx[, lapply(.SD, function(x) as.numeric(as.factor(x))), .SDcols = c(send_cols, recv_cols, mode_column)]);
-unit_rows <- attr(ctx, "tma.unit_rows")
-unit_to_last <- seq.int(last(unit_rows));
-res <- apply_tensor(
-  multidim_arr,
-  attr(multidim_arr, "dim"),
-  attr(multidim_arr, "sender_inds") - 1,
-  attr(multidim_arr, "receiver_inds") - 1,
-  attr(multidim_arr, "mode_inds") - 1,
-  unit_context_lookup[unit_to_last,, drop = FALSE] - 1,
-  unit_rows - 1,
-  as.matrix(ctx[unit_to_last, ..codes]),
-  ctx[unit_to_last,][[time_column]]
-);
-print(res$connection_counts)
+#data(test_mockdata, package = "tma")
+#mock_data <- test_mockdata;
+#mock_data <- mock_data[mock_data$chatGroup == "PAM",]
+#
+## Initialize TMA units and contexts
+#unit_cols <- c("userID", "condition")
+#codes <- c("A", "B", "C")
+#HOO_rules_model <- tma:::rules(
+#  modality %in% "chat" & chatGroup %in% UNIT$chatGroup & condition %in% UNIT$condition, modality %in% "resource" & userID %in% UNIT$userID & condition %in% UNIT$condition
+#)
+#
+#context_model <- tma:::contexts(
+#  x = mock_data,
+#  units = unit_cols,
+#  hoo_rules = HOO_rules_model
+#)
+#
+#time_column = "timeStamp"
+#
+## Get new TMA results 
+#send_cols <- c()
+#recv_cols <- c()
+#mode_column = "modality"
+#
+#multidim_arr <- make_multidim_arr(mock_data, sender_cols = c(), receiver_cols = c(), mode_column, 0, 0)
+#
+#multidim_arr["chat", "weight"] <- 1
+#multidim_arr["resource", "weight"] <- 2
+#multidim_arr["chat", "window"] <- 360
+#multidim_arr["resource", "window"] <- 180
+#
+#ctx <- context_model$model$contexts[[3]];
+#unit_context_lookup <- as.matrix(ctx[, lapply(.SD, function(x) as.numeric(as.factor(x))), .SDcols = c(send_cols, recv_cols, mode_column)]);
+#unit_rows <- attr(ctx, "tma.unit_rows")
+#unit_to_last <- seq.int(last(unit_rows));
+#res <- apply_tensor(
+#  multidim_arr,
+#  attr(multidim_arr, "dim"),
+#  attr(multidim_arr, "sender_inds") - 1,
+#  attr(multidim_arr, "receiver_inds") - 1,
+#  attr(multidim_arr, "mode_inds") - 1,
+#  unit_context_lookup[unit_to_last,, drop = FALSE] - 1,
+#  unit_rows - 1,
+#  as.matrix(ctx[unit_to_last, ..codes]),
+#  ctx[unit_to_last,][[time_column]]
+#);
+#print(res$connection_counts)
 # user2_old <- as.numeric(unname(as.vector(result_old$connection.counts[1,4:length(colnames(result_old$connection.counts))])))
 # # user2_new <- as.numeric(unname(as.vector(result_new$connection.counts[2,4:length(colnames(result_new$connection.counts))])))
 # user2_new <- res$connection_counts[1,]

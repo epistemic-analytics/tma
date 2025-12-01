@@ -123,6 +123,26 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// apply_tensor_old
+Rcpp::List apply_tensor_old(Rcpp::NumericVector tensor, Rcpp::IntegerVector dims, std::vector<int> dims_sender, std::vector<int> dims_receiver, std::vector<int> dims_mode, Rcpp::NumericMatrix context_matrix, std::vector<int> unit_rows, arma::mat codes, Rcpp::NumericVector times, bool ordered);
+RcppExport SEXP _tma_apply_tensor_old(SEXP tensorSEXP, SEXP dimsSEXP, SEXP dims_senderSEXP, SEXP dims_receiverSEXP, SEXP dims_modeSEXP, SEXP context_matrixSEXP, SEXP unit_rowsSEXP, SEXP codesSEXP, SEXP timesSEXP, SEXP orderedSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type tensor(tensorSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type dims(dimsSEXP);
+    Rcpp::traits::input_parameter< std::vector<int> >::type dims_sender(dims_senderSEXP);
+    Rcpp::traits::input_parameter< std::vector<int> >::type dims_receiver(dims_receiverSEXP);
+    Rcpp::traits::input_parameter< std::vector<int> >::type dims_mode(dims_modeSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type context_matrix(context_matrixSEXP);
+    Rcpp::traits::input_parameter< std::vector<int> >::type unit_rows(unit_rowsSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type codes(codesSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type times(timesSEXP);
+    Rcpp::traits::input_parameter< bool >::type ordered(orderedSEXP);
+    rcpp_result_gen = Rcpp::wrap(apply_tensor_old(tensor, dims, dims_sender, dims_receiver, dims_mode, context_matrix, unit_rows, codes, times, ordered));
+    return rcpp_result_gen;
+END_RCPP
+}
 // triIndices
 arma::umat triIndices(int len, int row);
 RcppExport SEXP _tma_triIndices(SEXP lenSEXP, SEXP rowSEXP) {
@@ -145,6 +165,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_tma_calculate_1d_index_rev", (DL_FUNC) &_tma_calculate_1d_index_rev, 2},
     {"_tma_calculate_1d_index", (DL_FUNC) &_tma_calculate_1d_index, 2},
     {"_tma_apply_tensor", (DL_FUNC) &_tma_apply_tensor, 10},
+    {"_tma_apply_tensor_old", (DL_FUNC) &_tma_apply_tensor_old, 10},
     {"_tma_triIndices", (DL_FUNC) &_tma_triIndices, 2},
     {NULL, NULL, 0}
 };

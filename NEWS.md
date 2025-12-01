@@ -1,3 +1,6 @@
+# tma 0.3.2
+* improved performance of apply_tensor
+
 # tma 0.3.1
 
 * added exports: ATTR_NAMES, adjacency_key 
@@ -8,7 +11,6 @@
 
 * context_tensor function for controlling weights and windows across modalities
 * deprecated prior implementations: windows_weights, accum_multidim, decay, simple_window
-
 
 # tma 0.2.0
 

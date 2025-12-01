@@ -49,40 +49,41 @@ accumulate <- function(
   
   mode_dim_1 <- dim(tensor)[1] == 1 && attr(tensor, "mode_column") == ATTR_NAMES$CONTEXT_ID;
 
+  # Cache tensor attributes outside the loop
+  tensor_dim <- attr(tensor, "dim")
+  tensor_sender_inds <- attr(tensor, "sender_inds") - 1
+  tensor_receiver_inds <- attr(tensor, "receiver_inds") - 1
+  tensor_mode_inds <- attr(tensor, "mode_inds") - 1
+
   result_cpp <- lapply(context_model$model$contexts, function(ctx) {
     ctx_fun <- function(ctx__) {
-      unit_context_lookup <- as.matrix(ctx__[, lapply(.SD, function(x) as.numeric(as.factor(x))), .SDcols = c(send_cols, recv_cols, mode_cols)]);
-      unit_rows <- attr(ctx__, "tma.unit_rows");
-      this_unit <- attr(ctx__, "tma.unit");
-      
-      unit_to_last <- seq.int(last(unit_rows));
+      # Assume columns are already numeric or factors; if not, convert once outside this function
+      cols_to_encode <- c(send_cols, recv_cols, mode_cols)
+      cols_to_encude_unq <- unique(cols_to_encode)
+      if (!all(sapply(ctx__[ , ..cols_to_encode], is.numeric))) {
+        ctx__[ , (cols_to_encude_unq) := lapply(.SD, function(x) as.numeric(as.factor(x))), .SDcols = unique(cols_to_encude_unq)]
+      }
+      unit_context_lookup <- as.matrix(ctx__[ , ..cols_to_encode])
+
+      unit_rows <- attr(ctx__, "tma.unit_rows")
+      this_unit <- attr(ctx__, "tma.unit")
+      unit_to_last <- seq.int(last(unit_rows))
+      ctx_unit_to_last <- ctx__[unit_to_last, ]
       res2 <- apply_tensor(
         tensor,
-        attr(tensor, "dim"),
-        attr(tensor, "sender_inds") - 1,
-        attr(tensor, "receiver_inds") - 1,
-        attr(tensor, "mode_inds") - 1,
-        unit_context_lookup[unit_to_last,, drop = FALSE] - 1,
+        tensor_dim,
+        tensor_sender_inds,
+        tensor_receiver_inds,
+        tensor_mode_inds,
+        unit_context_lookup[unit_to_last, , drop = FALSE] - 1,
         unit_rows - 1,
-        as.matrix(ctx__[unit_to_last, ..codes]),
-        ctx__[unit_to_last,][[time_column]]
-      );
-      
-      rcc <- data.table::as.data.table(res2$row_connection_counts);
-      colnames(rcc) <- adj_vector_names_full;
-      rcc <- rcc[, lapply(.SD, reclass, "ena.co.occurrence"), .SDcols = adj_vector_names_full];
-      
-      unit_row_meta <- ctx__[unit_rows, meta_cols, with = FALSE];
-      unit_row_meta <- unit_row_meta[, lapply(.SD, reclass, "ena.metadata"), .SDcols = meta_cols];
-      rcc <- cbind(unit_row_meta, rcc);
-      rcc <- reclass(x = rcc, c("ordered.row.connections", "row.connections", "ena.matrix"));
-      
-      cc <- data.table::as.data.table(res2$connection_counts);
-      colnames(cc) <- adj_vector_names_full;
-      cc <- cc[, lapply(.SD, reclass, "ena.co.occurrence"), .SDcols = adj_vector_names_full];
-      cc <- cbind(this_unit, cc);
-      cc <- reclass(x = cc, c("ordered.ena.connections", "ena.connections", "ena.matrix"));
-      
+        as.matrix(ctx_unit_to_last[ , ..codes]),
+        ctx_unit_to_last[[time_column]]
+      )
+
+      rcc <- data.table::as.data.table(res2$row_connection_counts)
+      unit_row_meta <- ctx__[unit_rows, meta_cols, with = FALSE]
+      rcc <- cbind(unit_row_meta, rcc)
       rcc
     }
     
@@ -97,21 +98,33 @@ accumulate <- function(
     }
     
     return(res);
-  })
+  });
   
   row_connection_counts <- rbindlist(result_cpp);
+  # colnames(row_connection_counts) <- c(meta_cols, adj_vector_names_full);
+  
+  # browser()
+  # row_connection_counts[, lapply(seq.int(nrow(.SD)), function(col_ind) {
+  #   col <- .SD[[col_ind]];
+  #   new_class_nm <- ifelse(col_ind <= length(meta_cols), "ena.metadata", "ena.co.occurrence");
+  #   reclass(col, new_class_nm)
+  # }), .SDcols = seq.int(ncol(row_connection_counts))];
+  # browser()
+  row_connection_counts <- reclass_columns(row_connection_counts, rep(c("ena.metadata","ena.co.occurrence"), c(length(meta_cols), length(adj_vector_names_full))))
   data.table::setorderv(row_connection_counts, "QEID");
   row_connection_counts <- reclass(x = row_connection_counts, c("ordered.row.connections", "row.connections", "ena.matrix"));
+  colnames(row_connection_counts) <- c(meta_cols, adj_vector_names_full);
   context_model$model$row.connection.counts <- row_connection_counts;
   
-  cc_type <- NULL
+  cc_type <- NULL;
   if(isTRUE(ordered)) {
     class(context_model) <- c("ena.ordered.set", class(context_model));
-    
+    # browser();
     # connection_counts <- data.table::as.data.table(do.call(rbind, lapply(result_cpp, colSums.ena.matrix, binary = FALSE)));
-    connection_counts <- data.table::as.data.table(do.call(rbind, lapply(result_cpp, function(rcpp) {
-      colSums(as.matrix.ena.matrix(rcpp))  
-    })));
+    # connection_counts <- data.table::as.data.table(do.call(rbind, lapply(result_cpp, function(rcpp) {
+    #   colSums(as.matrix.ena.matrix(rcpp))  
+    # })));
+    connection_counts <- row_connection_counts[, lapply(.SD, sum), by = units_by, .SDcols = adj_vector_names_full];
     connection_counts <- reclass(x = connection_counts, c("ordered.ena.connections", "ena.connections", "ena.matrix"));
     connection_counts <- connection_counts[, lapply(.SD, reclass, "ena.co.occurrence"), .SDcols = colnames(connection_counts)];
     
@@ -121,10 +134,10 @@ accumulate <- function(
     class(context_model) <- c("ena.unordered.set", class(context_model));
     
     context_model$model$row.connection.counts <- as.unordered(context_model$model$row.connection.counts);
-    
     connection_counts <- context_model$model$row.connection.counts[, lapply(.SD, colSums.ena.matrix, binary = binary), by = "QEUNIT", .SDcols = adj_vector_names];
-    connection_counts <- connection_counts[, lapply(.SD, reclass, "ena.co.occurrence"), .SDcols = adj_vector_names];
-    cc_type <- "unordered.ena.connections"
+
+    # connection_counts <- connection_counts[, lapply(.SD, reclass, "ena.co.occurrence"), .SDcols = adj_vector_names];
+    cc_type <- "unordered.ena.connections";
   }
   
   cc_meta <- data.table::rbindlist(lapply(result_cpp, function(rc) rc[1, c("QEUNIT", units_by), with = FALSE]));

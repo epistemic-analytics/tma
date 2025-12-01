@@ -38,6 +38,10 @@ calculate_1d_index <- function(indices, dims) {
     .Call(`_tma_calculate_1d_index`, indices, dims)
 }
 
+apply_tensor <- function(tensor, dims, dims_sender, dims_receiver, dims_mode, context_matrix, unit_rows, codes, times, ordered = TRUE) {
+    .Call(`_tma_apply_tensor`, tensor, dims, dims_sender, dims_receiver, dims_mode, context_matrix, unit_rows, codes, times, ordered)
+}
+
 #' Apply windowing and weighting to context data for network accumulation (C++ backend)
 #'
 #' This function implements the core logic for accumulating network connections using a multidimensional parameter array (context_tensor),
@@ -60,8 +64,8 @@ calculate_1d_index <- function(indices, dims) {
 #'   - connection_counts: A vector of accumulated connection counts for the unit (length = number of connections).
 #'
 #' @export
-apply_tensor <- function(tensor, dims, dims_sender, dims_receiver, dims_mode, context_matrix, unit_rows, codes, times, ordered = TRUE) {
-    .Call(`_tma_apply_tensor`, tensor, dims, dims_sender, dims_receiver, dims_mode, context_matrix, unit_rows, codes, times, ordered)
+apply_tensor_old <- function(tensor, dims, dims_sender, dims_receiver, dims_mode, context_matrix, unit_rows, codes, times, ordered = TRUE) {
+    .Call(`_tma_apply_tensor_old`, tensor, dims, dims_sender, dims_receiver, dims_mode, context_matrix, unit_rows, codes, times, ordered)
 }
 
 triIndices <- function(len, row = -1L) {
