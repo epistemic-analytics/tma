@@ -56,7 +56,8 @@ accumulate <- function(
   tensor_mode_inds <- attr(tensor, "mode_inds") - 1
 
   result_cpp <- lapply(context_model$model$contexts, function(ctx) {
-    ctx_fun <- function(ctx__) {
+    ctx_fun <- function(ctx_o) {
+      ctx__ <- data.table::copy(ctx_o);
       # Assume columns are already numeric or factors; if not, convert once outside this function
       cols_to_encode <- c(send_cols, recv_cols, mode_cols)
       cols_to_encude_unq <- unique(cols_to_encode)
@@ -81,12 +82,15 @@ accumulate <- function(
         ctx_unit_to_last[[time_column]]
       )
 
-      rcc <- data.table::as.data.table(res2$row_connection_counts)
-      unit_row_meta <- ctx__[unit_rows, meta_cols, with = FALSE]
-      rcc <- cbind(unit_row_meta, rcc)
+      rcc <- data.table::as.data.table(res2$row_connection_counts);
+      unit_row_meta <- ctx_o[unit_rows, meta_cols, with = FALSE];
+      # rcc <- cbind(unit_row_meta, rcc)
+      # browser()
+      rcc[, names(unit_row_meta) := unit_row_meta]
+      data.table::setcolorder(rcc, c(names(unit_row_meta), setdiff(names(rcc), names(unit_row_meta))))
       rcc
     }
-    
+
     if(is.data.frame(ctx)) {
       res <- ctx_fun(ctx);
     }
@@ -126,7 +130,7 @@ accumulate <- function(
     # })));
     connection_counts <- row_connection_counts[, lapply(.SD, sum), by = units_by, .SDcols = adj_vector_names_full];
     connection_counts <- reclass(x = connection_counts, c("ordered.ena.connections", "ena.connections", "ena.matrix"));
-    connection_counts <- connection_counts[, lapply(.SD, reclass, "ena.co.occurrence"), .SDcols = colnames(connection_counts)];
+    # connection_counts <- connection_counts[, lapply(.SD, reclass, "ena.co.occurrence"), .SDcols = colnames(connection_counts)];
     
     cc_type <- "ordered.ena.connections";
   }

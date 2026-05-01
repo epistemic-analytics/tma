@@ -24,7 +24,7 @@ test_that("no senders, no receivers, modality", {
   # Get new TMA results 
   mode_column = "modality"
   
-  multidim_arr <- context_tensor(mock_data, sender_cols = c(), receiver_cols = c(), mode_column, 0, 0)
+  multidim_arr <- context_tensor(mock_data, sender_cols = NULL, receiver_cols = NULL, mode_column, 0, 0)
   
   multidim_arr["chat", "weight"] <- 20
   multidim_arr["resource", "weight"] <- 20
@@ -61,7 +61,7 @@ test_that("no senders, no receivers, modality", {
   testthat::expect_equal(user3_old, user3_new)
 })
 
-test_that("sender, no receivers, no modality", {
+testthat::test_that("sender, no receivers, no modality", {
   mock_data <- mock_data[mock_data$chatGroup == "PAM",]
   
   # Initialize TMA units and contexts

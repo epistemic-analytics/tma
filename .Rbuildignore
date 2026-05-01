@@ -1,6 +1,5 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
-/\.Rproj\.user/
 
 ^\.gitlab-ci\.yml
 
@@ -12,7 +11,9 @@ demo/markdown/
 demo
 _pkgdown.yml
 
-
+.Rproj.user/
+.Rhistory
+.RData
 
 ^.*.\.tar\.gz$
 ^\.git/.*

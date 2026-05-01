@@ -2,7 +2,7 @@
   globalVariables(c(
     "..units_by", "..by", ".I", "QEID", "CID", "..conversations",
     "KEYCOL", "QEUNIT", "..sender_cols", "..receiver_cols", "..mode_column",
-    "..codes"
+    "..codes", "..cols_to_encode"
   ))
 }
 
