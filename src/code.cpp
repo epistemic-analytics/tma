@@ -1,28 +1,17 @@
-// [[Rcpp::depends(RcppArmadillo)]]
+// [[Rcpp::depends(RcppArmadillo, libqe)]]
 
 #include <RcppArmadillo.h>
+#include <libqe/libqe.hpp>
 
 //' @title n choose 2
 //' @param n int
 // [[Rcpp::export]]
 int choose_two(int n) {
-  return (n * (n - 1)) / 2;
+  return qe::choose_two(n);
 }
 
 arma::rowvec vector_to_summed_uppertri(arma::vec blank) {
-  int code_count = pow(blank.size(), 0.5);
-  int tri_size = choose_two(code_count);
-  arma::rowvec network_vector = arma::rowvec(tri_size);
-  
-  arma::mat blank_mat(blank);
-  blank_mat.reshape(code_count, code_count);
-  
-  blank_mat = blank_mat + blank_mat.t();
-  arma::colvec blank_vec = blank_mat.as_col();
-  arma::uvec upper_indices = arma::trimatu_ind( arma::size(blank_mat), 1 );
-  network_vector = arma::conv_to< arma::rowvec >::from(blank_vec.elem(upper_indices));
-  
-  return network_vector;
+  return qe::directed_to_upper_tri(blank);
 }
 
 // std::vector<double> accumulate_network(
@@ -208,31 +197,12 @@ arma::mat calculate_adjacency_matrix(
   arma::rowvec ground, arma::rowvec response, double response_weight,
   bool ordered = true
 ) {
-  arma::mat response_matrix = response.t() * response;
-  arma::mat ground_by_response = ground.t() * response;
-  
-  if(ordered == true) {
-    response_matrix.diag().zeros();
-    return ground_by_response + (0.5 * response_weight * response_matrix);
-  }
-  else {
-    arma::mat response_by_response = response.t() * response;
-    arma::mat response_by_ground = response.t() * ground;
-    
-    return (response_weight * response_matrix) + (ground_by_response + response_by_ground);
-  }
+  return qe::calculate_adjacency_matrix(ground, response, response_weight, ordered);
 }
 
 // [[Rcpp::export]]
 arma::rowvec adjacency_matrix_to_vector(arma::mat x, bool full = true) {
- if(full == true) {
-   return arma::vectorise(x).t();
- }
- else {
-   arma::mat combined = arma::trimatu(x, 1) + arma::trimatl(x, -1);
-   arma::uvec combined_tri_inds = arma::trimatu_ind(arma::size(combined), 1); 
-   return arma::vectorise(combined(combined_tri_inds)).t();
- }
+  return qe::adjacency_matrix_to_vector(x, full);
 }
 
 std::vector<std::vector<int>> matrix_to_2d_vector(Rcpp::NumericMatrix mat) {
@@ -608,30 +578,7 @@ Rcpp::List apply_tensor_old(
 // @return matrix with two rows
 // [[Rcpp::export]]
 arma::umat triIndices(int len, int row = -1) {
-  int vL = len;
-  int vS = ( (vL * (vL + 1)) / 2) - vL ;
-  int s = 0;
-
-  arma::umat vR = arma::umat(2, vS, arma::fill::zeros);
-  arma::umat vRone = arma::umat(1, vS, arma::fill::zeros);
-  for( int i = 2; i <= vL; i++ ) {
-    for (int j = 0; j < i-1; j++ ) {
-      vR(0, s) = j;
-      vR(1, s) = i-1;
-      if(row == 0) {
-        vRone[s] = j;
-      } else if (row == 1) {
-        vRone[s] = i -1;
-      }
-      s++;
-    }
-  }
-
-  if(row == -1) {
-    return vR;
-  } else {
-    return vRone;
-  }
+  return qe::tri_indices(len, row);
 }
 
 

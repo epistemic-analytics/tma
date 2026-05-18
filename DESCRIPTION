@@ -24,6 +24,7 @@ Suggests:
     rmarkdown,
     jsonlite
 RoxygenNote: 7.3.3
-LinkingTo: 
+LinkingTo:
     Rcpp,
-    RcppArmadillo
+    RcppArmadillo,
+    libqe
