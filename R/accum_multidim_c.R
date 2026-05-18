@@ -70,7 +70,7 @@ accumulate <- function(
       this_unit <- attr(ctx__, "tma.unit")
       unit_to_last <- seq.int(last(unit_rows))
       ctx_unit_to_last <- ctx__[unit_to_last, ]
-      res2 <- apply_tensor(
+      res2 <- lq_apply_tensor(
         tensor,
         tensor_dim,
         tensor_sender_inds,

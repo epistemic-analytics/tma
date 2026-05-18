@@ -388,7 +388,7 @@ as.matrix.ena.matrix <- function(x, ...) {
 }
 
 namesToAdjacencyKey <- function(vector, upper_triangle = TRUE) {
-  upperTriIndices = triIndices(length(vector)) + 1;
+  upperTriIndices = lq_tri_indices(length(vector)) + 1;
   matrix(vector[upperTriIndices], nrow=2)
 }
 
@@ -404,6 +404,6 @@ namesToAdjacencyKey <- function(vector, upper_triangle = TRUE) {
 #' @return A character matrix with 2 rows and choose(length(vector), 2) columns. Each column contains a pair of names representing a unique adjacency (edge) between nodes in the original square matrix.
 #' @export
 namesToAdjacencyKey <- function(vector, upper_triangle = TRUE) {
-  upperTriIndices = triIndices(length(vector)) + 1;
+  upperTriIndices = lq_tri_indices(length(vector)) + 1;
   matrix(vector[upperTriIndices], nrow=2)
 }

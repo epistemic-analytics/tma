@@ -16,7 +16,7 @@ Imports:
     stats,
     methods,
     rlang,
-    Rcpp
+    libqe
 Suggests:
     testthat (>= 2.1.0),
     rstudioapi,
@@ -24,7 +24,3 @@ Suggests:
     rmarkdown,
     jsonlite
 RoxygenNote: 7.3.3
-LinkingTo:
-    Rcpp,
-    RcppArmadillo,
-    libqe

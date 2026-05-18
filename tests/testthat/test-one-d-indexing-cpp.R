@@ -1,30 +1,30 @@
-testthat::context("Test C++ 1d indexing into multidimensional array")
+testthat::context("Test 1d indexing into multidimensional array")
 
-test_that("calculate_1d_index works correctly", {
+test_that("lq_calculate_1d_index works correctly", {
   # Test case 1: Simple 2D case
   indices <- c(1, 2)
   dims <- c(3, 4)
-  testthat::expect_equal(calculate_1d_index(indices, dims), 7)
+  testthat::expect_equal(lq_calculate_1d_index(indices, dims), 7)
   
   # Test case 2: Simple 3D case
   indices <- c(1, 2, 3) 
   dims <- c(3, 4, 5)
-  testthat::expect_equal(calculate_1d_index(indices, dims), 43)
+  testthat::expect_equal(lq_calculate_1d_index(indices, dims), 43)
   
   # Test case 3: Edge case with single dimension
   indices <- c(2)
   dims <- c(5)
-  testthat::expect_equal(calculate_1d_index(indices, dims), 2)
+  testthat::expect_equal(lq_calculate_1d_index(indices, dims), 2)
   
   # Test case 4: Edge case with zero indices
   indices <- c(0, 0, 0)
   dims <- c(3, 4, 5)
-  testthat::expect_equal(calculate_1d_index(indices, dims), 0)
+  testthat::expect_equal(lq_calculate_1d_index(indices, dims), 0)
   
   # Test case 5: Invalid input (mismatched lengths)
   indices <- c(1, 2)
   dims <- c(3, 4, 5)
-  testthat::expect_error(calculate_1d_index(indices, dims), "Number of indices must match number of dimensions.")
+  testthat::expect_error(lq_calculate_1d_index(indices, dims), "Number of indices must match number of dimensions.")
 })
 
 test_that("calculate_1d_index using multidim array", {
@@ -58,7 +58,7 @@ test_that("calculate_1d_index using multidim array", {
   testthat::expect_equal(multidim_arr[1,1,1,1], 20)
   testthat::expect_equal(multidim_arr[2,2,2,2], 10)
   
-  testthat::expect_equal(multidim_arr[calculate_1d_index(c(2,2,2,2)-1, dim(multidim_arr)) + 1], 10)
-  testthat::expect_equal(multidim_arr[calculate_1d_index(c(1,1,1,2)-1, dim(multidim_arr)) + 1], 10)
-  testthat::expect_equal(multidim_arr[calculate_1d_index(c(1,1,1,1)-1, dim(multidim_arr)) + 1], 20)
+  testthat::expect_equal(multidim_arr[lq_calculate_1d_index(c(2,2,2,2)-1, dim(multidim_arr)) + 1], 10)
+  testthat::expect_equal(multidim_arr[lq_calculate_1d_index(c(1,1,1,2)-1, dim(multidim_arr)) + 1], 10)
+  testthat::expect_equal(multidim_arr[lq_calculate_1d_index(c(1,1,1,1)-1, dim(multidim_arr)) + 1], 20)
 })
