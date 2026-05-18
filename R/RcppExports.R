@@ -30,10 +30,6 @@ adjacency_matrix_to_vector <- function(x, full = TRUE) {
     .Call(`_tma_adjacency_matrix_to_vector`, x, full)
 }
 
-calculate_1d_index_rev <- function(indices, dims) {
-    .Call(`_tma_calculate_1d_index_rev`, indices, dims)
-}
-
 calculate_1d_index <- function(indices, dims) {
     .Call(`_tma_calculate_1d_index`, indices, dims)
 }
@@ -44,25 +40,17 @@ apply_tensor <- function(tensor, dims, dims_sender, dims_receiver, dims_mode, co
 
 #' Apply windowing and weighting to context data for network accumulation (C++ backend)
 #'
-#' This function implements the core logic for accumulating network connections using a multidimensional parameter array (context_tensor),
-#' efficiently applying window and weight parameters to each response line in a unit's context. It is designed for use in the TMA package
-#' to speed up accumulation calculations by leveraging C++ and Armadillo for matrix operations.
-#'
-#' @param tensor NumericVector. The multi-dimensional context_tensor array created in R can be supplied as-is; it is automatically converted to a 1D vector when passed to this function via Rcpp.
-#' @param dims IntegerVector. The dimensions of the original context_tensor array.
-#' @param dims_sender std::vector<int>. Indices of sender dimensions in the array.
-#' @param dims_receiver std::vector<int>. Indices of receiver dimensions in the array.
-#' @param dims_mode std::vector<int>. Indices of mode dimensions in the array.
-#' @param context_matrix NumericMatrix. Matrix representation of the context for a single unit (rows = context lines, columns = factors).
-#' @param unit_rows std::vector<int>. Indices of the response rows for the unit in the context.
-#' @param codes arma::mat. Matrix of codes (nrow = context lines, ncol = number of codes).
-#' @param times NumericVector. Vector of time values for each context line.
-#' @param ordered bool. If TRUE, returns a full adjacency matrix; if FALSE, returns only upper triangle (ENA style).
-#'
-#' @return A list with two elements:
-#'   - row_connection_counts: A matrix of connection counts for each response line (rows = response lines, columns = connections).
-#'   - connection_counts: A vector of accumulated connection counts for the unit (length = number of connections).
-#'
+#' @param tensor NumericVector. Flat multi-dimensional context_tensor array.
+#' @param dims IntegerVector. Dimensions of the original context_tensor array.
+#' @param dims_sender std::vector<int>. Indices of sender dimensions.
+#' @param dims_receiver std::vector<int>. Indices of receiver dimensions.
+#' @param dims_mode std::vector<int>. Indices of mode dimensions.
+#' @param context_matrix NumericMatrix. Context lookup matrix (rows = context lines, cols = factors).
+#' @param unit_rows std::vector<int>. 0-based response-row indices for this unit.
+#' @param codes arma::mat. Code matrix (nrow = context lines, ncol = number of codes).
+#' @param times NumericVector. Timestamp per context row.
+#' @param ordered bool. TRUE = directed; FALSE = undirected upper-triangle.
+#' @return List with `row_connection_counts` and `connection_counts`.
 #' @export
 apply_tensor_old <- function(tensor, dims, dims_sender, dims_receiver, dims_mode, context_matrix, unit_rows, codes, times, ordered = TRUE) {
     .Call(`_tma_apply_tensor_old`, tensor, dims, dims_sender, dims_receiver, dims_mode, context_matrix, unit_rows, codes, times, ordered)
