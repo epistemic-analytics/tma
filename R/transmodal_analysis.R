@@ -7,5 +7,5 @@
 #' @import data.table
 #' @importFrom methods is
 #' @importFrom rlang exprs
-#' @importFrom libqe lq_apply_tensor lq_tri_indices lq_calculate_1d_index
+#' @importFrom libqe apply_tensor connection_indices flat_index
 NULL

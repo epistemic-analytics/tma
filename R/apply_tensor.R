@@ -21,6 +21,6 @@
 apply_tensor_old <- function(tensor, dims, dims_sender, dims_receiver, dims_mode,
                               context_matrix, unit_rows, codes, times,
                               ordered = TRUE) {
-  lq_apply_tensor(tensor, dims, dims_sender, dims_receiver, dims_mode,
+  apply_tensor(tensor, dims, dims_sender, dims_receiver, dims_mode,
                   context_matrix, unit_rows, codes, times, ordered)
 }
