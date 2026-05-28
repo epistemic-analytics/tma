@@ -1,0 +1,207 @@
+"""pytma.tma — High-level TMA pipeline."""
+from __future__ import annotations
+
+import numpy as np
+import pandas as pd
+from itertools import combinations
+from typing import Optional, Union
+
+from pylibqe import accumulation, normalization, modeling
+from .context_tensor import ContextTensor, context_tensor as make_context_tensor
+from .contexts import ContextModel, contexts as make_contexts
+
+
+class TMA:
+    """Transmodal Analysis pipeline.
+
+    Mirrors R's tma pipeline: contexts -> accumulate (apply_tensor_unit) ->
+    normalize -> position.
+
+    Attributes (set after fit)
+    ----------
+    units_ : list[str]
+    codes_ : list[str]
+    connection_names_ : list[str]
+    networks_ : np.ndarray (n_units x n_connections)
+    normed_networks_ : np.ndarray
+    positions_ : np.ndarray (n_codes x dims)
+    centroids_ : np.ndarray (n_units x dims)
+    weights_ : np.ndarray
+    points_ : np.ndarray
+    rotation_ : np.ndarray
+    """
+
+    def fit(
+        self,
+        data: pd.DataFrame,
+        units: Union[str, list[str]],
+        conversations: Union[str, list[str]],
+        codes: list[str],
+        tensor: Optional[ContextTensor] = None,
+        time_col: Optional[str] = None,
+        ordered: bool = False,
+        norm: str = "sphere",
+        dims: int = 2,
+    ) -> "TMA":
+        """Fit a TMA model.
+
+        Parameters
+        ----------
+        data : pd.DataFrame
+        units : str | list[str]
+            Column(s) identifying units of analysis.
+        conversations : str | list[str]
+            Column(s) segmenting conversations (context scope).
+        codes : list[str]
+            Code column names.
+        tensor : ContextTensor | None
+            Weight/window tensor. If None, builds a default tensor with
+            window=1, weight=1 (equivalent to a single-step window).
+        time_col : str | None
+            Timestamp column. If None, uses row order as integer timestamps.
+        ordered : bool
+            True = directed/ONA adjacency; False = undirected/ENA.
+        norm : {"sphere", "skip_sphere"}
+        dims : int
+        """
+        if norm not in ("sphere", "skip_sphere"):
+            raise ValueError(f"norm must be 'sphere' or 'skip_sphere', got {norm!r}")
+
+        units_cols = [units] if isinstance(units, str) else list(units)
+        n_codes = len(codes)
+        n_connections = n_codes * (n_codes - 1) // 2 if not ordered else n_codes * n_codes
+
+        # 1. Build contexts
+        ctx_model = make_contexts(data, units, conversations)
+        df = ctx_model.data
+
+        # 2. Build tensor if not provided
+        # Default tensor: dims=[2], array=[weight, window] — triggers IS_DEFAULT path in C++
+        if tensor is None:
+            tensor = make_context_tensor(
+                df,
+                sender_cols=None,
+                receiver_cols=None,
+                mode_col=None,
+                default_window=1.0,
+                default_weight=1.0,
+            )
+
+        # 3. Build per-row integer timestamp vector
+        if time_col is not None:
+            times = df[time_col].astype(float).values
+        else:
+            times = np.arange(len(df), dtype=np.float64)
+
+        # 4. Accumulate per unit using apply_tensor_unit
+        unit_labels = ctx_model.unit_labels
+        n_units = len(unit_labels)
+
+        raw_networks = np.zeros((n_units, n_connections), dtype=np.float64)
+
+        tensor_flat = tensor.flat
+        tensor_dims = tensor.dims
+        sender_inds   = tensor.sender_inds
+        receiver_inds = tensor.receiver_inds
+        mode_inds     = tensor.mode_inds
+
+        # Build context_lookup: integer matrix (n_rows x n_factor_cols) in int32
+        n_factor_cols = len(sender_inds) + len(receiver_inds) + len(mode_inds)
+
+        if n_factor_cols > 0:
+            context_lookup = np.zeros((len(df), n_factor_cols), dtype=np.int32)
+            for row_idx, row in df.iterrows():
+                context_lookup[row_idx] = tensor.encode_row(row)
+        else:
+            # Default tensor path: empty context_lookup (IS_DEFAULT branch in C++)
+            context_lookup = np.zeros((len(df), 0), dtype=np.int32)
+
+        for unit_idx, unit_label in enumerate(unit_labels):
+            ctx_rows = ctx_model.contexts_map[unit_label]
+            own_rows = ctx_model.unit_own_rows[unit_label]
+
+            if not own_rows:
+                continue
+
+            # context: all rows up to and including last unit row, within ctx_rows
+            last_unit_row = max(own_rows)
+            visible_rows = [r for r in ctx_rows if r <= last_unit_row]
+
+            if len(visible_rows) < 2:
+                continue
+
+            # Remap own_rows to indices within visible_rows
+            vis_idx = {r: i for i, r in enumerate(visible_rows)}
+            unit_rows_local = [vis_idx[r] for r in own_rows if r in vis_idx]
+
+            if not unit_rows_local:
+                continue
+
+            codes_mat = np.ascontiguousarray(
+                df.iloc[visible_rows][codes].to_numpy(dtype=np.float64)
+            )
+            times_sub = np.ascontiguousarray(times[visible_rows])
+            ctx_lookup_sub = np.ascontiguousarray(context_lookup[visible_rows])
+
+            result = accumulation.apply_tensor_unit(
+                tensor_flat, tensor_dims,
+                sender_inds, receiver_inds, mode_inds,
+                ctx_lookup_sub, unit_rows_local,
+                codes_mat, times_sub,
+                ordered,
+            )
+
+            raw_networks[unit_idx] = result.connection_counts[:n_connections]
+
+        # 5. Normalize
+        if norm == "sphere":
+            normed = normalization.sphere_norm(raw_networks)
+        else:
+            normed = normalization.skip_sphere_norm(raw_networks)
+
+        # 6. SVD + position (same pipeline as pyENA)
+        centered = modeling.center_data(normed)
+        _, _, Vt = np.linalg.svd(centered, full_matrices=False)
+        rotation = Vt.T[:, :dims]
+        t = centered @ rotation
+
+        non_zero = normed.sum(axis=1) != 0
+        if non_zero.any():
+            positions = modeling.lws_lsq_positions(
+                np.ascontiguousarray(normed[non_zero]),
+                np.ascontiguousarray(t[non_zero]),
+                dims,
+            )
+            mean_centroids = positions.centroids.mean(axis=0)
+            centroids_full = t.copy()
+            centroids_full[non_zero] = positions.centroids - mean_centroids
+            nodes = positions.nodes - mean_centroids
+            _weights = positions.weights
+            _points  = positions.points
+        else:
+            nodes = np.zeros((n_codes, dims))
+            centroids_full = t.copy()
+            _weights = np.zeros((n_units, n_codes))
+            _points  = t.copy()
+
+        # 7. Store results
+        self.units_            = unit_labels
+        self.codes_            = list(codes)
+        self.connection_names_ = [
+            f"{codes[i]}&{codes[j]}"
+            for j in range(1, n_codes)
+            for i in range(j)
+        ] if not ordered else [
+            f"{codes[i]}->{codes[j]}"
+            for i in range(n_codes)
+            for j in range(n_codes)
+        ]
+        self.networks_         = raw_networks
+        self.normed_networks_  = normed
+        self.positions_        = nodes
+        self.centroids_        = centroids_full
+        self.weights_          = _weights
+        self.points_           = _points
+        self.rotation_         = rotation
+
+        return self
