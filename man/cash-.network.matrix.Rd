@@ -2,18 +2,18 @@
 % Please edit documentation in R/utils.R
 \name{$.network.matrix}
 \alias{$.network.matrix}
-\title{Extract from network.matrix easily using metadata}
+\title{Extract Metadata or Columns from Network Matrix (S3 method)}
 \usage{
 \method{$}{network.matrix}(x, i)
 }
 \arguments{
-\item{x}{[TBD]}
+\item{x}{An object of class "network.matrix".}
 
-\item{i}{[TBD]}
+\item{i}{Name of the column or metadata field to extract.}
 }
 \value{
-[TBD]
+The requested column or metadata field from the network matrix.
 }
 \description{
-Extract from network.matrix easily using metadata
+This S3 method allows convenient extraction of metadata columns from a network matrix object using the $ operator. If the requested column is metadata, it is returned from the model's meta.data; otherwise, the standard extraction is performed.
 }

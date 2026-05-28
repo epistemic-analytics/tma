@@ -1,21 +1,30 @@
 ##
 #' @title Find conversations by unit
 #'
-#' @description Find rows of conversations by unit
+#' @description
+#' Identify and extract rows corresponding to conversations for specified units in a dataset or context model. Useful for subsetting and analyzing conversational windows in network analysis.
 #'
-#' @details [TBD]
+#' @details
+#' This function groups rows by conversation (using `conversation.by` columns), identifies which rows are associated with the specified units and codes, and returns indices for each conversation, as well as metadata about which rows to include or exclude.
 #'
-#' @param x [TBD]
-#' @param units [TBD]
-#' @param units.by [TBD]
-#' @param codes [TBD]
-#' @param conversation.by [TBD]
-#' @param window [TBD]
-#' @param conversation.exclude [TBD]
-#' @param id_col TBD
+#' @param x A data.frame or context model containing conversation data.
+#' @param units Character vector of unit identifiers to extract conversations for.
+#' @param units.by Character vector of column names specifying unit grouping (default: from context model attributes).
+#' @param codes Character vector of code columns to use for identifying coded rows.
+#' @param conversation.by Character vector of column names to group by conversation.
+#' @param window Integer; window size for co-occurrence (default: 4).
+#' @param conversation.exclude Character vector of conversation keys to exclude.
+#' @param id_col Character; column name for unit IDs (default: "QEUNIT").
+#'
+#' @return A list with elements:
+#'   \item{conversations}{List of row indices for each conversation.}
+#'   \item{unitConvs}{Unique conversation keys for the specified units.}
+#'   \item{allRows}{All row indices included for the units.}
+#'   \item{unitRows}{Row indices for the units with codes.}
+#'   \item{convRows}{All row indices for the unit's conversations.}
+#'   \item{toRemove}{Rows not meeting co-occurrence criteria.}
 #'
 #' @export
-#' @return list containing row indices representing conversations
 tma.conversations = function(
   x, units, 
   units.by = NULL, codes = NULL, conversation.by = NULL, 
@@ -83,20 +92,23 @@ tma.conversations = function(
 }
 
 
-#' Title
+#' @title Interactive Conversation Viewer
 #'
-#' @param x TBD
-#' @param wh TBD 
-#' @param text_col TBD
-#' @param units.by TBD
-#' @param conversation.by TBD
-#' @param codes TBD
-#' @param window_size TBD
-#' @param more_cols TBD
-#' @param in_browser TBD
-#' @param id_col TBD
+#' @description
+#' Launch an interactive HTML viewer for conversations and codes for a specified unit or set of units. Useful for exploring and validating conversation windows and code assignments in the TMA workflow.
 #'
-#' @return TBD
+#' @param x A context model or data.frame containing conversation data.
+#' @param wh Character or integer; unit(s) to view.
+#' @param text_col Character; column name for text (default: "text").
+#' @param units.by Character vector of unit grouping columns (default: from context model attributes).
+#' @param conversation.by Character vector of conversation grouping columns (default: from context model attributes).
+#' @param codes Character vector of code columns (default: from context model attributes).
+#' @param window_size Integer; window size for co-occurrence (default: from context model attributes).
+#' @param more_cols Character vector of additional columns to include in the viewer.
+#' @param in_browser Logical; if TRUE, open in system browser, otherwise use RStudio viewer (default: FALSE).
+#' @param id_col Character; column name for unit IDs (default: "QEUNIT").
+#'
+#' @return A list containing the viewer data and metadata (invisibly). The function is called for its side effect of launching the viewer.
 #' @export
 view <- function(
   x, wh, 
@@ -123,6 +135,11 @@ view <- function(
   unit_conv$data <- tbl;
   unit_conv$units <- wh;
   unit_conv$window <- window_size;
+
+  if(requireNamespace("jsonlite", quietly = TRUE) == FALSE) {
+    stop("Please install the `jsonlite` package to use this function.")
+  }
+  
   tbl_json <- jsonlite::toJSON(unit_conv, auto_unbox = TRUE);
 
   tmp_html <- tempfile(fileext = ".html")

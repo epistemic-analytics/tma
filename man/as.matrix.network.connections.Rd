@@ -2,18 +2,18 @@
 % Please edit documentation in R/utils.R
 \name{as.matrix.network.connections}
 \alias{as.matrix.network.connections}
-\title{Title}
+\title{Convert Network Connections to Matrix (S3 method)}
 \usage{
 \method{as.matrix}{network.connections}(x, ...)
 }
 \arguments{
-\item{x}{TBD}
+\item{x}{An object of class "network.connections" (or compatible data.table/data.frame) containing connection columns (of class "network.connection").}
 
-\item{...}{TBD}
+\item{...}{Additional arguments passed to `as.matrix`.}
 }
 \value{
-TBD
+A numeric matrix of network connections (rows = units/contexts, columns = connections).
 }
 \description{
-Title
+This S3 method extracts the connection columns from a network connections object and returns them as a numeric matrix. It is used to facilitate matrix operations on network connection data.
 }

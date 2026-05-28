@@ -7,13 +7,16 @@
 namesToAdjacencyKey(vector, upper_triangle = TRUE)
 }
 \arguments{
-\item{vector}{Vector representing the names of a square matrix}
+\item{vector}{Vector representing the names of a square matrix.}
 
-\item{upper_triangle}{Not Implemented}
+\item{upper_triangle}{Not Implemented.}
+}
+\value{
+A character matrix with 2 rows and choose(length(vector), 2) columns. Each column contains a pair of names representing a unique adjacency (edge) between nodes in the original square matrix.
 }
 \description{
-Convert a vector of strings, representing names of a square matrix, to an adjacency
+Convert a vector of strings, representing the names of a square matrix, to an adjacency key matrix.
 }
 \details{
-Returns a matrix of 2 rows by choose(length(vector), 2) columns
+Returns a matrix with 2 rows and choose(length(vector), 2) columns, where each column represents a unique pair of names from the input vector, corresponding to the upper triangle of a square matrix.
 }

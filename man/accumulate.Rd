@@ -2,33 +2,41 @@
 % Please edit documentation in R/accum_multidim_c.R
 \name{accumulate}
 \alias{accumulate}
-\title{Process Multidimensional Array with Context Model}
+\title{Accumulate Connections from a Multidimensional Array and Context Model}
 \usage{
 accumulate(
   context_model,
   codes,
-  win_weights = windows_weights(context_model$model$raw.input),
+  tensor = context_tensor(context_model$model$raw.input),
   time_column = NULL,
-  ordered = TRUE,
-  binary = FALSE
+  ordered = FALSE,
+  binary = TRUE
 )
 }
 \arguments{
-\item{context_model}{A context model object containing contexts to be applied to the data.}
+\item{context_model}{A context model object (as produced by `tma::contexts`) containing contexts for each unit of analysis.}
 
-\item{codes}{A vector of codes used to index relevant information in the context model.}
+\item{codes}{Character vector of code names to use for constructing adjacency matrices.}
 
-\item{win_weights}{A multidimensional array that holds the data to be processed.}
+\item{tensor}{A multidimensional array (see `context_tensor`) containing window and weight values for each sender/receiver/mode combination. Defaults to an array generated from the context model's raw input.}
 
-\item{time_column}{A string representing the name of the column containing time data in the context model.}
+\item{time_column}{Character string giving the name of the time column in the context model. If NULL, uses the default context column ID.}
 
-\item{ordered}{A logical value indicating whether the results should be ordered (default is TRUE).}
+\item{ordered}{Logical; if TRUE (default), computes ordered adjacency matrices (ONA); if FALSE, computes unordered (ENA-style) matrices.}
 
-\item{binary}{A logical value indicating whether the connection should be binary (default is TRUE).}
+\item{binary}{Logical; if TRUE (default), binarizes the connection counts (not currently implemented in this function).}
 }
 \value{
-A list of results obtained from applying the context model to each context in the multidimensional array.
+The input `context_model` with additional fields:
+  \item{connection.counts}{A data.table of accumulated connection counts for each unit.}
+  \item{model$row.connection.counts}{A data.table of row-level connection matrices for each unit.}
+  \item{meta.data}{A data.table of metadata columns for each unit.}
+  The class of the returned object is updated to reflect the type of accumulation (ordered or unordered).
 }
 \description{
-This function applies a context model to a multidimensional array, utilizing sender, receiver, and mode columns derived from the input array's attributes.
+This function processes a context model and a multidimensional array of window/weight parameters to compute connection counts for each unit of analysis.
+It applies the context model to the array, using sender, receiver, and mode columns (as defined in the array attributes), and accumulates co-occurrence or adjacency matrices for each unit. The result is a set of connection counts and row-level connection matrices, suitable for network analysis (e.g., ENA/ONA).
+}
+\details{
+This function is used to perform accumulation of network connections for each unit, based on the context model and tensor parameters. It supports both ordered and unordered accumulation, and returns results suitable for further network analysis or visualization.
 }

@@ -2,14 +2,16 @@
 % Please edit documentation in R/utils.R
 \name{as.unordered.default}
 \alias{as.unordered.default}
-\title{Default Method for X}
+\title{Default Method for as.unordered}
 \usage{
 \method{as.unordered}{default}(x)
 }
 \arguments{
 \item{x}{Any object that you want to apply the default method to.}
 }
+\value{
+The input object \code{x}, unchanged.
+}
 \description{
-This function provides the default method for handling the input `x`.
-It prints a message indicating that the default method is being executed.
+This function provides the default method for handling the input \code{x} when no specific method is available.
 }

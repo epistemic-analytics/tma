@@ -2,22 +2,43 @@
 % Please edit documentation in R/hoo.R
 \name{contexts}
 \alias{contexts}
-\title{contexts}
+\title{Create Contexts for Units of Analysis}
 \usage{
 contexts(x, hoo_rules, units_by = NULL, split_rules = NULL)
 }
 \arguments{
-\item{x}{TBD}
+\item{x}{A data.frame or TMA model object containing the raw input data.}
 
-\item{hoo_rules}{TBD}
+\item{hoo_rules}{A list of logical expressions (see [rules()]) specifying how to subset the data for each context/unit.}
 
-\item{units_by}{TBD}
+\item{units_by}{Character vector of column names to use for defining units of analysis (e.g., c("userID", "condition")).}
 
-\item{split_rules}{TBD}
+\item{split_rules}{Optional. Either a function or an expression specifying how to further split each context (e.g., by time period or other grouping variable).}
 }
 \value{
-TBD
+A TMA model object with updated contexts for each unit, where each context is a data.table containing only the relevant rows for that unit and context. The object includes attributes for unit labels and context row indices.
 }
 \description{
-contexts
+This function generates context data for each unit of analysis in your dataset, applying subsetting rules ("hoo rules") and optional splitting rules to organize the data for network accumulation.
+}
+\details{
+This function is a core part of the TMA workflow. It first applies the specified `hoo_rules` to subset the data for each unit, then (optionally) applies `split_rules` to further divide each context. The resulting contexts are used in subsequent accumulation and network analysis steps.
+}
+\examples{
+data(test_mockdata, package = "tma")
+mock_data <- test_mockdata[test_mockdata$chatGroup == "PAM",]
+unit_cols <- c("userID", "condition")
+codes <- c("A", "B", "C")
+HOO_rules_model <- rules(
+  modality \%in\% "chat" & chatGroup \%in\% UNIT$chatGroup & condition \%in\% UNIT$condition, 
+  modality \%in\% "resource" & userID \%in\% UNIT$userID & condition \%in\% UNIT$condition
+)
+ 
+context_model <- contexts(
+  x = mock_data,
+  units = unit_cols,
+  hoo_rules = HOO_rules_model
+)
+str(context_model$model$contexts)
+
 }

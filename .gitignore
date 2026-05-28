@@ -9,3 +9,13 @@
 inst/doc
 
 demo/
+
+# Claude Code working directory (worktrees, session state)
+.claude/
+
+# R CMD check
+*.Rcheck/
+
+# Python bytecode
+__pycache__/
+*.py[cod]

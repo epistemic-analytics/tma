@@ -1,9 +1,11 @@
-# Adjacency Key
-#
-# @param codes character vector
-# @param upper logical, default, TRUE, returns the key for the upper triangle, FALSE - not implemented yet
-#
-# @return matrix
+#' Adjacency Key
+#'
+#' @param codes character vector
+#' @param upper logical, default, TRUE, returns the key for the upper triangle, FALSE - not implemented yet
+#' 
+#' @export
+#'
+#' @return matrix
 adjacency_key <- function(codes, upper = TRUE) {
   expanded <- expand.grid(codes, codes);
   rownames(expanded) <- apply(expanded, 1, paste, collapse = " & ");
@@ -93,6 +95,19 @@ reclass <- function(x, cl, stringsAsFactors = FALSE) {
   x
 }
 
+# Reclass columns of a data.frame or data.table
+# @param df data.frame or data.table
+# @param class_vec character vector of new classes, length must equal ncol(df)
+# 
+# @return data.frame or data.table with re-classed columns
+reclass_columns <- function(df, class_vec) {
+  stopifnot(length(class_vec) == ncol(df))
+  for (i in seq_along(class_vec)) {
+    df[[i]] <- reclass(df[[i]], class_vec[i])
+  }
+  df
+}
+
 # paste columns to together
 #
 # @param x coerced to data.frame prior to subseting cols
@@ -104,41 +119,45 @@ merge_columns <- function(x, cols = colnames(x), sep = ".") {
   do.call(paste, c(as.data.frame(x)[, cols, drop = FALSE], sep = sep))
 }
 
-#' TBD
+##
+#' Convert Adjacency Key to Character (S3 method)
 #'
-#' @param x TBD
-#' @param ... TBD
+#' This S3 method converts an adjacency key object (typically a 2-row matrix or list of pairs) into a character vector, concatenating each pair with ' & '.
 #'
-#' @return TBD
+#' @param x An adjacency key object (matrix or list) to convert to character.
+#' @param ... Additional arguments (unused).
+#'
+#' @return A character vector where each element is a concatenation of the adjacency key pair.
 #' @export
 'as.character.adjacency.key' <- function(x, ...) {
-  # collapse = " & "
-  # apply(x, 1, paste, collapse = " & ")
   mapply(paste, x[[1]], x[[2]], MoreArgs = list(sep = " & "))
 }
-#' TBD
+
+#' Convert Adjacency Key to Double (S3 method)
 #'
-#' @param x TBD
-#' @param ... TBD
+#' This S3 method converts an adjacency key object to a numeric (double) vector, applying as.numeric to each element.
 #'
-#' @return TBD
+#' @param x An adjacency key object (matrix or list) to convert to numeric.
+#' @param ... Additional arguments (unused).
+#'
+#' @return A numeric vector representation of the adjacency key.
 #' @export
 'as.double.adjacency.key' <- function(x, ...) {
   sapply(x, as.numeric)
 }
 
-# @export
-#' Title
+##
+#' Print Method for Network Matrix (S3 method)
 #'
-#' @param x TBD
-#' @param include.meta TBD
-#' @param ... TBD
+#' This S3 method prints a network matrix object, optionally including metadata. It adjusts the class and attaches adjacency key names for improved readability.
 #'
-#' @return TBD
+#' @param x An object of class "network.matrix" to print.
+#' @param include.meta Logical; whether to include metadata in the printout (currently not used).
+#' @param ... Additional arguments passed to lower-level print methods.
+#'
+#' @return Invisibly returns the printed object.
 #' @export
 'print.network.matrix' <- function(x, include.meta = TRUE, ...) {
-  # print("Test: add the meta")
-  # browser()
   x_ <- data.table::copy(x);
   x_model <- attr(x, "model");
   x_cls <- class(x);
@@ -146,55 +165,20 @@ merge_columns <- function(x, cols = colnames(x), sep = ".") {
   if(!is.null(x_model)) {
     adj_key <- x_model$rotation$adjacency.key;
     attr(x_, "names") <- as.character(adj_key);
-    # data.table:::print.data.table(data.table:::cbind.data.table(y$meta.data, y$networks)); 
   }
   
   print(x_);
 }
 
-#  Title
-# 
-#  @param x TBD
-#  @param ... TBD
-#  @param with.meta TBD
-# 
-#  @return TBD
-# @export
-# '[.network.matrix' <- function(
-#   x, with.meta = FALSE, ...
-# ) {
-#   browser()
-#   x_ <- data.table::copy(x);
-#   x_cls <- class(x);
-#   class(x_) <- x_cls[ (which(x_cls == "network.matrix") + 1):length(x_cls) ];
-#   
-#   # x_subset <- data.table:::`[.data.table`(x_, ...);
-#   
-#   # meta_ <- NULL;
-#   meta_ <- attr(x, "model")$meta.data;
-#   if(with.meta == TRUE) {
-#     # meta_subset <- data.table:::`[.data.table`(attr(x, "model")$meta.data, ...);
-#   
-#     y_ <- data.table::cbind.data.table(meta_, x_);
-#     
-#     # browser()
-#     y_subset <- data.table::`[.data.table`(y_, ...);
-#   }
-#   else {
-#     y_rows <- data.table::`[.data.table`(meta_, ..., which = TRUE);
-#     y_subset <- data.table::`[.data.table`(x_, y_rows);
-#   }
-# 
-#   y_subset; 
-# }
-
-
-#' Extract from network.matrix easily using metadata
+##
+#' Extract Metadata or Columns from Network Matrix (S3 method)
 #'
-#' @param x [TBD]
-#' @param i [TBD]
+#' This S3 method allows convenient extraction of metadata columns from a network matrix object using the $ operator. If the requested column is metadata, it is returned from the model's meta.data; otherwise, the standard extraction is performed.
 #'
-#' @return [TBD]
+#' @param x An object of class "network.matrix".
+#' @param i Name of the column or metadata field to extract.
+#'
+#' @return The requested column or metadata field from the network matrix.
 #' @export
 "$.network.matrix" <- function (x, i) {
   meta.data <- attr(x, "model")$meta.data;
@@ -232,36 +216,6 @@ merge_columns <- function(x, cols = colnames(x), sep = ".") {
   }
 }
 
-
-# Extract metadata easily
-#
-# @param x [TBD]
-# @param i [TBD]
-#
-# @return [TBD]
-# @export
-# "$.network.metadata" <- function(x, i, which.rows = TRUE) {
-#   browser()
-#   parts <- unlist(strsplit(
-#     x = as.character(sys.call())[2], split = "\\$"
-#   ))[1:2];
-#   
-#   col <- as.character(sys.call(1)[[2]])[3];
-#   val <- as.character(sys.call(1)[[3]]);
-# 
-#   set <- get(parts[1], envir = parent.frame())
-#   m <- set[[parts[2]]];
-#   rows <- as.vector(m[[col]]) == val;
-#   if(which.rows == TRUE) {
-#     rows;
-#   }
-#   else {
-#     data.table:::`[.data.table`(m, rows);
-#   }
-# }
-
-
-
 #' Re-class vector as network.connection
 #'
 #' @param x Vector to re-class
@@ -276,12 +230,16 @@ as.network.connection <- function(x) {
   x
 }
 
-#' Title
+##
+#' Convert Network Connections to Matrix (S3 method)
 #'
-#' @param x TBD 
-#' @param ... TBD
+#' This S3 method extracts the connection columns from a network connections object and returns them as a numeric matrix. It is used to facilitate matrix operations on network connection data.
 #'
-#' @return TBD
+#' @param x An object of class "network.connections" (or compatible data.table/data.frame) containing connection columns (of class "network.connection").
+#' @param ... Additional arguments passed to `as.matrix`.
+#'
+#' @return A numeric matrix of network connections (rows = units/contexts, columns = connections).
+#'
 #' @export
 as.matrix.network.connections <- function(x, ...) {
   x_ <- data.table::copy(x);
@@ -291,14 +249,18 @@ as.matrix.network.connections <- function(x, ...) {
   as.matrix(x_[, c(code_columns), with = F], ...);
 }
 
-#' Title
+##
+#' Column Sums for ENA Matrices (S3 method)
 #'
-#' @param x TBD
-#' @param na.rm TBD
-#' @param dims TBD
-#' @param binary TBD
+#' This S3 method computes column sums for ENA matrix objects, with optional binarization. It is used to summarize connection counts across rows (e.g., for each unit or context).
 #'
-#' @return TBD
+#' @param x An object of class "ena.matrix" (or compatible matrix/data.frame) containing connection data.
+#' @param na.rm Logical; whether to remove missing values (passed to `colSums`).
+#' @param dims Integer; which dimensions to sum over (passed to `colSums`).
+#' @param binary Logical; if TRUE, binarizes the matrix before summing (i.e., all nonzero values become 1).
+#'
+#' @return A numeric vector of column sums for the matrix.
+#'
 #' @export
 'colSums.ena.matrix' <- function(x, na.rm = FALSE, dims = 1L, binary = FALSE) {
   x_mat <- as.matrix(x);
@@ -318,7 +280,7 @@ as.matrix.network.connections <- function(x, ...) {
 #'
 #' @export
 'as.unordered.ordered.ena.connections' <- function(x) {
-  m <- as.matrix(x);
+  m <- as.matrix.ena.matrix(x);  # strips ena.metadata cols before conversion
   sq_size <- sqrt(ncol(m));
   ind_mat <- matrix(seq.int(ncol(m)), nrow = sq_size, ncol = sq_size);
   ind_ut <- ind_mat[upper.tri(ind_mat)];
@@ -334,11 +296,15 @@ as.matrix.network.connections <- function(x, ...) {
   m_unordered
 }
 
-#' Title 
+##
+#' Convert Ordered Row Connections to Unordered (S3 method)
 #'
-#' @param x TBD
+#' This S3 method takes a matrix or data frame of ordered row connections (e.g., from ONA) and produces an unordered version by summing upper and lower triangular elements for each connection.
 #'
-#' @return TBD
+#' @param x An object of class "ordered.row.connections" (or compatible matrix/data.frame) containing ordered connection data. The input should be a square matrix or have square number of columns.
+#'
+#' @return A data.table with unordered row connections, reclassified as "unordered.row.connections", "row.connections", and "ena.matrix".
+#'
 #' @export
 'as.unordered.ordered.row.connections' <- function(x) {
   # m <- as.matrix(x);
@@ -358,18 +324,16 @@ as.matrix.network.connections <- function(x, ...) {
   m_unordered
 }
 
-#' Default Method for X
+#' Default Method for as.unordered
 #'
-#' This function provides the default method for handling the input `x`.
-#' It prints a message indicating that the default method is being executed.
+#' This function provides the default method for handling the input \code{x} when no specific method is available.
 #'
 #' @param x Any object that you want to apply the default method to.
 #'
-#' @return NULL
-#'
+#' @return The input object \code{x}, unchanged.
 #' @export
 'as.unordered.default' <- function(x){
-  cat("This is the default method. \n")
+  x
 }
 
 #' Convert to Unordered Factor
@@ -423,19 +387,23 @@ as.matrix.ena.matrix <- function(x, ...) {
   as.matrix(x, ...)
 }
 
-##
+namesToAdjacencyKey <- function(vector, upper_triangle = TRUE) {
+  upperTriIndices = connection_indices(length(vector)) + 1;
+  matrix(vector[upperTriIndices], nrow=2)
+}
+
 #' @title Names to Adjacency Key
 #'
-#' @description Convert a vector of strings, representing names of a square matrix, to an adjacency
+#' @description Convert a vector of strings, representing the names of a square matrix, to an adjacency key matrix.
 #'
-#' @details Returns a matrix of 2 rows by choose(length(vector), 2) columns
+#' @details Returns a matrix with 2 rows and choose(length(vector), 2) columns, where each column represents a unique pair of names from the input vector, corresponding to the upper triangle of a square matrix.
 #'
-#' @param vector Vector representing the names of a square matrix
-#' @param upper_triangle Not Implemented
+#' @param vector Vector representing the names of a square matrix.
+#' @param upper_triangle Not Implemented.
 #'
+#' @return A character matrix with 2 rows and choose(length(vector), 2) columns. Each column contains a pair of names representing a unique adjacency (edge) between nodes in the original square matrix.
 #' @export
-##
 namesToAdjacencyKey <- function(vector, upper_triangle = TRUE) {
-  upperTriIndices = triIndices(length(vector)) + 1;
+  upperTriIndices = connection_indices(length(vector)) + 1;
   matrix(vector[upperTriIndices], nrow=2)
 }

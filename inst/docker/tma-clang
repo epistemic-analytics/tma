@@ -1,0 +1,33 @@
+FROM debian:sid
+
+# Set noninteractive mode for apt
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && \
+    apt-get install -y \
+      wget curl git locales \
+      clang-19 clang++-19 flang-19 \
+      gfortran \
+      libblas-dev liblapack-dev \
+      libreadline-dev libncurses-dev \
+      libcurl4-openssl-dev libssl-dev libxml2-dev \
+      texlive texlive-latex-extra texlive-fonts-extra texinfo \
+      pandoc qpdf \
+      build-essential
+
+RUN apt-get update && apt-get install -y \
+    xorg-dev libx11-dev libxt-dev libxext-dev libsm-dev libice-dev
+RUN apt-get install -y libpcre2-dev
+
+# Set locale (CRAN uses en_US.UTF-8)
+RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && locale-gen
+
+# Download and build R-devel with Clang and gfortran (CRAN fallback)
+RUN wget https://cran.r-project.org/src/base-prerelease/R-devel.tar.gz && \
+    tar -xzf R-devel.tar.gz && \
+    cd R-devel && \
+    ./configure CC=clang-19 CXX=clang++-19 FC=gfortran --with-blas --with-lapack && \
+    make -j$(nproc) && \
+    make install
+
+ENV PATH="/usr/local/bin:${PATH}"

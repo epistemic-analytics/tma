@@ -2,18 +2,18 @@
 % Please edit documentation in R/decay.R
 \name{decay}
 \alias{decay}
-\title{decay}
+\title{Internal: Decay function factory (legacy)}
 \usage{
 decay(what, ...)
 }
 \arguments{
-\item{what}{function to use as decay}
+\item{what}{Function to use as the decay kernel.}
 
-\item{...}{named parameter list to pass to `what`}
+\item{...}{Named parameters to pass to `what`.}
 }
 \value{
-TB
+A function that applies the specified decay kernel to its input.
 }
 \description{
-decay
+Internal factory for creating decay functions, used in TMA v0.1.0. Not exported. Kept for backward compatibility with legacy code.
 }

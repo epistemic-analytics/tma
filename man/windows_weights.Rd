@@ -2,33 +2,20 @@
 % Please edit documentation in R/temp_accum_multidim.R
 \name{windows_weights}
 \alias{windows_weights}
-\title{windows_weights}
+\title{Deprecated Alias for context_tensor}
 \usage{
-windows_weights(
-  df,
-  sender_cols = NULL,
-  receiver_cols = NULL,
-  mode_column = ATTR_NAMES$CONTEXT_ID,
-  default_window = 1,
-  default_weight = 1
-)
+windows_weights(...)
 }
 \arguments{
-\item{df}{data.frame}
-
-\item{sender_cols}{Sender columns}
-
-\item{receiver_cols}{Receiver columns}
-
-\item{mode_column}{Mode column}
-
-\item{default_window}{Default window}
-
-\item{default_weight}{Default weight}
+\item{...}{Arguments passed to \code{context_tensor()}.}
 }
 \value{
-A multidimensional array with [S, R, M, weight/window]
+A multidimensional array with dimensions [sender(s), receiver(s), mode(s), weight/window], where the last axis has two levels: "weight" and "window".
+        The array is initialized with the default weight and window values, and has named dimensions for easy indexing.
 }
 \description{
-windows_weights
+Use \code{context_tensor()} instead. This alias will be removed in a future release.
+}
+\seealso{
+\code{\link{context_tensor}}
 }

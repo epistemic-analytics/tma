@@ -24,21 +24,28 @@ test_that("no senders, no receivers, modality", {
   # Get new TMA results 
   mode_column = "modality"
   
-  multidim_arr <- windows_weights(mock_data, sender_cols = c(), receiver_cols = c(), mode_column, 0, 0)
+  multidim_arr <- context_tensor(mock_data, sender_cols = NULL, receiver_cols = NULL, mode_column, 0, 0)
   
   multidim_arr["chat", "weight"] <- 20
   multidim_arr["resource", "weight"] <- 20
   multidim_arr["chat", "window"] <- 360
   multidim_arr["resource", "window"] <- 1280
 
-  result_old <- accum_multidim(
-    multidim_arr = multidim_arr, 
-    time_column = time_column,
-    codes = codes,
-    context_model = context_model
-  )
+  suppressWarnings({
+    result_old <- accum_multidim(
+      tensor = multidim_arr, 
+      time_column = time_column,
+      codes = codes,
+      context_model = context_model
+    )
+  })
   result_new <- accumulate(
-    context_model = context_model, win_weights = multidim_arr, time_column = time_column, codes = codes, binary = TRUE
+    context_model = context_model, 
+    tensor = multidim_arr, 
+    time_column = time_column, 
+    codes = codes, 
+    binary = TRUE, 
+    ordered = TRUE
   )
   
   # Compare vectors across all 3 units 
@@ -54,7 +61,7 @@ test_that("no senders, no receivers, modality", {
   testthat::expect_equal(user3_old, user3_new)
 })
 
-test_that("sender, no receivers, no modality", {
+testthat::test_that("sender, no receivers, no modality", {
   mock_data <- mock_data[mock_data$chatGroup == "PAM",]
   
   # Initialize TMA units and contexts
@@ -76,21 +83,23 @@ test_that("sender, no receivers, no modality", {
   # Get new TMA results
   sender_cols = c("role")
   
-  multidim_arr <- windows_weights(mock_data, sender_cols = sender_cols, receiver_cols = c(), mode_column = c(), 0, 0)
+  multidim_arr <- context_tensor(mock_data, sender_cols = sender_cols, receiver_cols = c(), mode_column = c(), 0, 0)
   
   multidim_arr["Mentor", "weight"] <- 1
   multidim_arr["Player", "weight"] <- 2
   multidim_arr["Mentor", "window"] <- 360
   multidim_arr["Player", "window"] <- 180
   
-  result_old <- accum_multidim(
-    multidim_arr = multidim_arr, 
-    time_column = time_column,
-    codes = codes,
-    context_model = context_model
-  )
+  suppressWarnings({
+    result_old <- accum_multidim(
+      tensor = multidim_arr, 
+      time_column = time_column,
+      codes = codes,
+      context_model = context_model
+    )
+  })
   result_new <- accumulate(
-    context_model = context_model, win_weights = multidim_arr, time_column = time_column, codes = codes
+    context_model = context_model, tensor = multidim_arr, time_column = time_column, codes = codes, ordered = TRUE
   )
   
   # Compare vectors across all 3 units 
@@ -129,21 +138,23 @@ test_that("no senders, receiver, no modality", {
   # Get new TMA results
   receiver_cols = c("language")
   
-  multidim_arr <- windows_weights(mock_data, sender_cols = c(), receiver_cols = receiver_cols, mode_column = c(), 0, 0)
+  multidim_arr <- context_tensor(mock_data, sender_cols = c(), receiver_cols = receiver_cols, mode_column = c(), 0, 0)
   
   multidim_arr["L1", "weight"] <- 1
   multidim_arr["L2", "weight"] <- 5
   multidim_arr["L1", "window"] <- 360
   multidim_arr["L2", "window"] <- 180
   
-  result_old <- accum_multidim(
-    multidim_arr = multidim_arr, 
-    time_column = time_column,
-    codes = codes,
-    context_model = context_model
-  )
+  suppressWarnings({
+    result_old <- accum_multidim(
+      tensor = multidim_arr, 
+      time_column = time_column,
+      codes = codes,
+      context_model = context_model
+    )
+  })
   result_new <- accumulate(
-    context_model = context_model, win_weights = multidim_arr, time_column = time_column, codes = codes
+    context_model = context_model, tensor = multidim_arr, time_column = time_column, codes = codes, ordered = TRUE
   )
   
   # Compare vectors across all 3 units 
@@ -181,7 +192,7 @@ test_that("sender, no receiver, modality", {
   sender_cols = c("role")
   mode_column = "modality"
   
-  multidim_arr <- windows_weights(mock_data, sender_cols = sender_cols, receiver_cols = c(), mode_column = mode_column, 0, 0)
+  multidim_arr <- context_tensor(mock_data, sender_cols = sender_cols, receiver_cols = c(), mode_column = mode_column, 0, 0)
   
   multidim_arr["Mentor", "chat", "weight"] <- 3
   multidim_arr["Mentor", "resource", "weight"] <- 1
@@ -193,15 +204,16 @@ test_that("sender, no receiver, modality", {
   multidim_arr["Player", "chat", "window"] <- 180
   multidim_arr["Player", "resource", "window"] <- 360
   
-  
-  result_old <- accum_multidim(
-    multidim_arr = multidim_arr, 
-    time_column = time_column,
-    codes = codes,
-    context_model = context_model
-  )
+  suppressWarnings({
+    result_old <- accum_multidim(
+      tensor = multidim_arr, 
+      time_column = time_column,
+      codes = codes,
+      context_model = context_model
+    )
+  })
   result_new <- accumulate(
-    context_model = context_model, win_weights = multidim_arr, time_column = time_column, codes = codes
+    context_model = context_model, tensor = multidim_arr, time_column = time_column, codes = codes, ordered = TRUE
   )
   
   
@@ -242,7 +254,7 @@ test_that("no sender, receiver, modality", {
   receiver_cols = c("language")
   mode_column = "modality"
   
-  multidim_arr <- windows_weights(mock_data, sender_cols = c(), receiver_cols = receiver_cols, mode_column = mode_column, 0, 0)
+  multidim_arr <- context_tensor(mock_data, sender_cols = c(), receiver_cols = receiver_cols, mode_column = mode_column, 0, 0)
   
   multidim_arr["L1", "chat", "weight"] <- 5
   multidim_arr["L1", "resource", "weight"] <- 1
@@ -254,14 +266,16 @@ test_that("no sender, receiver, modality", {
   multidim_arr["L2", "chat", "window"] <- 60
   multidim_arr["L2", "resource", "window"] <- 120
   
-  result_old <- accum_multidim(
-    multidim_arr = multidim_arr, 
-    time_column = time_column,
-    codes = codes,
-    context_model = context_model
-  )
+  suppressWarnings({
+    result_old <- accum_multidim(
+      tensor = multidim_arr, 
+      time_column = time_column,
+      codes = codes,
+      context_model = context_model
+    )
+  })
   result_new <- accumulate(
-    context_model = context_model, win_weights = multidim_arr, time_column = time_column, codes = codes
+    context_model = context_model, tensor = multidim_arr, time_column = time_column, codes = codes, ordered = TRUE
   )
   
   # Compare vectors across all 3 units 
@@ -302,7 +316,7 @@ test_that("sender, receiver, no modality", {
   sender_cols = c("role")
   receiver_cols = c("language")
   
-  win_weights <- windows_weights(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = c(), 0, 0)
+  win_weights <- context_tensor(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = c(), 0, 0)
   
   win_weights["Mentor", "L1", "weight"] <- 1
   win_weights["Mentor", "L2", "weight"] <- 5
@@ -313,15 +327,17 @@ test_that("sender, receiver, no modality", {
   win_weights["Mentor", "L2", "window"] <- 180
   win_weights["Player", "L1", "window"] <- 250
   win_weights["Player", "L2", "window"] <- 200
-  
-  result_old <- accum_multidim(
-    multidim_arr = win_weights, 
-    time_column = time_column,
-    codes = codes,
-    context_model = context_model
-  )
+
+  suppressWarnings({
+    result_old <- accum_multidim(
+      tensor = win_weights, 
+      time_column = time_column,
+      codes = codes,
+      context_model = context_model
+    )
+  })
   result_new <- accumulate(
-    context_model = context_model, win_weights = win_weights, time_column = time_column, codes = codes
+    context_model = context_model, tensor = win_weights, time_column = time_column, codes = codes, ordered = TRUE
   )
   
   
@@ -362,7 +378,7 @@ test_that("sender, receiver, modality", {
   receiver_cols = c("language")
   mode_column = "modality"
   
-  multidim_arr <- windows_weights(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, 0, 0)
+  multidim_arr <- context_tensor(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, 0, 0)
   
   multidim_arr["Mentor", "L1", "chat", "weight"] <- 5
   multidim_arr["Mentor", "L1", "resource", "weight"] <- 5
@@ -383,15 +399,17 @@ test_that("sender, receiver, modality", {
   multidim_arr["Player", "L1", "resource", "window"] <- 200
   multidim_arr["Player", "L2", "chat", "window"] <- 150
   multidim_arr["Player", "L2", "resource", "window"] <- 360
-  
-  result_old <- accum_multidim(
-    multidim_arr = multidim_arr, 
-    time_column = time_column,
-    codes = codes,
-    context_model = context_model
-  )
+
+  suppressWarnings({
+    result_old <- accum_multidim(
+      tensor = multidim_arr, 
+      time_column = time_column,
+      codes = codes,
+      context_model = context_model
+    )
+  })
   result_new <- accumulate(
-    context_model = context_model, win_weights = multidim_arr, time_column = time_column, codes = codes
+    context_model = context_model, tensor = multidim_arr, time_column = time_column, codes = codes, ordered = TRUE
   )
   
   # Compare vectors across all 3 units 
@@ -432,7 +450,7 @@ test_that("senders, receivers, modality", {
   receiver_cols <- c("role", "handwriting")
   mode_column <- "modality"
   
-  multidim_arr <- windows_weights(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, 0, 0)
+  multidim_arr <- context_tensor(mock_data, sender_cols = sender_cols, receiver_cols = receiver_cols, mode_column = mode_column, 0, 0)
   
   
   multidim_arr["Player", "L1", "Player", "poor", "chat", "weight"] <- 1
@@ -503,7 +521,7 @@ test_that("senders, receivers, modality", {
   
   
   result_new <- accumulate(
-    context_model = context_model, win_weights = multidim_arr, time_column = time_column, codes = codes
+    context_model = context_model, tensor = multidim_arr, time_column = time_column, codes = codes, ordered = TRUE
   )
   
   # Get old TMA results
@@ -560,12 +578,14 @@ test_that("no senders, no receivers, no modality", {
     hoo_rules = HOO_rules_model
   )
   
-  multidim_arr <- windows_weights(mock_data, sender_cols = c(), receiver_cols = c(), 1, 1)
+  multidim_arr <- context_tensor(mock_data, sender_cols = c(), receiver_cols = c(), 1, 1)
   result_new <- accumulate(
-    context_model = context_model, win_weights = multidim_arr, codes = codes
+    context_model = context_model, 
+    tensor = multidim_arr, 
+    codes = codes, ordered = TRUE
   )
   result_new2 <- accumulate(
-    context_model = context_model, codes = codes
+    context_model = context_model, codes = codes, ordered = TRUE
   )
   
   testthat::expect_equal(as.matrix(result_new$connection.counts), as.matrix(result_new2$connection.counts))

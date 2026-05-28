@@ -2,20 +2,20 @@
 % Please edit documentation in R/utils.R
 \name{print.network.matrix}
 \alias{print.network.matrix}
-\title{Title}
+\title{Print Method for Network Matrix (S3 method)}
 \usage{
 \method{print}{network.matrix}(x, include.meta = TRUE, ...)
 }
 \arguments{
-\item{x}{TBD}
+\item{x}{An object of class "network.matrix" to print.}
 
-\item{include.meta}{TBD}
+\item{include.meta}{Logical; whether to include metadata in the printout (currently not used).}
 
-\item{...}{TBD}
+\item{...}{Additional arguments passed to lower-level print methods.}
 }
 \value{
-TBD
+Invisibly returns the printed object.
 }
 \description{
-Title
+This S3 method prints a network matrix object, optionally including metadata. It adjusts the class and attaches adjacency key names for improved readability.
 }
