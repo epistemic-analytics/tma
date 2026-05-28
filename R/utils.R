@@ -280,7 +280,7 @@ as.matrix.network.connections <- function(x, ...) {
 #'
 #' @export
 'as.unordered.ordered.ena.connections' <- function(x) {
-  m <- as.matrix(x);
+  m <- as.matrix.ena.matrix(x);  # strips ena.metadata cols before conversion
   sq_size <- sqrt(ncol(m));
   ind_mat <- matrix(seq.int(ncol(m)), nrow = sq_size, ncol = sq_size);
   ind_ut <- ind_mat[upper.tri(ind_mat)];
