@@ -209,10 +209,28 @@ re-deriving the test.
 
 ### 5c. `rENA-api` server — route transmodal models
 
-In `get.conversation` (`server.js` ~L2675): when the model is transmodal, call
-`tma.conversations2` with the TMA-accumulated `x` + `id_col` instead of
-`ena.conversations`. Windowing comes off `x`, so few new params. Standard models
-keep calling `ena.conversations`.
+The generation path already builds the exact object `tma.conversations2` needs:
+`rENA-api/R/ena.generate.R:288-353` does `tma:::contexts()` -> `tma::context_tensor()`
+-> fill `tma_array` -> `tma::accumulate()`. With 5a, that `accum` now carries
+`_function.params$tensor`, so `tma.conversations2(accum, codes, id_col)` works
+directly.
+
+Concrete plan:
+1. Factor the TMA set-building (ena.generate.R:288-353) into a shared internal
+   helper (e.g. `build_tma_context_set(args, file)`), called by BOTH `ena.generate`
+   and a new wrapper — so the Data View windows can't drift from the network.
+2. New rENA.api export `tma.conversations(args)`: build (or reuse) the `accum`
+   via that helper, then `tma::tma.conversations2(accum, codes, id_col="QEID")`;
+   return `rowWindows` + membership.
+3. `webtool/server.js` `get.conversation` (~L2675): when `set.settings.model.isTransmodal`,
+   build the same TMA params the generation block builds (server.js:897-950) and
+   call `/library/rENA.api/R/tma.conversations/json` instead of
+   `/library/rENA/R/ena.conversations/json`. Standard models keep calling
+   `ena.conversations`.
+
+Verification requires a live TMA model on an OpenCPU running the NEW tma (which
+needs the new libqe) -- i.e. it depends on the libqe+tma release landing (or a
+local OpenCPU rebuilt with both). Cannot be unit-tested from the webtool alone.
 
 ### 5d. `rENA-webtool` client — render the richer window-span
 
