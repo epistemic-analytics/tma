@@ -110,7 +110,26 @@ x$`_function.params` <- modifyList(x$`_function.params`, list(
 Minimum the Data View needs: `tensor`, `mode_column`, `codes`, `conversation.by`
 (hoo is already in `model$contexts`).
 
-### 5b. `tma` — new `tma.conversations2` (leave `tma.conversations` untouched)
+### 5b. `libqe` + `tma` — new `tma.conversations2` (leave `tma.conversations` untouched)
+
+The window application is already in C++: `accumulate()` -> `apply_tensor()` ->
+`.Call("_libqe_apply_tensor", ...)`. Per `[[algorithm-placement-policy]]`, the
+per-reference-row window membership must be emitted **from libqe**, not
+reimplemented in R.
+
+- **libqe** — extend `apply_tensor` to optionally return, alongside
+  `row_connection_counts`, the row-level membership: for each reference/receiver
+  row, the sender rows within its modality window that co-occur, each with
+  `distance` and the admitting mode. This is the raw `members` data and it
+  guarantees the Data View matches the network exactly (same code path).
+- **tma** — `tma.conversations2` is a thin wrapper: run the (extended)
+  apply_tensor over the unit's contexts and reshape the membership into
+  `rowWindows` (plus the back-compatible `{conversations, unitConvs, allRows,
+  unitRows, toRemove}`).
+
+Do NOT ship a pure-R re-walk of the window as the production path (it would drift
+from libqe). A throwaway R walk is fine only to prototype the `rowWindows` payload
+and validate the client binding.
 
 Existing users may depend on `tma.conversations`; add a v2 rather than change it.
 
@@ -212,9 +231,24 @@ server data; the richer window-span reach needs `rowWindows`.
 - Client return shape unchanged for standard models; `rowWindows` is optional and
   only present for transmodal.
 
-## 10. Suggested first implementation step
+## 10. Prototype status + first implementation step
 
-Prototype 5a + 5b against `tma::test_mockdata`: persist the tensor, write
-`tma.conversations2`, and assert `members`/`coOccurs` for a known unit+edge match
-`row.connection.counts`. That both proves the algorithm and produces the exact
-`rowWindows` payload the client will bind to.
+Verified so far (against `tma::test_mockdata`):
+- `context_tensor(raw.input, mode_column = "modality")` yields a clean
+  `[modes x {weight,window}]` array indexable by modality name
+  (`ten["chat","window"]`).
+- Setting chat=2 vs resource=6 and accumulating changes
+  `row.connection.counts` vs a uniform tensor (totals 39 -> 54): the per-modality
+  tensor genuinely drives different windows end-to-end. The Data View must mirror
+  this.
+- The window application is `libqe::apply_tensor` (C++); `accumulate` consumes
+  only its `row_connection_counts`.
+
+First implementation step:
+1. libqe — add a membership return to `apply_tensor` (behind a flag).
+2. tma — 5a (persist tensor/mode into `_function.params`) + `tma.conversations2`
+   as a thin reshaper over the extended apply_tensor.
+3. Assert `tma.conversations2` co-occurrences aggregate to `row.connection.counts`
+   for a known unit+edge (self-consistency).
+A pure-R prototype of `rowWindows` may be built first purely to unblock client UI
+work, clearly marked throwaway.
