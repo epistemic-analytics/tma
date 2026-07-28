@@ -129,9 +129,53 @@ reimplemented in R.
 
 Do NOT ship a pure-R re-walk of the window as the production path (it would drift
 from libqe). A throwaway R walk is fine only to prototype the `rowWindows` payload
-and validate the client binding.
+and validate the client binding (see `prototype/rowwindows-proto.R`).
 
 Existing users may depend on `tma.conversations`; add a v2 rather than change it.
+
+#### libqe change — concrete (capture-and-surface, not a new algorithm)
+
+The membership is **already computed** in the hot loop and discarded. Locations:
+- core `qe::apply_tensor_unit` — `libqe/R/inst/include/libqe/accumulation.hpp:379`
+- Rcpp binding `apply_tensor` — `libqe/R/src/libqe_rcpp.cpp:414`
+
+In `apply_tensor_unit`, for each response (reference) row `ri`, the loop at
+accumulation.hpp:424–443 walks ground rows backward and tests membership:
+
+```cpp
+if (times[gr] + row_win > response_time) {   // line 435 — the window test
+    gri_v.push_back(gr);                       // line 436 — in-window ground rows (== members)
+    ...                                         // row_win (431–433) = resolved per-modality window
+}                                               // grw_v = per-member weight
+```
+
+`gri_v` is exactly the per-reference-row membership; it is used for the weighted
+ground sum then thrown away. The returned `TensorNetworks` (accumulation.hpp:343)
+carries only aggregated `connection_counts` + `row_connection_counts`.
+
+Edits (all additive, flag-gated):
+1. `TensorNetworks` struct (accumulation.hpp:343): add
+   `std::vector<std::vector<int>> row_window_members;` (the `gri_v` per response
+   row) and a parallel `std::vector<std::vector<double>> row_window_wins;`
+   (the `row_win` per member).
+2. `apply_tensor_unit` (~line 445): `push_back` the already-computed `gri_v` /
+   `row_win` into those fields. One line per response row; no math change. Gate
+   with a `bool return_members = false` param so it is zero-cost when off.
+3. Rcpp `apply_tensor` (libqe_rcpp.cpp:427): add the param; when set, add
+   `_("row_window_members") = ...` to the returned List (nested vectors → R list
+   of integer vectors, 0->1-based; order matches `unit_rows`).
+4. Regenerate + rebuild: `Rcpp::compileAttributes()` (updates `RcppExports.*`),
+   reinstall libqe, cut a libqe release.
+
+Notes:
+- The window test is time-based (`times[gr] + row_win`), so it covers both line-
+  and time-based windows natively; `rowWindows.distance` reflects whichever.
+- Capturing `row_win` per member gives the exact admitting window (more precise
+  than a single `windowByMode`) — the richer UI can use it directly.
+- `admittedBy` = the ground (sender) row's modality; the receiver dims are
+  overridden to the response row's values at line 429 before the window lookup.
+- Risk is low: additive struct field + flag-gated return + no accumulation-math
+  change. Cost is the Rcpp conversion + libqe build/release cycle.
 
 ```r
 tma.conversations2 <- function(x, units, units.by = NULL, codes,
