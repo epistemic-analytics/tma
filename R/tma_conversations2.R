@@ -76,10 +76,16 @@ tma.conversations2 <- function(x, codes = NULL, id_col = "QEID") {
 
     for (i in seq_along(unit_rows)) {
       ur   <- unit_rows[i]                 # 1-based position in ctx_o
+      # A reference row must itself carry >=1 of the queried (edge) codes --
+      # rows with none are not connection references for this edge.
+      if (sum(codeMat[ur, ]) == 0) next
       mem  <- res$row_window_members[[i]]  # 1-based positions in ctx_unit_to_last (== ctx_o[<= last])
       wins <- res$row_window_wins[[i]]
 
-      windowHasCoOccur <- sum(codeMat[c(mem, ur), , drop = FALSE]) > 1
+      # Edge co-occurrence: EVERY queried code appears somewhere in the window
+      # (the reference row + its in-window members) -- i.e. the edge's endpoints
+      # both fall inside the window, not merely >=2 code instances.
+      windowHasCoOccur <- all(colSums(codeMat[c(mem, ur), , drop = FALSE]) > 0)
       members <- lapply(seq_along(mem), function(k) {
         g <- mem[k]
         list(row = ids[g], mode = modev[g], distance = ur - g,
