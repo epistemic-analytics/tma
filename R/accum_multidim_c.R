@@ -154,6 +154,17 @@ accumulate <- function(
   
   context_model$meta.data <- context_model$connection.counts[, sapply(context_model$connection.counts, is, "ena.metadata"), with = FALSE];
   class(context_model$meta.data) = c("ena.matrix", class(context_model$meta.data));
-  
+
+  # 5a: persist the windowing config so the accumulated object is self-describing
+  # (recreate-the-model intent) and consumable by tma.conversations2, which needs
+  # the resolved per-modality window/weight tensor to reproduce the exact windows.
+  # See design/dataview-flexible-window.md.
+  context_model$`_function.params`$tensor      <- tensor;
+  context_model$`_function.params`$mode_column <- mode_cols;
+  context_model$`_function.params`$codes       <- codes;
+  context_model$`_function.params`$time_column <- time_column;
+  context_model$`_function.params`$ordered     <- ordered;
+  context_model$`_function.params`$binary      <- binary;
+
   return(context_model);
 }
