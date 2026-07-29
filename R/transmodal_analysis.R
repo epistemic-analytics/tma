@@ -1,5 +1,18 @@
-#' @title TMA for ENA
-#' @description TMA for ENA. rENA is used to create and visualize network models of discourse and other phenomena from coded data using Epistemic Network Analysis (ENA).
+#' @title Transmodal Analysis (TMA)
+#' @description
+#' TMA is a computational framework for analyzing complex multimodal data. It
+#' extends state-dependent models such as Epistemic Network Analysis (ENA) to
+#' account for diverse data streams, addressing challenges such as varying
+#' temporal scales and learner characteristics to improve the robustness and
+#' interpretability of findings.
+#'
+#' The package imports, preprocesses, and accumulates coded data across
+#' modalities with granular control over windows and weights, producing
+#' connection structures that downstream packages (e.g. rENA, ONA) can model and
+#' visualize.
+#'
+#' For methodological details, see Shaffer, Wang, and Ruis (2025), "Transmodal
+#' Analysis," \doi{10.18608/jla.2025.8423}.
 #' @name tma
 #' 
 #' @import stats
