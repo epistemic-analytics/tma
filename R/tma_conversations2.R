@@ -48,16 +48,33 @@ tma.conversations2 <- function(x, codes = NULL, id_col = "QEID") {
 
   cols_to_encode <- c(send_cols, recv_cols, mode_cols)
   cols_unq       <- unique(cols_to_encode)
-  # Global factor levels for the context (mode/sender/receiver) columns, taken
-  # from the SAME full frame context_tensor() was dimensioned from
-  # (get_unique_values() -> sort(unique(.))). A per-context as.factor() would
-  # collapse a single-modality conversation to level 1 and read the WRONG
-  # modality's window cell -- e.g. a SecondHalf-only context reading FirstHalf's
-  # window (accumulate() dodges this only because its columns are pre-factored
-  # with global levels upstream). Encoding each context against these global
-  # levels keeps the row lookup aligned with the tensor's physical axes.
+  # Global factor levels for the context (mode/sender/receiver) columns. A
+  # per-context as.factor() would collapse a single-modality conversation to
+  # level 1 and read the WRONG modality's window cell -- e.g. a SecondHalf-only
+  # context reading FirstHalf's window (accumulate() dodges this only because
+  # its columns are pre-factored with global levels upstream). Encoding each
+  # context against these global levels keeps the row lookup aligned with the
+  # tensor's physical axes.
+  #
+  # The tensor's own per-axis dimnames ARE that global order
+  # (context_tensor -> get_unique_values -> sort(unique(.))), and -- unlike
+  # x$model$raw.input -- they survive when this runs on a set reused from an
+  # ena.generate session (raw.input is stripped off the returned set). Prefer
+  # them; fall back to raw.input only if an axis has no usable names.
+  dn          <- dimnames(tensor)
+  axis_levels <- function(cc) {
+    si <- match(cc, send_cols); if (!is.na(si)) return(dn[[paste0("sender_", si)]])
+    ri <- match(cc, recv_cols); if (!is.na(ri)) return(dn[[paste0("receiver_", ri)]])
+    if (length(mode_cols) && cc == mode_cols)   return(dn[["modes"]])
+    NULL
+  }
   raw_full   <- x$model$raw.input
-  ctx_levels <- lapply(cols_unq, function(cc) sort(unique(raw_full[[cc]])))
+  ctx_levels <- lapply(cols_unq, function(cc) {
+    ax <- axis_levels(cc)
+    if (!is.null(ax))               as.character(ax)
+    else if (!is.null(raw_full))    as.character(sort(unique(raw_full[[cc]])))
+    else stop("tma.conversations2: cannot resolve global levels for column ", cc)
+  })
   names(ctx_levels) <- cols_unq
 
   process_ctx <- function(ctx_o) {
@@ -67,7 +84,7 @@ tma.conversations2 <- function(x, codes = NULL, id_col = "QEID") {
     # ---- prep identical to accumulate() so windows match the network ----
     ctx__ <- data.table::copy(ctx_o)
     if (length(cols_to_encode) && !all(sapply(ctx__[, ..cols_to_encode], is.numeric))) {
-      ctx__[, (cols_unq) := lapply(cols_unq, function(cc) match(ctx__[[cc]], ctx_levels[[cc]]))]
+      ctx__[, (cols_unq) := lapply(cols_unq, function(cc) match(as.character(ctx__[[cc]]), ctx_levels[[cc]]))]
     }
     unit_context_lookup <- as.matrix(ctx__[, ..cols_to_encode])
     unit_to_last <- seq.int(unit_rows[length(unit_rows)])
