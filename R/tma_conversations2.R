@@ -46,16 +46,28 @@ tma.conversations2 <- function(x, codes = NULL, id_col = "QEID") {
   unitRowsAll <- integer()
   toRemove    <- integer()
 
+  cols_to_encode <- c(send_cols, recv_cols, mode_cols)
+  cols_unq       <- unique(cols_to_encode)
+  # Global factor levels for the context (mode/sender/receiver) columns, taken
+  # from the SAME full frame context_tensor() was dimensioned from
+  # (get_unique_values() -> sort(unique(.))). A per-context as.factor() would
+  # collapse a single-modality conversation to level 1 and read the WRONG
+  # modality's window cell -- e.g. a SecondHalf-only context reading FirstHalf's
+  # window (accumulate() dodges this only because its columns are pre-factored
+  # with global levels upstream). Encoding each context against these global
+  # levels keeps the row lookup aligned with the tensor's physical axes.
+  raw_full   <- x$model$raw.input
+  ctx_levels <- lapply(cols_unq, function(cc) sort(unique(raw_full[[cc]])))
+  names(ctx_levels) <- cols_unq
+
   process_ctx <- function(ctx_o) {
     unit_rows <- attr(ctx_o, "tma.unit_rows")
     if (is.null(unit_rows) || length(unit_rows) == 0) return(invisible())
 
     # ---- prep identical to accumulate() so windows match the network ----
     ctx__ <- data.table::copy(ctx_o)
-    cols_to_encode <- c(send_cols, recv_cols, mode_cols)
-    cols_unq <- unique(cols_to_encode)
-    if (!all(sapply(ctx__[, ..cols_to_encode], is.numeric))) {
-      ctx__[, (cols_unq) := lapply(.SD, function(v) as.numeric(as.factor(v))), .SDcols = cols_unq]
+    if (length(cols_to_encode) && !all(sapply(ctx__[, ..cols_to_encode], is.numeric))) {
+      ctx__[, (cols_unq) := lapply(cols_unq, function(cc) match(ctx__[[cc]], ctx_levels[[cc]]))]
     }
     unit_context_lookup <- as.matrix(ctx__[, ..cols_to_encode])
     unit_to_last <- seq.int(unit_rows[length(unit_rows)])
