@@ -153,21 +153,23 @@ class TMA:
 
             raw_networks[unit_idx] = result.connection_counts[:n_connections]
 
-        # 5. Normalize
+        # 5. Normalize. pylibqe's normalization submodule exposes these as
+        # normalize_networks (per-row L2 -> unit sphere, == rENA fun_sphere_norm)
+        # and scale_networks (scale by the largest row norm, == fun_skip_sphere_norm).
         if norm == "sphere":
-            normed = normalization.sphere_norm(raw_networks)
+            normed = normalization.normalize_networks(raw_networks)
         else:
-            normed = normalization.skip_sphere_norm(raw_networks)
+            normed = normalization.scale_networks(raw_networks)
 
         # 6. SVD + position (same pipeline as pyENA)
-        centered = modeling.center_data(normed)
+        centered = modeling.center_points(normed)
         _, _, Vt = np.linalg.svd(centered, full_matrices=False)
         rotation = Vt.T[:, :dims]
         t = centered @ rotation
 
         non_zero = normed.sum(axis=1) != 0
         if non_zero.any():
-            positions = modeling.lws_lsq_positions(
+            positions = modeling.node_positions(
                 np.ascontiguousarray(normed[non_zero]),
                 np.ascontiguousarray(t[non_zero]),
                 dims,
