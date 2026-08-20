@@ -9,10 +9,10 @@ Encoding: UTF-8
 Description: A robust computational framework for analyzing complex multimodal data. Extends existing state-dependent models to account for diverse data streams, addressing challenges such as varying temporal scales and learner characteristics to improve the robustness and interpretability of findings. For methodological details, see Shaffer, Wang, and Ruis (2025) "Transmodal Analysis" <doi:10.18608/jla.2025.8423>.
 LazyData: TRUE
 Depends:
-    R (>= 3.6),
-    data.table
+    R (>= 3.6)
 License: GPL-3
 Imports:
+    data.table,
     stats,
     methods,
     rlang,
