@@ -34,7 +34,6 @@ cran-comments.md
 ^data-raw$
 
 public/
-vignettes/
 
 lastMiKTeXException
 

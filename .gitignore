@@ -19,3 +19,6 @@ demo/
 # Python bytecode
 __pycache__/
 *.py[cod]
+
+# Local vignette builds
+vignettes/*.html

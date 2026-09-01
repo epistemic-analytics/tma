@@ -1,0 +1,281 @@
+---
+title: "Getting Started with Transmodal Analysis (TMA)"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting Started with Transmodal Analysis (TMA)}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+## Introduction
+
+**Transmodal Analysis (TMA)** is a computational framework for analyzing complex multimodal data in Quantitative Ethnography (QE). It extends state-dependent modeling frameworks such as **Epistemic Network Analysis (ENA)** to account for diverse, concurrent data streams—such as verbal communications, tool usage, eye-tracking events, or physical sensor logs.
+
+In multimodal learning environments, different data streams operate on different temporal scales and involve different actors:
+
+* Chat messages might remain relevant over several minutes across team members.
+* Action or resource logs might have instantaneous relevance and be visible only to the individual user.
+* Certain actions might only be observed within a specific sub-group, while others are broadcast publicly.
+
+TMA provides the formal machinery to model these relationships through:
+
+1. **Horizons of Observation (HOO)**: Dynamic rules defining which events can connect to which other events across actors and modalities.
+2. **Context Tensors**: Granular, per-modality temporal window sizes and connection weights.
+3. **High-Performance Accumulation**: Fast C++ accumulation (via `libqe`) of connection matrices.
+
+For full methodological background, see:
+> Shaffer, D. W., Wang, Z., & Ruis, A. R. (2025). "Transmodal Analysis." *Journal of Learning Analytics*. [doi:10.18608/jla.2025.8423](https://doi.org/10.18608/jla.2025.8423).
+
+---
+
+## Installation
+
+Install `tma` and its core dependencies from the Epistemic Analytics package repository:
+
+```r
+options(repos = c(
+  cranqe = "https://qe-libs.org/cran",
+  CRAN   = "https://cloud.r-project.org"
+))
+
+install.packages("tma")
+```
+
+---
+
+## Walkthrough: Multimodal Data Accumulation
+
+Let's walk through a complete TMA workflow using the sample dataset `test_mockdata` provided with the package.
+
+### 1. Load Package and Inspect Data
+
+```{r load_data}
+library(tma)
+
+# Load sample dataset
+data("test_mockdata", package = "tma")
+
+# Filter to a subset of groups for demonstration
+sample_df <- test_mockdata[test_mockdata$chatGroup == "PAM", ]
+
+# View structure of the first 6 multimodal events
+head(sample_df[, c("userID", "condition", "modality", "timeStamp", "A", "B", "C")])
+```
+
+The sample data contains the following columns:
+
+* **`userID` & `condition`**: Identifiers for the participants and experimental condition.
+* **`modality`**: Event type (`"chat"` communication vs. `"resource"` interaction).
+* **`timeStamp`**: Epoch timestamps (in seconds).
+* **`A`, `B`, `C`**: Binary codes representing conceptual cognitive or behavioral categories.
+
+---
+
+### 2. Understanding the Pipeline: How Horizons and Tensors Work
+
+Using the exact 6 rows from the table above, here is how TMA processes multimodal data:
+
+#### A. The Global Chronological Event Stream
+
+The six events arrive sequentially across participants and modalities:
+
+```
+Row:           [R1]          [R2]          [R3]          [R4]          [R5]          [R6]
+User:         User1         User2         User3         User1         User2         User3
+Modality:      chat       resource        chat        resource        chat          chat
+Time (s):   1379410965    1379411071    1379411300    1379411494    1379411667    1379411813
+Codes:         [A]         [B, C]          [A]           [C]           [B]         [A, C]
+```
+
+---
+
+#### B. Filtering by Horizon of Observation (HOO)
+
+Under our analysis rules:
+
+* **`chat` messages** in group `PAM` are public to everyone in group `PAM`.
+* **`resource` interactions** are private to the individual user who clicked them.
+
+TMA dynamically partitions the global stream into separate **Context Horizons** for each participant (for example, comparing User 1 and User 2):
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│ Global Stream: [R1: User1 Chat] → [R2: User2 Res] → [R3: ...]    │
+└────────────────────────────────┬─────────────────────────────────┘
+                                 │
+        ┌────────────────────────┴────────────────────────┐
+        ▼                                                 ▼
+┌───────────────────────────────┐ ┌───────────────────────────────┐
+│ User 1 Context Horizon        │ │ User 2 Context Horizon        │
+│ • R1: User 1 Chat [A]         │ │ • R1: User 1 Chat [A]         │
+│ • R3: User 3 Chat [A]         │ │ • R2: User 2 Resource [B, C]  │
+│ • R4: User 1 Resource [C]     │ │ • R3: User 3 Chat [A]         │
+│ • R5: User 2 Chat [B]         │ │ • R5: User 2 Chat [B]         │
+│ • R6: User 3 Chat [A, C]      │ │ • R6: User 3 Chat [A, C]      │
+│                               │ │                               │
+│ ❌ Excluded:                  │ │ ❌ Excluded:                  │
+│   R2 (User 2 Resource click)  │ │   R4 (User 1 Resource click)  │
+└───────────────────────────────┘ └───────────────────────────────┘
+```
+
+---
+
+#### C. Context Tensor Windowing & Weighting
+
+When an event occurs (the **Response** $r$), TMA looks backward through that user's Context Horizon:
+
+1. Identifies prior events within that modality's temporal window ($w_m$) to construct the **Ground** context ($g$).
+2. Applies the modality weight ($W_m$) to determine connection strength.
+3. Computes the co-occurrence cross-product ($g \otimes r$).
+
+**Example (Row 4 as Response):**
+
+* **Trigger**: **User 1** triggers **Row 4** (`resource` click at $t = 1379411494$, code `[C]`).
+* **Looking back into User 1's Horizon**:
+  * **Row 3** (`User3` chat at $t = 1379411300$, code `[A]`): Time difference $\Delta t = 194\text{s}$. Since the chat window $w_{\text{chat}} = 360\text{s}$ and $194\text{s} \le 360\text{s}$, Row 3 is **in the active ground**!
+  * **Row 1** (`User1` chat at $t = 1379410965$, code `[A]`): Time difference $\Delta t = 529\text{s}$. Since $529\text{s} > 360\text{s}$, Row 1 has expired from the window.
+* **Resulting Connection**: A directed connection from **`A`** (chat) $\rightarrow$ **`C`** (resource) is accumulated for User 1!
+
+---
+
+### 3. Define Units of Analysis
+
+Units of analysis determine who or what entities will have individual connection networks calculated.
+
+```{r units}
+unit_cols <- c("userID", "condition")
+codes <- c("A", "B", "C")
+```
+
+---
+
+### 4. Formulate Horizon of Observation (HOO) Rules
+
+We specify the HOO rules using `rules()`, where `UNIT` represents the metadata of the focal unit:
+
+```{r rules}
+hoo_rules <- rules(
+  modality %in% "chat" & chatGroup %in% UNIT$chatGroup & condition %in% UNIT$condition,
+  modality %in% "resource" & userID %in% UNIT$userID & condition %in% UNIT$condition
+)
+```
+
+---
+
+### 5. Build Context Horizons
+
+Next, we partition the dataset according to the units and HOO rules using `contexts()`:
+
+```{r contexts}
+context_model <- contexts(
+  x = sample_df,
+  units = unit_cols,
+  hoo_rules = hoo_rules
+)
+```
+
+We can verify how rows were filtered into each unit's observation horizon:
+
+```{r inspect_contexts}
+# User 1's horizon includes group chats and User 1's resource clicks (excludes User 2 clicks)
+head(context_model$model$contexts[["User1::FirstHalf"]][, c("userID", "modality", "timeStamp", "A", "B", "C")])
+```
+
+---
+
+### 6. Configure the Context Tensor (Windows and Weights)
+
+The **Context Tensor** specifies how far back in time each modality can connect (the window size) and the relative importance (weight) of each modality:
+
+```{r tensor}
+# Initialize context tensor for the 'modality' dimension
+tensor <- context_tensor(
+  sample_df,
+  sender_cols = NULL,
+  receiver_cols = NULL,
+  mode_column = "modality",
+  default_window = 0,
+  default_weight = 0
+)
+
+# Set custom temporal window sizes (in seconds)
+tensor["chat", "window"] <- 360       # Chat messages remain active for 360 seconds
+tensor["resource", "window"] <- 180   # Resource interactions active for 180 seconds
+
+# Set modality weights
+tensor["chat", "weight"] <- 1.0       # Chat weight = 1.0
+tensor["resource", "weight"] <- 2.0   # Resource interactions receive double weight
+```
+
+---
+
+### 7. Accumulate Network Connections
+
+Now we compute the connection networks across all units using `accumulate()`:
+
+```{r accumulate}
+accum_result <- accumulate(
+  context_model = context_model,
+  tensor = tensor,
+  time_column = "timeStamp",
+  codes = codes,
+  binary = TRUE,
+  ordered = TRUE
+)
+
+# Inspect output object
+names(accum_result)
+```
+
+The resulting `accum_result` object contains:
+
+* **`connection.counts`**: A matrix/data.table containing the accumulated connection strengths for each unit across all code pairs.
+* **`meta.data`**: The unit metadata corresponding to each row.
+* **`model`**: Internal representations and parameters used for reproducibility.
+
+Let's inspect the accumulated co-occurrences:
+
+```{r inspect_counts}
+print(accum_result$connection.counts)
+```
+
+---
+
+## Directed vs. Undirected Accumulation
+
+By default, TMA supports both ordered (directed) and unordered (undirected) accumulation via the `ordered` parameter:
+
+* **Directed (`ordered = TRUE`)**: Differentiates between $A \rightarrow B$ and $B \rightarrow A$ based on temporal precedence (ground $\rightarrow$ response). Produces $n^2$ connection columns for $n$ codes.
+* **Undirected (`ordered = FALSE`)**: Folds directed co-occurrences into symmetric pairs ($A \leftrightarrow B$), producing $\binom{n}{2}$ connection columns.
+
+```{r undirected}
+accum_undirected <- accumulate(
+  context_model = context_model,
+  tensor = tensor,
+  time_column = "timeStamp",
+  codes = codes,
+  binary = TRUE,
+  ordered = FALSE
+)
+
+# Inspect column names for undirected connection pairs
+colnames(accum_undirected$connection.counts)
+```
+
+---
+
+## Next Steps
+
+Accumulated TMA models are directly compatible with downstream Quantitative Ethnography tools:
+
+* Use **`rENA`** for dimensional reduction (SVD / Means Rotation) and network visualization.
+* Use **`tma::view()`** for interactive HTML inspection of accumulated context tensors.
