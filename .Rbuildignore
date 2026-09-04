@@ -18,6 +18,8 @@ _pkgdown.yml
 ^.*.\.tar\.gz$
 ^\.git/.*
 ^\.github/
+^\.claude/
+^python/\.pytest_cache/
 
 ^docs
 /\.DS_Store$

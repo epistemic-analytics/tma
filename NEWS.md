@@ -1,4 +1,16 @@
+# tma 0.3.3
+
+* Added door smoothing helpers for lookback, EMA, and LOESS workflows.
+* Added `door_accumulation()` as a convenience wrapper for the standard ETM
+  `door()` plus `replace_door()` workflow.
+* Added trajectory helpers for polynomial curve fitting, derivative profiles,
+  curve distances, lagged distances, signed turn-lag analysis, and stability
+  grids.
+* Updated the R package dependency to require libqe 0.1.2 or newer for the
+  shared door and trajectory kernels.
+
 # tma 0.3.2
+
 * improved performance of apply_tensor
 
 # tma 0.3.1

@@ -21,4 +21,8 @@
 #' @importFrom methods is
 #' @importFrom rlang exprs
 #' @importFrom libqe apply_tensor connection_indices flat_index
+#' @importFrom libqe door_lookback_block door_ema_block
+#' @importFrom libqe fit_trajectory_poly eval_trajectory_curve eval_trajectory_derivatives
+#' @importFrom libqe integrated_trajectory_distance lagged_trajectory_distance
+#' @importFrom libqe signed_turn_lag sweep_signed_turn_lags dist_dist_correlation
 NULL
