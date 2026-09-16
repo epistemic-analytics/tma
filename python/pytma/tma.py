@@ -40,6 +40,7 @@ class TMA:
         tensor: Optional[ContextTensor] = None,
         time_col: Optional[str] = None,
         ordered: bool = False,
+        binary: bool = True,
         norm: str = "sphere",
         dims: int = 2,
     ) -> "TMA":
@@ -143,15 +144,26 @@ class TMA:
             times_sub = np.ascontiguousarray(times[visible_rows])
             ctx_lookup_sub = np.ascontiguousarray(context_lookup[visible_rows])
 
+            # Always accumulate the DIRECTED per-response-row counts (ordered
+            # kernel), exactly as tma does in R (apply_tensor with default
+            # ordered=TRUE); the ordered-vs-unordered decision is deferred to
+            # aggregation.  Passing the unordered flag here would make the kernel
+            # emit an already-symmetric matrix that the fold below double-counts.
             result = accumulation.apply_tensor_unit(
                 tensor_flat, tensor_dims,
                 sender_inds, receiver_inds, mode_inds,
                 ctx_lookup_sub, unit_rows_local,
                 codes_mat, times_sub,
-                ordered,
+                True,
             )
 
-            raw_networks[unit_idx] = result.connection_counts[:n_connections]
+            # Fold + per-row binarize + sum, matching tma's R aggregation
+            # (as.unordered + colSums.ena.matrix(binary)).  Uses the per-row
+            # counts, not the raw connection_counts.
+            raw_networks[unit_idx] = accumulation.aggregate_row_connections(
+                np.ascontiguousarray(result.row_connection_counts),
+                n_codes, ordered, binary,
+            )
 
         # 5. Normalize. pylibqe's normalization submodule exposes these as
         # normalize_networks (per-row L2 -> unit sphere, == rENA fun_sphere_norm)

@@ -4,11 +4,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pyTMA"
-version = "0.1.0"
+version = "0.1.1"
 description = "Python TMA (Transmodal Analysis) modeling — sister package to tma"
 requires-python = ">=3.10"
 dependencies = [
-    "pylibqe",
+    "pylibqe>=0.1.4",
     "numpy>=1.24",
     "pandas>=1.5",
 ]
