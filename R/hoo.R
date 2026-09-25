@@ -43,6 +43,32 @@ units <- function(x, by) {
   return(model);
 }
 
+# Columns a rule compares to UNIT with `==` (either side, e.g.
+# `GroupName == UNIT$GroupName` or `UNIT[["GroupName"]] == GroupName`).
+unit_equality_columns <- function(expr) {
+  unit_col <- function(e) {
+    if (is.call(e) && length(e) == 3 &&
+        (identical(e[[1]], as.name("$")) || identical(e[[1]], as.name("[["))) &&
+        identical(e[[2]], as.name("UNIT"))) {
+      return(as.character(e[[3]]));
+    }
+    NULL
+  };
+  found <- character(0);
+  walk <- function(e) {
+    if (is.expression(e) || is.list(e)) {
+      for (el in e) walk(el);
+    } else if (is.call(e)) {
+      if (identical(e[[1]], as.name("==")) && length(e) == 3) {
+        found <<- c(found, unit_col(e[[2]]), unit_col(e[[3]]));
+      }
+      for (arg in as.list(e)[-1]) walk(arg);
+    }
+  };
+  walk(expr);
+  unique(found)
+}
+
 ##' Apply a Subsetting Rule to TMA Contexts (Internal)
 #'
 #' Internal helper to apply a logical subsetting rule ("hoo rule") to each unit's context in a TMA model object.
@@ -63,15 +89,34 @@ hoo <- function(x, ..., rule = NULL) {
   }
 
   raw_input <- x$model$raw.input;
-  
+
+  # UNIT$<col> holds every distinct value of <col> across the unit's rows, so
+  # `col == UNIT$col` recycles when a unit spans several values and silently
+  # selects the wrong rows. Warn (once per rule) when that happens.
+  eq_unit_cols <- unit_equality_columns(hoo_args);
+  warned <- FALSE;
+
   unique_units <- unique(units);
   updated_contexts <- lapply(seq(nrow(unique_units)), function(i) {
     this_unit <- unique_units[i,];
     this_unit <- this_unit[, lapply(.SD, reclass, "ena.metadata"), .SDcols = colnames(this_unit)];
-    
+
     unit_label <- paste(this_unit, collapse = "::");
     # UNIT <- raw_input[as.list(this_unit), , on = names(this_unit)];
     UNIT <- mapply(raw_input[as.list(this_unit), , on = names(this_unit)], FUN = unique, SIMPLIFY = FALSE);
+
+    if (!warned && length(eq_unit_cols) > 0) {
+      multi <- eq_unit_cols[lengths(UNIT[eq_unit_cols]) > 1];
+      if (length(multi) > 0) {
+        warned <<- TRUE;
+        warning(sprintf(paste0(
+          "Conversation rule compares %s to UNIT with `==`, but unit '%s' has ",
+          "more than one value for it, so `==` recycles and selects the wrong ",
+          "rows. Use `%%in%%` instead, e.g. `%s %%in%% UNIT$%s`."),
+          paste0("`", multi, "`", collapse = ", "), unit_label, multi[1], multi[1]),
+          call. = FALSE);
+      }
+    }
 
     this_context <- unit_contexts[[unit_label]];
     ret <- sort(unique(c(this_context, raw_input[eval(hoo_args), , which = TRUE])));

@@ -15,6 +15,10 @@
   newer.
 * pytma 0.1.2: `TMA.fit()` gains the same `weight_by` argument and requires
   pylibqe 0.1.5 or newer.
+* `contexts()` now warns when a conversation rule compares a column to `UNIT`
+  with `==` (e.g. `GroupName == UNIT$GroupName`) and a unit has more than one
+  value for that column. `UNIT$<col>` holds every value across the unit's rows,
+  so `==` recycles and silently selects the wrong rows; use `%in%` instead.
 
 # tma 0.3.3
 

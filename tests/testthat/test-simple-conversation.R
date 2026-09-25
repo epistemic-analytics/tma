@@ -7,8 +7,8 @@ data("RS.data");
 units_by <- c("Condition", "UserName");
 hoo_rules <- conversation_rules(
   (
-    Condition == UNIT$Condition & 
-    GroupName == UNIT$GroupName
+    Condition %in% UNIT$Condition & 
+    GroupName %in% UNIT$GroupName
   )
 );
 codes = c('Data','Technical.Constraints','Performance.Parameters','Client.and.Consultant.Requests','Design.Reasoning','Collaboration');

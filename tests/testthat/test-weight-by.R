@@ -11,7 +11,7 @@ toy <- data.frame(
   C = c(1, 0, 2)
 );
 toy_codes <- c("A", "B", "C");
-toy_rules <- conversation_rules((c == UNIT$c));
+toy_rules <- conversation_rules((c %in% UNIT$c));
 
 toy_accum <- function(...) {
   ctx <- contexts(toy, units_by = "u", hoo_rules = toy_rules);
