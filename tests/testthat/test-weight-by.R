@@ -61,10 +61,15 @@ test_that("weight_by applies per line on RS.data (sqrt of each line, not of the 
   data("RS.data");
   rs_codes <- c('Data','Technical.Constraints','Performance.Parameters',
                 'Client.and.Consultant.Requests','Design.Reasoning','Collaboration');
+  # Same context setup as rENA::accumulate(): `%in%` (a unit can span several
+  # groups, so UNIT$GroupName may hold more than one value) and one context per
+  # conversation via split_rules.
+  horizon <- c("Condition", "GroupName");
   rs_rules <- conversation_rules(
-    (Condition == UNIT$Condition & GroupName == UNIT$GroupName)
+    (Condition %in% UNIT$Condition & GroupName %in% UNIT$GroupName)
   );
-  ctx <- contexts(RS.data, units_by = c("Condition", "UserName"), hoo_rules = rs_rules);
+  ctx <- contexts(RS.data, units_by = c("Condition", "UserName"), hoo_rules = rs_rules,
+                  split_rules = function(unit, unit_context) split(unit_context, by = horizon));
   tensor <- context_tensor(RS.data, sender_cols = NULL, receiver_cols = NULL,
                            default_window = 4, default_weight = 1);
   prod <- accumulate(ctx, rs_codes, tensor, weight_by = "product");
