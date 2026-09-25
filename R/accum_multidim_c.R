@@ -8,7 +8,8 @@
 #' @param tensor A multidimensional array (see `context_tensor`) containing window and weight values for each sender/receiver/mode combination. Defaults to an array generated from the context model's raw input.
 #' @param time_column Character string giving the name of the time column in the context model. If NULL, uses the default context column ID.
 #' @param ordered Logical; if TRUE (default), computes ordered adjacency matrices (ONA); if FALSE, computes unordered (ENA-style) matrices.
-#' @param binary Logical; if TRUE (default), binarizes the connection counts (not currently implemented in this function).
+#' @param binary Logical; if TRUE (default), binarizes each line's connection counts before they are summed per unit (unordered only; ordered counts are always summed raw). Ignored when `weight_by` is given.
+#' @param weight_by Weight model applied to each line's connection counts before they are summed into the unit network (= rENA's `weight.by`): `"binary"` (unordered: each positive count becomes 1; ordered: raw directed counts), `"product"` (the raw, non-binarized counts), `"sqrt"`, or `"log1p"` (alias `"log"`). For unordered networks the weight is applied after each line is folded to the upper triangle; for ordered networks, to each directed cell. Defaults to `"binary"` when `binary = TRUE`, otherwise `"product"`. `model$row.connection.counts` always holds the raw, unweighted line counts.
 #'
 #' @return The input `context_model` with additional fields:
 #'   \item{connection.counts}{A data.table of accumulated connection counts for each unit.}
@@ -26,8 +27,16 @@ accumulate <- function(
   tensor = context_tensor(context_model$model$raw.input),
   time_column = NULL,
   ordered = FALSE,
-  binary = TRUE
+  binary = TRUE,
+  weight_by = NULL
 ) {
+  if (is.null(weight_by)) {
+    weight_by <- if (isTRUE(binary)) "binary" else "product"
+  }
+  if (!is.character(weight_by) || length(weight_by) != 1) {
+    stop("`weight_by` must be one of 'binary', 'product', 'sqrt', 'log1p'.")
+  }
+
   send_cols = attr(tensor, "sender_cols");
   recv_cols = attr(tensor, "receiver_cols");
   mode_cols = attr(tensor, "mode_column");
@@ -120,27 +129,32 @@ accumulate <- function(
   colnames(row_connection_counts) <- c(meta_cols, adj_vector_names_full);
   context_model$model$row.connection.counts <- row_connection_counts;
   
+  # Unit networks: libqe's aggregate_row_connections finalises each line's raw
+  # directed counts (fold for unordered, then the weight model) and sums the
+  # lines per unit -- the same per-line stage rENA applies weight.by.
+  # Column classes match the previous aggregation: ordered sums kept the
+  # ena.co.occurrence class, unordered colSums returned plain numerics.
+  n_codes <- length(codes);
+  unit_vector <- function(rows, out_names) {
+    v <- as.list(libqe::aggregate_row_connections(as.matrix(rows), n_codes, isTRUE(ordered), weight_by));
+    names(v) <- out_names;
+    if (isTRUE(ordered)) lapply(v, reclass, "ena.co.occurrence") else v
+  };
+
   cc_type <- NULL;
   if(isTRUE(ordered)) {
     class(context_model) <- c("ena.ordered.set", class(context_model));
-    # browser();
-    # connection_counts <- data.table::as.data.table(do.call(rbind, lapply(result_cpp, colSums.ena.matrix, binary = FALSE)));
-    # connection_counts <- data.table::as.data.table(do.call(rbind, lapply(result_cpp, function(rcpp) {
-    #   colSums(as.matrix.ena.matrix(rcpp))  
-    # })));
-    connection_counts <- row_connection_counts[, lapply(.SD, sum), by = units_by, .SDcols = adj_vector_names_full];
+    connection_counts <- row_connection_counts[, unit_vector(.SD, adj_vector_names_full), by = units_by, .SDcols = adj_vector_names_full];
     connection_counts <- reclass(x = connection_counts, c("ordered.ena.connections", "ena.connections", "ena.matrix"));
-    # connection_counts <- connection_counts[, lapply(.SD, reclass, "ena.co.occurrence"), .SDcols = colnames(connection_counts)];
-    
+
     cc_type <- "ordered.ena.connections";
   }
   else {
     class(context_model) <- c("ena.unordered.set", class(context_model));
-    
-    context_model$model$row.connection.counts <- as.unordered(context_model$model$row.connection.counts);
-    connection_counts <- context_model$model$row.connection.counts[, lapply(.SD, colSums.ena.matrix, binary = binary), by = "QEUNIT", .SDcols = adj_vector_names];
 
-    # connection_counts <- connection_counts[, lapply(.SD, reclass, "ena.co.occurrence"), .SDcols = adj_vector_names];
+    connection_counts <- row_connection_counts[, unit_vector(.SD, adj_vector_names), by = "QEUNIT", .SDcols = adj_vector_names_full];
+    context_model$model$row.connection.counts <- as.unordered(context_model$model$row.connection.counts);
+
     cc_type <- "unordered.ena.connections";
   }
   
@@ -165,6 +179,7 @@ accumulate <- function(
   context_model$`_function.params`$time_column <- time_column;
   context_model$`_function.params`$ordered     <- ordered;
   context_model$`_function.params`$binary      <- binary;
+  context_model$`_function.params`$weight_by   <- weight_by;
 
   return(context_model);
 }

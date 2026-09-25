@@ -1,3 +1,21 @@
+# tma 0.3.4
+
+* `accumulate()` gains `weight_by`, the weight model applied to each line's
+  connection counts before they are summed per unit (= rENA's `weight.by`):
+  `"binary"`, `"product"` (raw counts), `"sqrt"` or `"log1p"` (alias `"log"`).
+  For unordered networks the weight is applied after each line is folded to
+  the upper triangle; for ordered networks, to each directed cell. It defaults
+  from `binary` (`"binary"` when `TRUE`, `"product"` when `FALSE`), so existing
+  calls produce identical results; `"binary"` on ordered networks keeps the raw
+  directed counts, as before. `model$row.connection.counts` still holds the
+  raw, unweighted line counts, and `weight_by` is recorded in
+  `_function.params`.
+* The per-unit aggregation now uses libqe's shared
+  `aggregate_row_connections()` kernel; the R package requires libqe 0.1.5 or
+  newer.
+* pytma 0.1.2: `TMA.fit()` gains the same `weight_by` argument and requires
+  pylibqe 0.1.5 or newer.
+
 # tma 0.3.3
 
 * Added door smoothing helpers for lookback, EMA, and LOESS workflows.

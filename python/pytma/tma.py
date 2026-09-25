@@ -41,6 +41,7 @@ class TMA:
         time_col: Optional[str] = None,
         ordered: bool = False,
         binary: bool = True,
+        weight_by: Optional[str] = None,
         norm: str = "sphere",
         dims: int = 2,
     ) -> "TMA":
@@ -62,11 +63,25 @@ class TMA:
             Timestamp column. If None, uses row order as integer timestamps.
         ordered : bool
             True = directed/ONA adjacency; False = undirected/ENA.
+        binary : bool
+            Binarize each line's connection counts before the per-unit sum
+            (unordered only; ordered counts are summed raw). Ignored when
+            ``weight_by`` is given.
+        weight_by : {"binary", "product", "sqrt", "log1p"} | None
+            Weight model applied to each line's connection counts before they
+            are summed per unit (= R tma's ``weight_by`` / rENA's ``weight.by``):
+            "binary" (unordered: positive counts become 1; ordered: raw
+            directed counts), "product" (raw counts), "sqrt", "log1p" (alias
+            "log"). Defaults to "binary" when ``binary`` else "product".
         norm : {"sphere", "skip_sphere"}
         dims : int
         """
         if norm not in ("sphere", "skip_sphere"):
             raise ValueError(f"norm must be 'sphere' or 'skip_sphere', got {norm!r}")
+        if weight_by is None:
+            weight_by = "binary" if binary else "product"
+        if not isinstance(weight_by, str):
+            raise ValueError("weight_by must be one of 'binary', 'product', 'sqrt', 'log1p'")
 
         units_cols = [units] if isinstance(units, str) else list(units)
         n_codes = len(codes)
@@ -157,12 +172,11 @@ class TMA:
                 True,
             )
 
-            # Fold + per-row binarize + sum, matching tma's R aggregation
-            # (as.unordered + colSums.ena.matrix(binary)).  Uses the per-row
-            # counts, not the raw connection_counts.
+            # Fold (unordered) + per-line weight model + sum, matching tma's R
+            # aggregation.  Uses the per-row counts, not the raw connection_counts.
             raw_networks[unit_idx] = accumulation.aggregate_row_connections(
                 np.ascontiguousarray(result.row_connection_counts),
-                n_codes, ordered, binary,
+                n_codes, ordered, weight_by,
             )
 
         # 5. Normalize. pylibqe's normalization submodule exposes these as

@@ -10,7 +10,8 @@ accumulate(
   tensor = context_tensor(context_model$model$raw.input),
   time_column = NULL,
   ordered = FALSE,
-  binary = TRUE
+  binary = TRUE,
+  weight_by = NULL
 )
 }
 \arguments{
@@ -24,7 +25,9 @@ accumulate(
 
 \item{ordered}{Logical; if TRUE (default), computes ordered adjacency matrices (ONA); if FALSE, computes unordered (ENA-style) matrices.}
 
-\item{binary}{Logical; if TRUE (default), binarizes the connection counts (not currently implemented in this function).}
+\item{binary}{Logical; if TRUE (default), binarizes each line's connection counts before they are summed per unit (unordered only; ordered counts are always summed raw). Ignored when `weight_by` is given.}
+
+\item{weight_by}{Weight model applied to each line's connection counts before they are summed into the unit network (= rENA's `weight.by`): `"binary"` (unordered: each positive count becomes 1; ordered: raw directed counts), `"product"` (the raw, non-binarized counts), `"sqrt"`, or `"log1p"` (alias `"log"`). For unordered networks the weight is applied after each line is folded to the upper triangle; for ordered networks, to each directed cell. Defaults to `"binary"` when `binary = TRUE`, otherwise `"product"`. `model$row.connection.counts` always holds the raw, unweighted line counts.}
 }
 \value{
 The input `context_model` with additional fields:

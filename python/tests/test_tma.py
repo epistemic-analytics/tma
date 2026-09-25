@@ -86,3 +86,43 @@ class TestTMADims:
         m = TMA().fit(df, "user", "convo", CODES, dims=1)
         assert m.positions_.shape[1] == 1
         assert m.centroids_.shape[1] == 1
+
+
+class TestWeightBy:
+    """weight_by applies per line before the unit sum (= R tma / rENA weight.by)."""
+
+    # Unit x: one conversation, window 3, counts > 1. Reference values are
+    # rENA's legacy ena.accumulate.data(weight.by = ...) (A & B, A & C, B & C).
+    # Units y and z sit in their own conversations (so x is unaffected) and
+    # only exist so the rotation / projection steps of fit() have enough units.
+    TOY = pd.DataFrame({
+        "u": ["x", "x", "x", "y", "y", "z", "z"],
+        "c": ["1", "1", "1", "2", "2", "3", "3"],
+        "A": [2.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0],
+        "B": [0.0, 3.0, 1.0, 1.0, 0.0, 1.0, 1.0],
+        "C": [1.0, 0.0, 2.0, 0.0, 1.0, 1.0, 0.0],
+    })
+
+    def networks(self, dims=2, **kw):
+        tensor = context_tensor(self.TOY, default_window=3.0)
+        m = TMA().fit(self.TOY, units="u", conversations="c", codes=["A", "B", "C"],
+                      tensor=tensor, dims=dims, **kw)
+        return m.networks_[list(m.units_).index("x")]
+
+    def test_matches_rena_weight_by(self):
+        np.testing.assert_allclose(self.networks(weight_by="binary"),  [2, 3, 2])
+        np.testing.assert_allclose(self.networks(weight_by="product"), [12, 9, 12])
+        np.testing.assert_allclose(self.networks(weight_by="sqrt"),
+                                   [4.73205080756888, 4.86370330515627, 4.73205080756888], rtol=1e-12)
+        np.testing.assert_allclose(self.networks(weight_by="log1p"),
+                                   [3.68887945411394, 3.73766961828337, 3.68887945411394], rtol=1e-12)
+
+    def test_defaults_follow_binary_flag(self):
+        np.testing.assert_array_equal(self.networks(), self.networks(weight_by="binary"))
+        np.testing.assert_array_equal(self.networks(binary=False), self.networks(weight_by="product"))
+
+    def test_invalid_weight_by_raises(self):
+        with pytest.raises(ValueError):
+            self.networks(weight_by="cube")
+        with pytest.raises(ValueError):
+            self.networks(weight_by=np.sqrt)
