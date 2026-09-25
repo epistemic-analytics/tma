@@ -1,3 +1,16 @@
+# tma 0.3.5
+
+* `accumulate()` now looks each sender, receiver and mode value up in the
+  tensor's own levels (the sorted levels `context_tensor()` built from the
+  whole dataset). It previously re-encoded character-valued columns with
+  `as.factor()` inside each unit's context, so a context containing only some
+  levels mapped them to the wrong tensor slice -- for example, a context with
+  only "Second" used "First"'s weight and window. Numeric columns were used
+  directly as positions, so values other than 1..k (such as 0/1) pointed
+  outside the tensor and could crash R. Models whose contexts contain every
+  level, and models built with the default tensor, are unchanged.
+* Values that are not levels of the tensor now raise a clear error.
+
 # tma 0.3.4
 
 * `accumulate()` gains `weight_by`, the weight model applied to each line's

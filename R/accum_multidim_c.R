@@ -64,16 +64,42 @@ accumulate <- function(
   tensor_receiver_inds <- attr(tensor, "receiver_inds") - 1
   tensor_mode_inds <- attr(tensor, "mode_inds") - 1
 
+  # Levels along each tensor axis, in the order context_tensor() laid them out
+  # (sorted unique values across the whole dataset), one entry per column of
+  # `cols_to_encode`. A column with no tensor axis (the context-id placeholder
+  # rENA passes as the mode column) gets NULL and its values pass through.
+  cols_to_encode <- c(send_cols, recv_cols, mode_cols)
+  tensor_levels  <- dimnames(tensor)
+  axis_levels    <- c(
+    lapply(seq_along(send_cols), function(i) tensor_levels[[paste0("sender_", i)]]),
+    lapply(seq_along(recv_cols), function(i) tensor_levels[[paste0("receiver_", i)]]),
+    lapply(seq_along(mode_cols), function(i) tensor_levels[["modes"]])
+  )
+
+  # Position of each row's value along its tensor axis (1-based). Looked up in
+  # the tensor's own levels -- never re-encoded per context -- so a level maps
+  # to the same slice of the tensor whichever levels a context happens to
+  # contain, for character-valued and numeric columns alike.
+  context_lookup <- function(ctx_rows) {
+    lookup <- vapply(seq_along(cols_to_encode), function(i) {
+      vals <- ctx_rows[[cols_to_encode[i]]]
+      lv   <- axis_levels[[i]]
+      if (is.null(lv)) return(as.numeric(vals))
+      pos <- match(as.character(vals), lv)
+      if (anyNA(pos)) {
+        stop("Values in column '", cols_to_encode[i], "' are not levels of the ",
+             "tensor: ", paste(unique(vals[is.na(pos)]), collapse = ", "),
+             ". Build the tensor from the same data as the contexts.")
+      }
+      as.numeric(pos)
+    }, numeric(nrow(ctx_rows)));
+    matrix(lookup, nrow = nrow(ctx_rows), ncol = length(cols_to_encode))
+  }
+
   result_cpp <- lapply(context_model$model$contexts, function(ctx) {
     ctx_fun <- function(ctx_o) {
       ctx__ <- data.table::copy(ctx_o);
-      # Assume columns are already numeric or factors; if not, convert once outside this function
-      cols_to_encode <- c(send_cols, recv_cols, mode_cols)
-      cols_to_encude_unq <- unique(cols_to_encode)
-      if (!all(sapply(ctx__[ , ..cols_to_encode], is.numeric))) {
-        ctx__[ , (cols_to_encude_unq) := lapply(.SD, function(x) as.numeric(as.factor(x))), .SDcols = unique(cols_to_encude_unq)]
-      }
-      unit_context_lookup <- as.matrix(ctx__[ , ..cols_to_encode])
+      unit_context_lookup <- context_lookup(ctx__)
 
       unit_rows <- attr(ctx__, "tma.unit_rows")
       this_unit <- attr(ctx__, "tma.unit")
