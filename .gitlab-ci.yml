@@ -77,7 +77,8 @@ test:python:
         --index-url https://qe-libs.org/py/dev/simple/ qe-lib
     - git clone --depth 1 --branch "$QE_ENA_REF"
         https://gitlab.com/epistemic-analytics/qe-packages/rENA.git /tmp/rENA
-    - sh /tmp/rENA/scripts/sync-headers.sh
+    # qe-ena compiles libtma's accumulate_stanza: use this checkout's libtma.
+    - LIBTMA_INCLUDE="$CI_PROJECT_DIR/inst/include" sh /tmp/rENA/scripts/sync-headers.sh
     - pip install --cache-dir .pip-cache --no-deps /tmp/rENA/python
   script:
     # tma._libtma builds against headers vendored into python/include/
