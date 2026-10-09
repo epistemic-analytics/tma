@@ -1,7 +1,8 @@
 #!/bin/sh
-# sync-headers.sh — vendor the C++ headers that qe-tma's extension (python/)
-#                   and tma-wasm's module (wasm/) build against into
-#                   python/include/ and wasm/include/:
+# sync-headers.sh — vendor the C++ headers that qe-tma's extension (python/),
+#                   tma-wasm's module (wasm/) and TMA.jl's library (julia/)
+#                   build against into python/include/, wasm/include/ and
+#                   julia/include/:
 #
 #   libtma  from inst/include/libtma/ (this repo's canonical copy)
 #   libqe   from Conan: libqe/$LIBQE_VERSION on the qe-libs registry, or from a
@@ -15,6 +16,7 @@
 #        sh scripts/sync-headers.sh && python -m build --sdist python/
 #      cranqe runs this script before building, when the repo provides it.
 #   3. tma-wasm: wasm/scripts/build.sh runs it.
+#   4. TMA.jl from a checkout (cranqe's Julia build runs it too).
 #
 # Conan: uses `conan` on PATH, else installs it into a throwaway venv with
 # $PYTHON (default python3).  It runs with a throwaway CONAN_HOME, so your own
@@ -27,7 +29,7 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 # Bump with DESCRIPTION's LinkingTo: libqe minimum.
 LIBQE_VERSION="${LIBQE_VERSION:-0.1.9}"
 CONAN_REMOTE="https://gitlab.com/api/v4/projects/22522458/packages/conan"
-DESTS="${REPO_ROOT}/python/include ${REPO_ROOT}/wasm/include"
+DESTS="${REPO_ROOT}/python/include ${REPO_ROOT}/wasm/include ${REPO_ROOT}/julia/include"
 
 TMP="$(mktemp -d)"
 trap 'rm -rf "${TMP}"' EXIT

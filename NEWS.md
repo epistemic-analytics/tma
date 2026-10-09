@@ -16,6 +16,10 @@
 * New npm package `@qe-libs/tma-wasm` (`wasm/`): libtma compiled to
   WebAssembly, replacing libqe-wasm's accumulation functions (same
   signatures).
+* New Julia package TMA.jl (`julia/`, `using TMA`) replaces LibQE.jl's
+  accumulation functions, adding the weight models
+  (`aggregate_row_connections`, `finalize_row_connections`). libtma is also
+  published as a Conan package (`conan/`).
 
 # tma 0.3.5
 

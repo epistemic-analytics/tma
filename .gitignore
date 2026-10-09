@@ -30,3 +30,13 @@ src/*.dll
 # qe-tma: headers vendored by scripts/sync-headers.sh; scikit-build output
 python/include/
 python/build/
+
+# TMA.jl: headers vendored by scripts/sync-headers.sh; CMake build output
+julia/include/
+julia/lib/
+julia/build/
+julia/Manifest.toml
+
+# libtma Conan test package build output
+conan/conan-test/build/
+conan/conan-test/CMakeUserPresets.json
