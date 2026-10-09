@@ -1,3 +1,15 @@
+# tma (development version)
+
+* tma is a compiled package again. The accumulation C++ (stanza windows,
+  context tensors, row connections, weight models) moved out of libqe into
+  tma as the header-only layer libtma (`inst/include/libtma/`, wrapped in
+  `src/libtma_rcpp.cpp`), so libqe can return to generic numerics. Results are
+  unchanged: the code and its tests moved verbatim. tma now exports the
+  accumulation functions libqe did (`apply_tensor`, `apply_tensor_members`,
+  `accumulate_stanza`, `rolling_window_sum`, `row_connections`,
+  `aggregate_row_connections`, `finalize_row_connections`, ...). Installing
+  from source needs a C++ toolchain (Rtools on Windows); requires libqe >= 0.1.9.
+
 # tma 0.3.5
 
 * `accumulate()` now looks each sender, receiver and mode value up in the

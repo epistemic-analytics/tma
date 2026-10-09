@@ -32,6 +32,6 @@ webtool Data View window-span hover.
 Unlike \code{tma.conversations()} (which predates the window/weight matrix and
 uses a single scalar window), this derives windows from the resolved tensor
 persisted on the accumulated object (\code{x$`_function.params`$tensor}) and
-calls the libqe primitive \code{apply_tensor_members()} — the SAME code path
+calls the libtma primitive \code{apply_tensor_members()} — the SAME code path
 the network uses — so the Data View can't drift from the network.
 }

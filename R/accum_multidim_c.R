@@ -162,7 +162,7 @@ accumulate <- function(
   # ena.co.occurrence class, unordered colSums returned plain numerics.
   n_codes <- length(codes);
   unit_vector <- function(rows, out_names) {
-    v <- as.list(libqe::aggregate_row_connections(as.matrix(rows), n_codes, isTRUE(ordered), weight_by));
+    v <- as.list(aggregate_row_connections(as.matrix(rows), n_codes, isTRUE(ordered), weight_by));
     names(v) <- out_names;
     if (isTRUE(ordered)) lapply(v, reclass, "ena.co.occurrence") else v
   };

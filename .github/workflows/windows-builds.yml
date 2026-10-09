@@ -1,8 +1,9 @@
 name: Windows builds
 
 # Builds the R Windows binary (.zip) that qe-libs.org serves to Windows users.
-# The package is pure R (no compiled code), so no Rtools or system libraries
-# are needed; this mirrors the R part of libqe's windows-builds.yml.
+# tma compiles libtma (src/libtma_rcpp.cpp) against RcppArmadillo, which
+# needs Rtools but no system libraries (R's own LAPACK/BLAS suffice); this
+# mirrors the R part of libqe's windows-builds.yml.
 #
 # Two modes:
 #   workflow_dispatch  cranqe's nightly (scripts/github_windows.py) dispatches
@@ -65,6 +66,8 @@ jobs:
       - uses: r-lib/actions/setup-r@v2
         with:
           r-version: ${{ matrix.r }}
+          # Rtools is selected automatically for the R version.
+          update-rtools: true
 
       - name: Build Windows binary
         shell: Rscript {0}

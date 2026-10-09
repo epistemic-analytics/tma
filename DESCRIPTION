@@ -4,7 +4,7 @@ Type: Package
 Author: Cody L Marquart [aut, cre] (<https://orcid.org/0000-0002-3387-6792>), Muhammad Hasnat Ashiq [aut], David Williamson Shaffer [aut]
 Authors@R: c(person("Cody L", "Marquart", role = c("aut", "cre"), email="cody.marquart@wisc.edu", comment = c(ORCID = "0000-0002-3387-6792")), person("Muhammad Hasnat", "Ashiq", role = c("aut"), email = "ashiq@wisc.edu"), person("David Williamson", "Shaffer", role = c("aut"), email = "dws@education.wisc.edu"))
 Maintainer: Cody L Marquart <cody.marquart@wisc.edu>
-Version: 0.3.5
+Version: 0.3.6
 Encoding: UTF-8
 Description: A robust computational framework for analyzing complex multimodal data. Extends existing state-dependent models to account for diverse data streams, addressing challenges such as varying temporal scales and learner characteristics to improve the robustness and interpretability of findings. For methodological details, see Shaffer, Wang, and Ruis (2025) "Transmodal Analysis" <doi:10.18608/jla.2025.8423>.
 LazyData: TRUE
@@ -16,7 +16,9 @@ Imports:
     stats,
     methods,
     rlang,
-    libqe (>= 0.1.5)
+    libqe (>= 0.1.9),
+    Rcpp
+LinkingTo: libqe (>= 0.1.9), Rcpp, RcppArmadillo
 Suggests:
     testthat (>= 2.1.0),
     rstudioapi,
@@ -25,3 +27,4 @@ Suggests:
     jsonlite
 VignetteBuilder: knitr
 RoxygenNote: 7.3.3
+NeedsCompilation: yes

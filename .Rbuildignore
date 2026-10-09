@@ -42,3 +42,8 @@ lastMiKTeXException
 src/.*\.o
 
 LICENSE
+^scripts$
+^python$
+^wasm$
+^julia$
+^conan$

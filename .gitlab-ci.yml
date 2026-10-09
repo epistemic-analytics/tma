@@ -15,9 +15,10 @@ test:r:
   before_script:
     - apt-get update -qq
     - apt-get install -y --no-install-recommends
+        build-essential gfortran libopenblas-dev liblapack-dev
         libxml2-dev libcurl4-openssl-dev libssl-dev
     - Rscript -e "install.packages(
-        c('data.table', 'rlang', 'libqe',
+        c('data.table', 'rlang', 'Rcpp', 'RcppArmadillo', 'libqe',
           'testthat', 'knitr', 'rmarkdown', 'jsonlite'),
         repos = c(
           'https://qe-libs.org/cran/',

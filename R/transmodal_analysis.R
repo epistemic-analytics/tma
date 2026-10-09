@@ -20,7 +20,9 @@
 #' @import data.table
 #' @importFrom methods is
 #' @importFrom rlang exprs
-#' @importFrom libqe apply_tensor connection_indices flat_index
+#' @importFrom libqe connection_indices
+#' @importFrom Rcpp sourceCpp
+#' @useDynLib tma, .registration = TRUE
 #' @importFrom libqe door_lookback_block door_ema_block
 #' @importFrom libqe fit_trajectory_poly eval_trajectory_curve eval_trajectory_derivatives
 #' @importFrom libqe integrated_trajectory_distance lagged_trajectory_distance

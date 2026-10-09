@@ -1,0 +1,6 @@
+# -I../inst/include goes in PKG_CPPFLAGS, which R puts before the LinkingTo
+# paths: libqe (< 0.2.0) still ships its own copy of libtma/, and tma's
+# copy must win.
+PKG_CPPFLAGS = -I../inst/include
+PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS)
+PKG_LIBS     = $(SHLIB_OPENMP_CXXFLAGS) $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS)

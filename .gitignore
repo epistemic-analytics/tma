@@ -22,3 +22,7 @@ __pycache__/
 
 # Local vignette builds
 vignettes/*.html
+# compiled code
+src/*.o
+src/*.so
+src/*.dll
