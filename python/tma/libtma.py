@@ -1,0 +1,126 @@
+"""
+tma.libtma — libtma, the accumulation C++ layer (stanza windows, context
+tensors, row connections, weight models).
+
+The C++ lives in this repository (``inst/include/libtma``); ``tma._libtma`` is
+its nanobind extension.  These functions moved here from qe-lib's
+``qe.accumulation`` (``import qe``) in libqe's phase 4b split; signatures and
+results are unchanged.
+
+The extension returns plain dicts so it can be loaded alongside other
+products' extensions; the result classes below restore attribute access
+(``result.row_connection_counts``) and the reprs qe-lib's classes had.
+
+All matrix inputs/outputs are numpy float64 arrays.
+"""
+from __future__ import annotations
+
+from typing import NamedTuple
+
+import numpy as np
+
+from . import _libtma
+
+__all__ = [
+    "UnitNetworks",
+    "TensorNetworks",
+    "connection_matrix",
+    "accumulate_stanza",
+    "row_connections",
+    "rolling_window_sum",
+    "flat_index",
+    "accumulate_unit",
+    "accumulate_unit_with_rows",
+    "apply_tensor_unit",
+    "aggregate_row_connections",
+    "finalize_row_connections",
+]
+
+
+class UnitNetworks(NamedTuple):
+    """Result of accumulate_unit_with_rows.
+
+    networks     : ndarray 1-D — flat connection vector (p^2 or choose_two(p))
+    row_networks : ndarray 2-D — per-response-row p^2 connection matrix
+    """
+    networks: np.ndarray
+    row_networks: np.ndarray
+
+    def __repr__(self) -> str:
+        r = self.row_networks.shape
+        return (f"<UnitNetworks networks len={self.networks.shape[0]} "
+                f"row_networks={r[0]}x{r[1]}>")
+
+
+class TensorNetworks(NamedTuple):
+    """Result of apply_tensor_unit.
+
+    connection_counts     : ndarray 1-D — unit-level flat vector (p^2)
+    row_connection_counts : ndarray 2-D — per-response-row p^2 matrix
+    """
+    connection_counts: np.ndarray
+    row_connection_counts: np.ndarray
+
+    def __repr__(self) -> str:
+        r = self.row_connection_counts.shape
+        return (f"<TensorNetworks connection_counts len={self.connection_counts.shape[0]} "
+                f"row_connection_counts={r[0]}x{r[1]}>")
+
+
+def _doc(fn):
+    """Take the docstring from the extension function of the same name."""
+    fn.__doc__ = getattr(_libtma, fn.__name__).__doc__
+    return fn
+
+
+@_doc
+def connection_matrix(ground, response, response_weight=1.0, ordered=True):
+    return _libtma.connection_matrix(ground, response, response_weight, ordered)
+
+
+@_doc
+def accumulate_stanza(codes, window_back=1, window_forward=0, binary=True, ordered=False):
+    return _libtma.accumulate_stanza(codes, window_back, window_forward, binary, ordered)
+
+
+@_doc
+def row_connections(codes, binary=True):
+    return _libtma.row_connections(codes, binary)
+
+
+@_doc
+def rolling_window_sum(codes, window_size=1):
+    return _libtma.rolling_window_sum(codes, window_size)
+
+
+@_doc
+def flat_index(indices, dims):
+    return _libtma.flat_index(indices, dims)
+
+
+@_doc
+def accumulate_unit(codes, unit_rows, decay_fn, ordered=False):
+    return _libtma.accumulate_unit(codes, unit_rows, decay_fn, ordered)
+
+
+@_doc
+def accumulate_unit_with_rows(codes, unit_rows, decay_fn, ordered=False) -> UnitNetworks:
+    return UnitNetworks(**_libtma.accumulate_unit_with_rows(codes, unit_rows, decay_fn, ordered))
+
+
+@_doc
+def apply_tensor_unit(tensor, dims, dims_sender, dims_receiver, dims_mode,
+                      context_lookup, unit_rows, codes, times, ordered=True) -> TensorNetworks:
+    return TensorNetworks(**_libtma.apply_tensor_unit(
+        tensor, dims, dims_sender, dims_receiver, dims_mode,
+        context_lookup, unit_rows, codes, times, ordered))
+
+
+@_doc
+def aggregate_row_connections(row_conn, n_codes, ordered=False, weight="binary"):
+    return _libtma.aggregate_row_connections(row_conn, n_codes, ordered, weight)
+
+
+@_doc
+def finalize_row_connections(row_conn, n_codes, ordered=False, weight="binary"):
+    return _libtma.finalize_row_connections(row_conn, n_codes, ordered, weight)

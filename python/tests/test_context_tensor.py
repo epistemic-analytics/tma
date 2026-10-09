@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
-from pytma import context_tensor, ContextTensor
+from tma import context_tensor, ContextTensor
 
 
 def make_df():

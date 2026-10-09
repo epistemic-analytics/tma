@@ -26,3 +26,7 @@ vignettes/*.html
 src/*.o
 src/*.so
 src/*.dll
+
+# qe-tma: headers vendored by scripts/sync-headers.sh; scikit-build output
+python/include/
+python/build/

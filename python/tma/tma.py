@@ -1,4 +1,4 @@
-"""pytma.tma — High-level TMA pipeline."""
+"""tma.tma — High-level TMA pipeline."""
 from __future__ import annotations
 
 import numpy as np
@@ -6,7 +6,10 @@ import pandas as pd
 from itertools import combinations
 from typing import Optional, Union
 
-from pylibqe import accumulation, normalization, modeling
+from ena import libena                    # node positions (libena, qe-ena)
+from qe import normalization, modeling    # generic numerics (libqe, qe-lib)
+
+from . import libtma                      # accumulation (libtma, this package)
 from .context_tensor import ContextTensor, context_tensor as make_context_tensor
 from .contexts import ContextModel, contexts as make_contexts
 
@@ -164,7 +167,7 @@ class TMA:
             # ordered=TRUE); the ordered-vs-unordered decision is deferred to
             # aggregation.  Passing the unordered flag here would make the kernel
             # emit an already-symmetric matrix that the fold below double-counts.
-            result = accumulation.apply_tensor_unit(
+            result = libtma.apply_tensor_unit(
                 tensor_flat, tensor_dims,
                 sender_inds, receiver_inds, mode_inds,
                 ctx_lookup_sub, unit_rows_local,
@@ -174,12 +177,12 @@ class TMA:
 
             # Fold (unordered) + per-line weight model + sum, matching tma's R
             # aggregation.  Uses the per-row counts, not the raw connection_counts.
-            raw_networks[unit_idx] = accumulation.aggregate_row_connections(
+            raw_networks[unit_idx] = libtma.aggregate_row_connections(
                 np.ascontiguousarray(result.row_connection_counts),
                 n_codes, ordered, weight_by,
             )
 
-        # 5. Normalize. pylibqe's normalization submodule exposes these as
+        # 5. Normalize. qe-lib's normalization submodule exposes these as
         # normalize_networks (per-row L2 -> unit sphere, == rENA fun_sphere_norm)
         # and scale_networks (scale by the largest row norm, == fun_skip_sphere_norm).
         if norm == "sphere":
@@ -195,7 +198,7 @@ class TMA:
 
         non_zero = normed.sum(axis=1) != 0
         if non_zero.any():
-            positions = modeling.node_positions(
+            positions = libena.node_positions(
                 np.ascontiguousarray(normed[non_zero]),
                 np.ascontiguousarray(t[non_zero]),
                 dims,

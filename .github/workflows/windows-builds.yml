@@ -1,22 +1,24 @@
 name: Windows builds
 
-# Builds the R Windows binary (.zip) that qe-libs.org serves to Windows users.
-# tma compiles libtma (src/libtma_rcpp.cpp) against RcppArmadillo, which
-# needs Rtools but no system libraries (R's own LAPACK/BLAS suffice); this
-# mirrors the R part of libqe's windows-builds.yml.
+# Builds the Windows binaries qe-libs.org serves to Windows users: the R binary
+# (.zip) and qe-tma's compiled wheels.  tma compiles libtma
+# (src/libtma_rcpp.cpp) against RcppArmadillo, which needs Rtools but no system
+# libraries (R's own LAPACK/BLAS suffice); qe-tma's tma._libtma needs Armadillo
+# from vcpkg.  This mirrors libqe's and rENA's windows-builds.yml.
 #
 # Two modes:
 #   workflow_dispatch  cranqe's nightly (scripts/github_windows.py) dispatches
-#                      this with the URL of the *published* R source tarball on
-#                      qe-libs.org, waits for the run, downloads the artifacts
-#                      and publishes them. Building from the published tarball
-#                      means the binary carries exactly the released (or .9xxx
-#                      dev) version users install.
+#                      this with the URLs of the *published* R source tarball
+#                      and/or Python sdist on qe-libs.org, waits for the run,
+#                      downloads the artifacts and publishes them. Building from
+#                      the published sources means the binaries carry exactly
+#                      the released (or .9xxx dev) version users install.
 #   push               CI check on main and version tags: builds from the
 #                      checkout. Artifacts are not published.
 #
 # Artifact names are a contract with cranqe's scripts/github_windows.py:
 #   r-windows-<R version>   <pkg>_<version>.zip
+#   py-windows              *.whl (all Python versions)
 
 run-name: >-
   ${{ github.event_name == 'workflow_dispatch'
@@ -34,6 +36,14 @@ on:
         description: 'R versions, JSON list (e.g. ["4.5","4.6"])'
         required: false
         default: '["4.5","4.6"]'
+      py_sdist_url:
+        description: "Published Python sdist to build (empty: skip Python)"
+        required: false
+        default: ""
+      py_versions:
+        description: 'Python versions, JSON list (e.g. ["3.11","3.12","3.13"])'
+        required: false
+        default: '["3.11","3.12","3.13"]'
       request_id:
         description: "Caller's id, echoed in the run name so it can find the run"
         required: false
@@ -109,4 +119,81 @@ jobs:
         with:
           name: r-windows-${{ matrix.r }}
           path: out/*.zip
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # Python Windows wheels via cibuildwheel.
+  #  - Armadillo (+ BLAS/LAPACK) from the preinstalled vcpkg, cached via x-gha
+  #    (cold build once; installed once for all versions in CIBW_BEFORE_ALL).
+  #  - delvewheel repair bundles the vcpkg DLLs into each wheel so it imports
+  #    without vcpkg present (the Windows equivalent of auditwheel).
+  #  - cibuildwheel builds from a directory (push) or an sdist (dispatch).
+  #  Mirrors libqe's python-windows job.
+  # ---------------------------------------------------------------------------
+  python-windows:
+    name: Python wheels (Windows)
+    if: github.event_name == 'push' || inputs.py_sdist_url != ''
+    runs-on: windows-latest
+    env:
+      VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+    steps:
+      - uses: actions/checkout@v4
+        if: github.event_name == 'push'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # A checkout needs python/include/ vendored (libtma + libqe from Conan);
+      # a published sdist already ships it.
+      - name: Sync headers into python/include
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          python -m pip install conan
+          sh scripts/sync-headers.sh
+
+      # vcpkg's x-gha binary cache needs these two runtime values exported.
+      - name: Enable vcpkg GitHub Actions cache
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+      - name: Select source and Python versions
+        shell: pwsh
+        env:
+          SDIST_URL: ${{ inputs.py_sdist_url }}
+          PY_VERSIONS: ${{ inputs.py_versions || '["3.11","3.12","3.13"]' }}
+        run: |
+          if ($env:SDIST_URL) {
+            $sdist = Join-Path $PWD (Split-Path $env:SDIST_URL -Leaf)
+            Invoke-WebRequest -Uri $env:SDIST_URL -OutFile $sdist -UseBasicParsing
+            "PKG_SOURCE=$sdist" | Out-File -FilePath $env:GITHUB_ENV -Append
+          } else {
+            "PKG_SOURCE=python" | Out-File -FilePath $env:GITHUB_ENV -Append
+          }
+          $tags = ($env:PY_VERSIONS | ConvertFrom-Json | ForEach-Object { "cp$($_ -replace '\.', '')-win_amd64" }) -join ' '
+          "CIBW_BUILD=$tags" | Out-File -FilePath $env:GITHUB_ENV -Append
+          Write-Host "Source: $(if ($env:SDIST_URL) { $env:SDIST_URL } else { 'checkout' }); building $tags"
+
+      - name: Build + repair wheels
+        shell: pwsh
+        env:
+          # Install native deps once before building (shared across versions).
+          CIBW_BEFORE_ALL_WINDOWS: 'C:\vcpkg\vcpkg.exe install armadillo --triplet x64-windows'
+          # Forward-slash toolchain path — backslashes get stripped in -D values.
+          CIBW_ENVIRONMENT_WINDOWS: 'CMAKE_ARGS="-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows"'
+          # Bundle armadillo/openblas/lapack/gfortran DLLs into each wheel.
+          CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: 'delvewheel repair --add-path C:/vcpkg/installed/x64-windows/bin -w {dest_dir} {wheel}'
+        run: |
+          python -m pip install --upgrade pip cibuildwheel
+          python -m cibuildwheel --output-dir wheelhouse $env:PKG_SOURCE
+          if ($LASTEXITCODE -ne 0) { throw "cibuildwheel failed" }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: py-windows
+          path: wheelhouse/*.whl
           if-no-files-found: error

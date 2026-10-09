@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
-from pytma import TMA, context_tensor
+from tma import TMA, context_tensor
 
 
 def make_df(seed=42):

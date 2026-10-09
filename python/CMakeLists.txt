@@ -1,0 +1,72 @@
+cmake_minimum_required(VERSION 3.18)
+project(tma_libtma LANGUAGES CXX)
+
+# ── Python ────────────────────────────────────────────────────────────────────
+find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
+
+# ── nanobind (locate via the Python package, works with pip or homebrew) ──────
+execute_process(
+    COMMAND "${Python_EXECUTABLE}" -c "import nanobind; print(nanobind.cmake_dir())"
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    OUTPUT_VARIABLE NB_CMAKE_DIR
+    RESULT_VARIABLE NB_RESULT
+)
+if(NOT NB_RESULT EQUAL 0)
+    message(FATAL_ERROR "Could not locate nanobind cmake directory. "
+            "Install it with: pip install nanobind")
+endif()
+list(PREPEND CMAKE_PREFIX_PATH "${NB_CMAKE_DIR}")
+find_package(nanobind CONFIG REQUIRED)
+
+# ── Armadillo ─────────────────────────────────────────────────────────────────
+find_package(Armadillo REQUIRED)
+
+# ── libtma + libqe headers ────────────────────────────────────────────────────
+# scripts/sync-headers.sh (run from the repo root) vendors both into
+# python/include/: libtma from inst/include/libtma, libqe from Conan.  The sdist
+# ships that copy, so building from it needs nothing else.
+set(HEADER_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include")
+if(NOT EXISTS "${HEADER_DIR}/libtma/libtma.hpp"
+   OR NOT EXISTS "${HEADER_DIR}/libqe/bind/nanobind.hpp")
+    message(FATAL_ERROR "libtma / libqe headers not found in python/include/. "
+            "Run `sh scripts/sync-headers.sh` from the tma repo root first.")
+endif()
+
+# ── binding module ────────────────────────────────────────────────────────────
+nanobind_add_module(_libtma NB_STATIC src/libtma_ext.cpp)
+
+target_include_directories(_libtma PRIVATE
+    ${HEADER_DIR}
+    ${ARMADILLO_INCLUDE_DIRS}
+)
+
+# Link armadillo + platform BLAS/LAPACK (as qe-lib's python/CMakeLists.txt)
+if(APPLE)
+    # macOS ships BLAS/LAPACK inside the Accelerate framework
+    target_link_libraries(_libtma PRIVATE ${ARMADILLO_LIBRARIES} "-framework Accelerate")
+elseif(WIN32)
+    # vcpkg's armadillo port (pulls in openblas + lapack)
+    target_link_libraries(_libtma PRIVATE ${ARMADILLO_LIBRARIES})
+    find_package(LAPACK REQUIRED)
+    find_package(BLAS  REQUIRED)
+    target_link_libraries(_libtma PRIVATE ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES})
+else()
+    # Linux: Armadillo header-only, linking exactly one BLAS/LAPACK, so
+    # auditwheel bundles one library instead of every BLAS the distro's
+    # libarmadillo wrapper pulls in.  Prefer OpenBLAS (manylinux); fall back to
+    # whatever single BLAS is installed (e.g. Debian's reference BLAS in CI).
+    target_compile_definitions(_libtma PRIVATE
+        ARMA_DONT_USE_WRAPPER ARMA_DONT_USE_SUPERLU ARMA_DONT_USE_ARPACK)
+    set(BLA_VENDOR OpenBLAS)
+    find_package(BLAS QUIET)
+    if(NOT BLAS_FOUND)
+        message(STATUS "OpenBLAS not found; using the system BLAS/LAPACK")
+        unset(BLA_VENDOR)
+        find_package(BLAS REQUIRED)
+    endif()
+    find_package(LAPACK REQUIRED)
+    message(STATUS "_libtma links BLAS: ${BLAS_LIBRARIES}  LAPACK: ${LAPACK_LIBRARIES}")
+    target_link_libraries(_libtma PRIVATE ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES})
+endif()
+
+install(TARGETS _libtma LIBRARY DESTINATION tma)

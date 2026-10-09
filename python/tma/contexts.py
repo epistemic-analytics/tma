@@ -1,8 +1,8 @@
-"""pytma.contexts — Context model and HOO (History of Others) rules.
+"""tma.contexts — Context model and HOO (History of Others) rules.
 
 The primary API mirrors R tma's contexts() + rules() / conversation_rules():
 
-    from pytma import contexts, rules, conversation_rules
+    from tma import contexts, rules, conversation_rules
 
     # Explicit rules — each callable receives the full DataFrame and the
     # current unit's representative row (a pandas Series), and must return

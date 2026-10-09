@@ -1,20 +1,47 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["scikit-build-core>=0.10", "nanobind>=1.9"]
+build-backend = "scikit_build_core.build"
 
 [project]
-name = "pyTMA"
-version = "0.1.2"
-description = "Python TMA (Transmodal Analysis) modeling — sister package to tma"
+# Was pyTMA (import pytma), never published; renamed to the qe-<name>
+# convention with libqe's phase 4b split.
+name = "qe-tma"
+version = "0.1.3"
+description = "Python TMA (Transmodal Analysis) modeling — sister package to tma, with libtma compiled in"
+readme = "README.md"
 requires-python = ">=3.10"
+license = "GPL-3.0-only"
+authors = [{ name = "Cody L Marquart", email = "cody.marquart@wisc.edu" }]
 dependencies = [
-    "pylibqe>=0.1.5",
+    # Generic numerics (normalization, centering).  qe-lib is 0.x: a minor
+    # bump may change its API.
+    "qe-lib>=0.1.7,<0.2",
+    # Node positions (libena).  0.1.6 is the first qe-ena with ena.libena.
+    "qe-ena>=0.1.6",
     "numpy>=1.24",
     "pandas>=1.5",
 ]
 
+[project.urls]
+Homepage = "https://qe-libs.org/py/project/qe-tma/"
+Source = "https://gitlab.com/epistemic-analytics/qe-packages/tma/-/tree/main/python"
+Issues = "https://gitlab.com/epistemic-analytics/qe-packages/tma/-/issues"
+
 [project.optional-dependencies]
 dev = ["pytest>=7"]
+
+[tool.scikit-build]
+cmake.source-dir = "."
+# The distribution is "qe-tma" but the import package is "tma" (with the
+# libtma extension, tma._libtma).
+wheel.packages = ["tma"]
+# A fixed build dir instead of a temp one: on Windows, deleting the temp build
+# dir races with handles still held open (WinError 32) and fails the build.
+build-dir = "build/{wheel_tag}"
+# include/ is git-ignored (vendored by scripts/sync-headers.sh) but must ship
+# in the sdist; build/ must not.
+sdist.include = ["include/"]
+sdist.exclude = ["build/", ".pytest_cache/"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

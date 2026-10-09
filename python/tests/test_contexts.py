@@ -1,8 +1,8 @@
 import pandas as pd
 import numpy as np
 import pytest
-from pytma import contexts, rules, conversation_rules
-from pytma.contexts import ContextModel
+from tma import contexts, rules, conversation_rules
+from tma.contexts import ContextModel
 
 
 def make_df():

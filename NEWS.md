@@ -9,6 +9,10 @@
   `accumulate_stanza`, `rolling_window_sum`, `row_connections`,
   `aggregate_row_connections`, `finalize_row_connections`, ...). Installing
   from source needs a C++ toolchain (Rtools on Windows); requires libqe >= 0.1.9.
+* The Python package pyTMA (`import pytma`, never published) is now qe-tma
+  (`import tma`), with libtma compiled in (`tma.libtma`) instead of calling
+  libqe's copy. Node positions come from qe-ena and generic numerics from
+  qe-lib (it imported the old `pylibqe` name, so it no longer installed).
 
 # tma 0.3.5
 

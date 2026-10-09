@@ -34,17 +34,32 @@ test:python:
   stage: test
   image: python:3.12-slim
   <<: *pip-cache
+  variables:
+    # qe-tma needs qe-ena >= 0.1.6 (ena.libena), which is on rENA's develop
+    # branch and not yet published; build it from there.  Once it is on the
+    # index, install qe-ena from https://qe-libs.org/py/dev/simple/ instead.
+    QE_ENA_REF: develop
   before_script:
     - apt-get update -qq
-    - apt-get install -y --no-install-recommends build-essential cmake libarmadillo-dev
-    - pip install --cache-dir .pip-cache
-        --index-url https://qe-libs.org/py/simple/
-        --extra-index-url https://pypi.org/simple/
-        pylibqe numpy pandas pytest
+    - apt-get install -y --no-install-recommends build-essential cmake libarmadillo-dev git
+    # Public dependencies from PyPI, then qe-lib from qe-libs.org *only*:
+    # --extra-index-url would let pip pick a same-named package from PyPI.
+    - pip install --cache-dir .pip-cache numpy pandas pytest
+    - pip install --cache-dir .pip-cache --no-deps
+        --index-url https://qe-libs.org/py/dev/simple/ qe-lib
+    - git clone --depth 1 --branch "$QE_ENA_REF"
+        https://gitlab.com/epistemic-analytics/qe-packages/rENA.git /tmp/rENA
+    - sh /tmp/rENA/scripts/sync-headers.sh
+    - pip install --cache-dir .pip-cache --no-deps /tmp/rENA/python
   script:
+    # tma._libtma builds against headers vendored into python/include/
+    # (libtma from inst/include, libqe from Conan).
+    - sh scripts/sync-headers.sh
     - cd python
-    - pip install --cache-dir ../.pip-cache -e ".[dev]"
-    - pytest tests/ -v
+    - pip install --cache-dir ../.pip-cache ".[dev]"
+    # importlib mode tests the installed package: the source tree has no
+    # compiled tma._libtma.
+    - pytest tests/ -v --import-mode=importlib
 
 # ── cranqe integration ────────────────────────────────────────────────────────
 # verify-tag-version (.pre, tags):  confirm git tag == DESCRIPTION Version
