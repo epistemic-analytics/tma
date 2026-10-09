@@ -1,0 +1,34 @@
+# Conan v2 cross-compilation profile for WebAssembly via Emscripten.
+#
+# Prerequisites (one-time):
+#   brew install emscripten        # macOS
+#   apt-get install emscripten     # Debian/Ubuntu
+#
+# Usage (from repo root):
+#   sh wasm/scripts/build.sh   (from the tma repo root; runs the steps below)
+#
+#   conan install . -pr:b=default -pr:h=profiles/wasm --build=missing
+#   emcmake cmake -B build/wasm -DCMAKE_BUILD_TYPE=Release \
+#       -DCMAKE_TOOLCHAIN_FILE=build/wasm/conan_toolchain.cmake .
+#   emmake make -C build/wasm
+
+[settings]
+os          = Emscripten
+arch        = wasm
+compiler         = clang
+compiler.version = 18
+compiler.libcxx  = libc++
+compiler.cppstd  = 17
+build_type  = Release
+
+[options]
+# Armadillo: disable all optional compiled dependencies — none can be
+# cross-compiled to WASM and Armadillo's Conan recipe rejects the attempt.
+armadillo*:use_blas   = False
+armadillo*:use_lapack = False
+armadillo*:use_hdf5   = False
+
+[conf]
+# Map Conan's "clang" compiler setting to the Emscripten wrappers so that
+# cmake finds CMAKE_C_COMPILER / CMAKE_CXX_COMPILER when building deps.
+tools.build:compiler_executables={"c": "emcc", "cpp": "em++", "asm": "emcc"}

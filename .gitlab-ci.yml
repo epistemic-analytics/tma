@@ -1,4 +1,5 @@
 stages:
+  - build
   - test
 
 # ── shared pip cache ──────────────────────────────────────────────────────────
@@ -8,9 +9,35 @@ stages:
     paths: [.pip-cache]
     policy: pull-push
 
+.wasm-conan-cache: &wasm-conan-cache
+  cache:
+    key: conan2-wasm-$CI_COMMIT_REF_SLUG
+    paths: [wasm/.conan2]
+    policy: pull-push
+
+# ── tma-wasm's libtma module (C++ → WASM), as libqe's / rENA's build:wasm ──────
+# test:wasm (from cranqe's npm-registry.yml template) consumes wasm/dist/.
+build:wasm:
+  stage: build
+  image: emscripten/emsdk:latest
+  variables:
+    # Conan's home inside the project dir so the cache can keep Armadillo.
+    CONAN_HOME: "$CI_PROJECT_DIR/wasm/.conan2"
+  <<: *wasm-conan-cache
+  before_script:
+    - apt-get update -qq && apt-get install -y --no-install-recommends ninja-build
+    - pip install conan --quiet --break-system-packages
+    - conan profile detect --force
+  script:
+    - sh wasm/scripts/build.sh
+  artifacts:
+    paths: [wasm/dist/]
+    expire_in: 1 day
+
 # ── R package tests ───────────────────────────────────────────────────────────
 test:r:
   stage: test
+  needs: []   # don't wait for build:wasm
   image: rocker/r-ver:4.5.0
   before_script:
     - apt-get update -qq
@@ -32,6 +59,7 @@ test:r:
 # ── Python bindings tests (pyTMA) ─────────────────────────────────────────────
 test:python:
   stage: test
+  needs: []   # don't wait for build:wasm
   image: python:3.12-slim
   <<: *pip-cache
   variables:
@@ -61,6 +89,12 @@ test:python:
     # compiled tma._libtma.
     - pytest tests/ -v --import-mode=importlib
 
+# ── wasm package tests ────────────────────────────────────────────────────────
+# The rest of the job (image, registry setup, script) comes from cranqe's
+# npm-registry.yml template.
+test:wasm:
+  needs: [build:wasm]
+
 # ── cranqe integration ────────────────────────────────────────────────────────
 # verify-tag-version (.pre, tags):  confirm git tag == DESCRIPTION Version
 # trigger-cranqe     (.post, main): request a dev build after every push
@@ -69,3 +103,6 @@ include:
   - project: 'epistemic-analytics/qe-packages/cranqe'
     ref: main
     file: '/ci-templates/trigger-cranqe.yml'
+  - project: 'epistemic-analytics/qe-packages/cranqe'
+    ref: main
+    file: '/ci-templates/npm-registry.yml'

@@ -13,6 +13,9 @@
   (`import tma`), with libtma compiled in (`tma.libtma`) instead of calling
   libqe's copy. Node positions come from qe-ena and generic numerics from
   qe-lib (it imported the old `pylibqe` name, so it no longer installed).
+* New npm package `@qe-libs/tma-wasm` (`wasm/`): libtma compiled to
+  WebAssembly, replacing libqe-wasm's accumulation functions (same
+  signatures).
 
 # tma 0.3.5
 

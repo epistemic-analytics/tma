@@ -1,6 +1,7 @@
 #!/bin/sh
 # sync-headers.sh — vendor the C++ headers that qe-tma's extension (python/)
-#                   builds against into python/include/:
+#                   and tma-wasm's module (wasm/) build against into
+#                   python/include/ and wasm/include/:
 #
 #   libtma  from inst/include/libtma/ (this repo's canonical copy)
 #   libqe   from Conan: libqe/$LIBQE_VERSION on the qe-libs registry, or from a
@@ -13,6 +14,7 @@
 #   2. A self-contained qe-tma sdist (it ships python/include/):
 #        sh scripts/sync-headers.sh && python -m build --sdist python/
 #      cranqe runs this script before building, when the repo provides it.
+#   3. tma-wasm: wasm/scripts/build.sh runs it.
 #
 # Conan: uses `conan` on PATH, else installs it into a throwaway venv with
 # $PYTHON (default python3).  It runs with a throwaway CONAN_HOME, so your own
@@ -25,7 +27,7 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 # Bump with DESCRIPTION's LinkingTo: libqe minimum.
 LIBQE_VERSION="${LIBQE_VERSION:-0.1.9}"
 CONAN_REMOTE="https://gitlab.com/api/v4/projects/22522458/packages/conan"
-DESTS="${REPO_ROOT}/python/include"
+DESTS="${REPO_ROOT}/python/include ${REPO_ROOT}/wasm/include"
 
 TMP="$(mktemp -d)"
 trap 'rm -rf "${TMP}"' EXIT
