@@ -33,7 +33,7 @@
     "transform": {}
   },
   "devDependencies": {
-    "@qe-libs/libqe-wasm": "^0.1.6",
+    "@qe-libs/libqe-wasm": ">=0.1.6 <0.3",
     "jest": "^29.0.0"
   }
 }

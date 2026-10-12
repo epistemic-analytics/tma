@@ -6,7 +6,7 @@ build-backend = "scikit_build_core.build"
 # Was pyTMA (import pytma), never published; renamed to the qe-<name>
 # convention with libqe's phase 4b split.
 name = "qe-tma"
-version = "0.1.4"
+version = "0.1.5"
 description = "Python TMA (Transmodal Analysis) modeling — sister package to tma, with libtma compiled in"
 readme = "README.md"
 requires-python = ">=3.10"

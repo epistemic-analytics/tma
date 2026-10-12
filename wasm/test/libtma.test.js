@@ -4,8 +4,8 @@
  *
  * The first part moved from libqe-wasm's test/basic.test.js with the code
  * (libqe's phase 4b split), unchanged.  The parity block checks that this
- * module and libqe-wasm's own copy (kept until libqe 0.2.0) give identical
- * results.
+ * module and libqe-wasm's own copy (removed in libqe 0.2.0; skipped then)
+ * give identical results.
  */
 import loadTMA from '../js/index.js';
 import loadLibQE from '@qe-libs/libqe-wasm';
@@ -217,7 +217,11 @@ describe('libtma module vs libqe-wasm', () => {
         finalize_row_connections: m => m.finalize_row_connections(rowConn, 2, 9, 3, true, 'log1p'),
     };
 
+    // libqe-wasm >= 0.2.0 no longer has these functions; compare only those it
+    // still provides (none, once 0.2 is installed).
     test.each(Object.keys(cases))('%s matches libqe-wasm', name => {
+        const fn = name.replace(/_ordered$/, '');
+        if (typeof libqe[fn] !== 'function') return;
         expect(cases[name](qe)).toEqual(cases[name](libqe));
     });
 });

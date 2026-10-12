@@ -1,7 +1,9 @@
 # tma (development version)
 
 * Works with libqe 0.2.0, which drops its copy of the accumulation code (tma
-  no longer uses it). qe-tma 0.1.4 allows `qe-lib<0.3`.
+  no longer uses it). qe-tma 0.1.4 allows `qe-lib<0.3`;
+  tma-wasm allows `@qe-libs/libqe-wasm` 0.2 (its libqe-wasm parity tests skip
+  the functions 0.2 removed).
 * CI installs qe-ena from qe-libs.org instead of building rENA's `develop`.
 
 # tma 0.3.6
