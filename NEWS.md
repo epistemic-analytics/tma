@@ -1,5 +1,11 @@
 # tma (development version)
 
+* Works with libqe 0.2.0, which drops its copy of the accumulation code (tma
+  no longer uses it). qe-tma 0.1.4 allows `qe-lib<0.3`.
+* CI installs qe-ena from qe-libs.org instead of building rENA's `develop`.
+
+# tma 0.3.6
+
 * tma is a compiled package again. The accumulation C++ (stanza windows,
   context tensors, row connections, weight models) moved out of libqe into
   tma as the header-only layer libtma (`inst/include/libtma/`, wrapped in

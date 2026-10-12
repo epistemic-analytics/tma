@@ -62,24 +62,15 @@ test:python:
   needs: []   # don't wait for build:wasm
   image: python:3.12-slim
   <<: *pip-cache
-  variables:
-    # qe-tma needs qe-ena >= 0.1.6 (ena.libena), which is on rENA's develop
-    # branch and not yet published; build it from there.  Once it is on the
-    # index, install qe-ena from https://qe-libs.org/py/dev/simple/ instead.
-    QE_ENA_REF: develop
   before_script:
     - apt-get update -qq
     - apt-get install -y --no-install-recommends build-essential cmake libarmadillo-dev git
-    # Public dependencies from PyPI, then qe-lib from qe-libs.org *only*:
-    # --extra-index-url would let pip pick a same-named package from PyPI.
+    # Public dependencies from PyPI, then qe-lib and qe-ena (>= 0.1.6, for
+    # ena.libena) from qe-libs.org *only*: --extra-index-url would let pip
+    # pick a same-named package from PyPI (PyPI's pyena is unrelated).
     - pip install --cache-dir .pip-cache numpy pandas pytest
     - pip install --cache-dir .pip-cache --no-deps
-        --index-url https://qe-libs.org/py/dev/simple/ qe-lib
-    - git clone --depth 1 --branch "$QE_ENA_REF"
-        https://gitlab.com/epistemic-analytics/qe-packages/rENA.git /tmp/rENA
-    # qe-ena compiles libtma's accumulate_stanza: use this checkout's libtma.
-    - LIBTMA_INCLUDE="$CI_PROJECT_DIR/inst/include" sh /tmp/rENA/scripts/sync-headers.sh
-    - pip install --cache-dir .pip-cache --no-deps /tmp/rENA/python
+        --index-url https://qe-libs.org/py/dev/simple/ qe-lib qe-ena
   script:
     # tma._libtma builds against headers vendored into python/include/
     # (libtma from inst/include, libqe from Conan).
