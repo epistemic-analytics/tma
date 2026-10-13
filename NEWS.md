@@ -1,5 +1,14 @@
 # tma (development version)
 
+* qe-tma `TMA.fit()` fixes:
+  - `connection_names_` match R's `adjacency_key()`: ordered labels were
+    transposed (position j*n+i is ground i -> response j, labelled "i & j"),
+    and unordered labels come from libqe's `connection_names` ("A & B", was
+    "A&B").
+  - Units with a single visible line are no longer skipped: as in R, the
+    response self-term connects their co-occurring codes. (A single-row
+    selection is read-only under pandas copy-on-write, so the code matrix is
+    now copied before it reaches the extension.)
 * Works with libqe 0.2.0, which drops its copy of the accumulation code (tma
   no longer uses it). qe-tma 0.1.4 allows `qe-lib<0.3`;
   tma-wasm allows `@qe-libs/libqe-wasm` 0.2 (its libqe-wasm parity tests skip

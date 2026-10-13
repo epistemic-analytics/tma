@@ -7,7 +7,7 @@ from itertools import combinations
 from typing import Optional, Union
 
 from ena import libena                    # node positions (libena, qe-ena)
-from qe import normalization, modeling    # generic numerics (libqe, qe-lib)
+from qe import adjacency, normalization, modeling  # generic numerics (libqe, qe-lib)
 
 from . import libtma                      # accumulation (libtma, this package)
 from .context_tensor import ContextTensor, context_tensor as make_context_tensor
@@ -146,9 +146,6 @@ class TMA:
             last_unit_row = max(own_rows)
             visible_rows = [r for r in ctx_rows if r <= last_unit_row]
 
-            if len(visible_rows) < 2:
-                continue
-
             # Remap own_rows to indices within visible_rows
             vis_idx = {r: i for i, r in enumerate(visible_rows)}
             unit_rows_local = [vis_idx[r] for r in own_rows if r in vis_idx]
@@ -156,8 +153,10 @@ class TMA:
             if not unit_rows_local:
                 continue
 
+            # copy=True: under pandas copy-on-write a single-row selection is a
+            # read-only view, which the extension's (writable) ndarray rejects.
             codes_mat = np.ascontiguousarray(
-                df.iloc[visible_rows][codes].to_numpy(dtype=np.float64)
+                df.iloc[visible_rows][codes].to_numpy(dtype=np.float64, copy=True)
             )
             times_sub = np.ascontiguousarray(times[visible_rows])
             ctx_lookup_sub = np.ascontiguousarray(context_lookup[visible_rows])
@@ -218,14 +217,12 @@ class TMA:
         # 7. Store results
         self.units_            = unit_labels
         self.codes_            = list(codes)
-        self.connection_names_ = [
-            f"{codes[i]}&{codes[j]}"
-            for j in range(1, n_codes)
-            for i in range(j)
-        ] if not ordered else [
-            f"{codes[i]}->{codes[j]}"
-            for i in range(n_codes)
+        # Same labels as R's adjacency_key(): unordered from libqe; ordered in
+        # the kernel's layout, ground i -> response j at j*n+i, as "i & j".
+        self.connection_names_ = list(adjacency.connection_names(list(codes))) if not ordered else [
+            f"{codes[i]} & {codes[j]}"
             for j in range(n_codes)
+            for i in range(n_codes)
         ]
         self.networks_         = raw_networks
         self.normed_networks_  = normed

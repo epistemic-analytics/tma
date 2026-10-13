@@ -48,10 +48,21 @@ class TestTMAOrdered:
         # ordered -> p^2 = 9 connections
         assert m.networks_.shape == (3, 9)
 
-    def test_ordered_connection_names_format(self):
+    def test_ordered_connection_names_match_r_adjacency_key(self):
+        # R: colnames(adjacency_key(c("c1","c2","c3"), FALSE)) -- ground i ->
+        # response j at j*n+i, labelled "i & j"
         df = make_df()
         m = TMA().fit(df, "user", "convo", CODES, ordered=True)
-        assert "->" in m.connection_names_[0]
+        assert m.connection_names_ == [
+            "c1 & c1", "c2 & c1", "c3 & c1",
+            "c1 & c2", "c2 & c2", "c3 & c2",
+            "c1 & c3", "c2 & c3", "c3 & c3",
+        ]
+
+    def test_unordered_connection_names_match_r_adjacency_key(self):
+        # R: colnames(adjacency_key(c("c1","c2","c3"), TRUE))
+        m = TMA().fit(make_df(), "user", "convo", CODES)
+        assert m.connection_names_ == ["c1 & c2", "c1 & c3", "c2 & c3"]
 
 
 class TestTMAWithTensor:
@@ -126,3 +137,46 @@ class TestWeightBy:
             self.networks(weight_by="cube")
         with pytest.raises(ValueError):
             self.networks(weight_by=np.sqrt)
+
+
+class TestMatchesRAccumulate:
+    """Unit networks equal R tma's accumulate() (weight_by = "product", window 3).
+
+    Unit z has a single line (A and B) in its own conversation: the kernel's
+    response self-term still connects A and B, so it is not a zero network.
+    R reference: accumulate(contexts(toy, units_by = "u", hoo_rules =
+    conversation_rules((c %in% UNIT$c))), c("A","B","C"), context_tensor(toy,
+    NULL, NULL, default_window = 3, default_weight = 1), weight_by = "product").
+    """
+
+    TOY = pd.DataFrame({
+        "u": ["x", "x", "x", "y", "y", "z", "w", "w"],
+        "c": ["1", "1", "1", "2", "2", "3", "4", "4"],
+        "A": [2.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0],
+        "B": [0.0, 3.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0],
+        "C": [1.0, 0.0, 2.0, 0.0, 1.0, 0.0, 1.0, 0.0],
+    })
+
+    R_UNORDERED = {"x": [12, 9, 12], "y": [2, 2, 1], "z": [1, 0, 0], "w": [2, 1, 2]}
+    R_ORDERED = {  # A & A, B & A, C & A, A & B, B & B, C & B, A & C, B & C, C & C
+        "x": [2, 1.5, 2, 10.5, 3, 5, 7, 7, 2],
+        "y": [1, 1.5, 0.5, 0.5, 0, 0, 1.5, 1, 0],
+        "z": [0, 0.5, 0, 0.5, 0, 0, 0, 0, 0],
+        "w": [0, 1.5, 1, 0.5, 1, 1.5, 0, 0.5, 0],
+    }
+
+    def networks(self, ordered):
+        tensor = context_tensor(self.TOY, default_window=3.0)
+        m = TMA().fit(self.TOY, units="u", conversations="c", codes=["A", "B", "C"],
+                      tensor=tensor, ordered=ordered, weight_by="product")
+        return {u: m.networks_[i] for i, u in enumerate(m.units_)}
+
+    def test_unordered(self):
+        nets = self.networks(False)
+        for u, ref in self.R_UNORDERED.items():
+            np.testing.assert_allclose(nets[u], ref, err_msg=u)
+
+    def test_ordered(self):
+        nets = self.networks(True)
+        for u, ref in self.R_ORDERED.items():
+            np.testing.assert_allclose(nets[u], ref, err_msg=u)
