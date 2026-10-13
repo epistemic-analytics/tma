@@ -105,8 +105,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // apply_tensor
-List apply_tensor(arma::vec tensor, std::vector<int> dims, std::vector<int> dims_sender, std::vector<int> dims_receiver, std::vector<int> dims_mode, arma::imat context_lookup, std::vector<int> unit_rows, arma::mat codes, arma::vec times, bool ordered);
-RcppExport SEXP _tma_apply_tensor(SEXP tensorSEXP, SEXP dimsSEXP, SEXP dims_senderSEXP, SEXP dims_receiverSEXP, SEXP dims_modeSEXP, SEXP context_lookupSEXP, SEXP unit_rowsSEXP, SEXP codesSEXP, SEXP timesSEXP, SEXP orderedSEXP) {
+List apply_tensor(arma::vec tensor, std::vector<int> dims, std::vector<int> dims_sender, std::vector<int> dims_receiver, std::vector<int> dims_mode, arma::imat context_lookup, std::vector<int> unit_rows, arma::mat codes, arma::vec times, bool ordered, bool misses);
+RcppExport SEXP _tma_apply_tensor(SEXP tensorSEXP, SEXP dimsSEXP, SEXP dims_senderSEXP, SEXP dims_receiverSEXP, SEXP dims_modeSEXP, SEXP context_lookupSEXP, SEXP unit_rowsSEXP, SEXP codesSEXP, SEXP timesSEXP, SEXP orderedSEXP, SEXP missesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -120,7 +120,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::mat >::type codes(codesSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type times(timesSEXP);
     Rcpp::traits::input_parameter< bool >::type ordered(orderedSEXP);
-    rcpp_result_gen = Rcpp::wrap(apply_tensor(tensor, dims, dims_sender, dims_receiver, dims_mode, context_lookup, unit_rows, codes, times, ordered));
+    Rcpp::traits::input_parameter< bool >::type misses(missesSEXP);
+    rcpp_result_gen = Rcpp::wrap(apply_tensor(tensor, dims, dims_sender, dims_receiver, dims_mode, context_lookup, unit_rows, codes, times, ordered, misses));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -181,7 +182,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_tma_rolling_window_sum", (DL_FUNC) &_tma_rolling_window_sum, 2},
     {"_tma_accumulate_unit", (DL_FUNC) &_tma_accumulate_unit, 4},
     {"_tma_accumulate_unit_with_rows", (DL_FUNC) &_tma_accumulate_unit_with_rows, 4},
-    {"_tma_apply_tensor", (DL_FUNC) &_tma_apply_tensor, 10},
+    {"_tma_apply_tensor", (DL_FUNC) &_tma_apply_tensor, 11},
     {"_tma_apply_tensor_members", (DL_FUNC) &_tma_apply_tensor_members, 10},
     {"_tma_finalize_row_connections", (DL_FUNC) &_tma_finalize_row_connections, 4},
     {"_tma_aggregate_row_connections", (DL_FUNC) &_tma_aggregate_row_connections, 4},

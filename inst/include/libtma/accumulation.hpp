@@ -358,7 +358,32 @@ struct TensorNetworks {
     /// Per-response-row resolved window size for each member above (parallel to
     /// row_window_members). Populated only when return_members = true.
     std::vector<std::vector<double>> row_window_wins;
+    /// Unit-level missed co-occurrences (p², directed): Σ over response rows of
+    /// miss_matrix(). Populated only when return_misses = true; empty otherwise.
+    arma::rowvec miss_counts;
+    /// Per-response-row missed co-occurrences (n_unit_rows × p², directed).
+    /// Populated only when return_misses = true; empty otherwise.
+    arma::mat    row_miss_counts;
 };
+
+/** @brief Missed co-occurrences for one ground + response event pair.
+ *
+ *  The counterpart of connection_matrix()'s ground→response term: entry
+ *  (i, j) is the ground weight of code @c i when code @c j is @em absent from
+ *  the response, i.e. @c ground.t() * [response == 0].  Always directed (a
+ *  miss has a direction: present in the ground, absent in the response) and
+ *  laid out like the ordered connection matrix (ground i → response j at
+ *  @c j*p+i once vectorised).  There is no response self-term.
+ *
+ *  @param[in] ground    Row vector of accumulated (weighted) ground codes (length p).
+ *  @param[in] response  Row vector of the response codes (length p).
+ *
+ *  @returns A p × p missed-co-occurrence matrix.
+ */
+inline arma::mat miss_matrix(const arma::rowvec& ground, const arma::rowvec& response) {
+    arma::rowvec absent = arma::conv_to<arma::rowvec>::from(response == 0);
+    return ground.t() * absent;
+}
 
 /** @brief Pure-C++ port of the tma @c apply_tensor() inner logic.
  *
@@ -385,9 +410,15 @@ struct TensorNetworks {
  *  @param[in] ordered         When @c true, produce a directed full p² result;
  *                             when @c false, produce an undirected upper-triangle
  *                             result.
+ *  @param[in] return_members  When @c true, also record each response row's
+ *                             in-window ground rows and window sizes.
+ *  @param[in] return_misses   When @c true, also compute missed co-occurrences
+ *                             (see miss_matrix()) from the same ground vector.
+ *                             Misses are always directed, whatever @p ordered.
  *
  *  @returns A TensorNetworks struct containing the unit-level connection counts
- *           and the per-response-row connection counts.
+ *           and the per-response-row connection counts (plus misses / window
+ *           members when requested).
  *
  *  @note Equivalent to the inner loop of @c apply_tensor() in @c tma/code.cpp.
  */
@@ -402,7 +433,8 @@ inline TensorNetworks apply_tensor_unit(
     const arma::mat&        codes,
     const arma::vec&        times,
     bool ordered = true,
-    bool return_members = false
+    bool return_members = false,
+    bool return_misses = false
 ) {
     const int  WINDOW_DIM  = 1;
     const int  WEIGHT_DIM  = 0;
@@ -437,6 +469,8 @@ inline TensorNetworks apply_tensor_unit(
 
     arma::mat g_w_mat(code_cnt, code_cnt, arma::fill::zeros);
     arma::mat row_conn(n_unit_rows, code_cnt * code_cnt, arma::fill::zeros);
+    arma::mat row_miss;
+    if (return_misses) row_miss.zeros(n_unit_rows, code_cnt * code_cnt);
 
     std::vector<std::vector<int>>    members_all;
     std::vector<std::vector<double>> wins_all;
@@ -506,6 +540,8 @@ inline TensorNetworks apply_tensor_unit(
             g_ws, row_vec, static_cast<double>(response_weight), ordered);
         g_w_mat += resp;
         row_conn.row(i) = arma::vectorise(resp).t();
+        if (return_misses)
+            row_miss.row(i) = arma::vectorise(miss_matrix(g_ws, row_vec)).t();
 
         if (return_members) {
             members_all.push_back(std::move(gri_v));
@@ -519,6 +555,10 @@ inline TensorNetworks apply_tensor_unit(
     if (return_members) {
         result.row_window_members = std::move(members_all);
         result.row_window_wins    = std::move(wins_all);
+    }
+    if (return_misses) {
+        result.miss_counts     = arma::sum(row_miss, 0);
+        result.row_miss_counts = std::move(row_miss);
     }
     return result;
 }

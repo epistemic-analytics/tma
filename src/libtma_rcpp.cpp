@@ -164,7 +164,12 @@ List accumulate_unit_with_rows(arma::mat codes, std::vector<int> unit_rows,
 //' @param codes          Numeric matrix (n_context_rows x n_codes)
 //' @param times          Numeric vector of timestamps per context row
 //' @param ordered        TRUE = directed; FALSE = undirected
-//' @return List with `connection_counts` (vector) and `row_connection_counts` (matrix)
+//' @param misses         TRUE = also return missed co-occurrences: ground code
+//'   i present while response code j is absent (directed, n_codes^2, ground
+//'   i -> response j at j*n+i; no response self-term)
+//' @return List with `connection_counts` (vector) and `row_connection_counts`
+//'   (matrix); with `misses = TRUE`, also `miss_counts` (vector) and
+//'   `row_miss_counts` (matrix), always directed
 //' @export
 // [[Rcpp::export]]
 List apply_tensor(arma::vec tensor,
@@ -176,14 +181,21 @@ List apply_tensor(arma::vec tensor,
                      std::vector<int> unit_rows,
                      arma::mat codes,
                      arma::vec times,
-                     bool ordered = true) {
+                     bool ordered = true,
+                     bool misses = false) {
     qe::TensorNetworks r = qe::apply_tensor_unit(
         tensor, dims, dims_sender, dims_receiver, dims_mode,
-        context_lookup, unit_rows, codes, times, ordered);
-    return List::create(
+        context_lookup, unit_rows, codes, times, ordered,
+        /*return_members=*/false, /*return_misses=*/misses);
+    List out = List::create(
         _("connection_counts")     = r.connection_counts,
         _("row_connection_counts") = r.row_connection_counts
     );
+    if (misses) {
+        out["miss_counts"]     = r.miss_counts;
+        out["row_miss_counts"] = r.row_miss_counts;
+    }
+    return out;
 }
 
 //' Apply the TMA window/weight tensor, additionally returning per-response-row

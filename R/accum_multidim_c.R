@@ -10,10 +10,13 @@
 #' @param ordered Logical; if TRUE (default), computes ordered adjacency matrices (ONA); if FALSE, computes unordered (ENA-style) matrices.
 #' @param binary Logical; if TRUE (default), binarizes each line's connection counts before they are summed per unit (unordered only; ordered counts are always summed raw). Ignored when `weight_by` is given.
 #' @param weight_by Weight model applied to each line's connection counts before they are summed into the unit network (= rENA's `weight.by`): `"binary"` (unordered: each positive count becomes 1; ordered: raw directed counts), `"product"` (the raw, non-binarized counts), `"sqrt"`, or `"log1p"` (alias `"log"`). For unordered networks the weight is applied after each line is folded to the upper triangle; for ordered networks, to each directed cell. Defaults to `"binary"` when `binary = TRUE`, otherwise `"product"`. `model$row.connection.counts` always holds the raw, unweighted line counts.
+#' @param misses Logical; if TRUE, also accumulate missed co-occurrences: for each response line, the (window-weighted) ground count of code i when code j is absent from the response. Ordered models only (`ordered = TRUE`); laid out like the ordered connection counts (ground i -> response j) with no response self-term. `weight_by` is applied per line, as for connection counts. Defaults to FALSE.
 #'
 #' @return The input `context_model` with additional fields:
 #'   \item{connection.counts}{A data.table of accumulated connection counts for each unit.}
 #'   \item{model$row.connection.counts}{A data.table of row-level connection matrices for each unit.}
+#'   \item{miss.counts}{With `misses = TRUE`: a data.table of accumulated missed co-occurrences for each unit.}
+#'   \item{model$row.miss.counts}{With `misses = TRUE`: a data.table of raw, unweighted row-level missed co-occurrences.}
 #'   \item{meta.data}{A data.table of metadata columns for each unit.}
 #'   The class of the returned object is updated to reflect the type of accumulation (ordered or unordered).
 #'
@@ -28,8 +31,13 @@ accumulate <- function(
   time_column = NULL,
   ordered = FALSE,
   binary = TRUE,
-  weight_by = NULL
+  weight_by = NULL,
+  misses = FALSE
 ) {
+  if (isTRUE(misses) && !isTRUE(ordered)) {
+    stop("`misses = TRUE` requires `ordered = TRUE`: missed co-occurrences are directed.")
+  }
+
   if (is.null(weight_by)) {
     weight_by <- if (isTRUE(binary)) "binary" else "product"
   }
@@ -96,6 +104,7 @@ accumulate <- function(
     matrix(lookup, nrow = nrow(ctx_rows), ncol = length(cols_to_encode))
   }
 
+  miss_rows <- list();
   result_cpp <- lapply(context_model$model$contexts, function(ctx) {
     ctx_fun <- function(ctx_o) {
       ctx__ <- data.table::copy(ctx_o);
@@ -114,7 +123,8 @@ accumulate <- function(
         unit_context_lookup[unit_to_last, , drop = FALSE] - 1,
         unit_rows - 1,
         as.matrix(ctx_unit_to_last[ , ..codes]),
-        ctx_unit_to_last[[time_column]]
+        ctx_unit_to_last[[time_column]],
+        misses = isTRUE(misses)
       )
 
       rcc <- data.table::as.data.table(res2$row_connection_counts);
@@ -123,6 +133,13 @@ accumulate <- function(
       # browser()
       rcc[, names(unit_row_meta) := unit_row_meta]
       data.table::setcolorder(rcc, c(names(unit_row_meta), setdiff(names(rcc), names(unit_row_meta))))
+
+      if (isTRUE(misses)) {
+        rmc <- data.table::as.data.table(res2$row_miss_counts);
+        rmc[, names(unit_row_meta) := unit_row_meta]
+        data.table::setcolorder(rmc, c(names(unit_row_meta), setdiff(names(rmc), names(unit_row_meta))))
+        miss_rows[[length(miss_rows) + 1]] <<- rmc;
+      }
       rcc
     }
 
@@ -184,6 +201,17 @@ accumulate <- function(
     cc_type <- "unordered.ena.connections";
   }
   
+  if (isTRUE(misses)) {
+    row_miss_counts <- data.table::rbindlist(miss_rows);
+    row_miss_counts <- reclass_columns(row_miss_counts, rep(c("ena.metadata","ena.co.occurrence"), c(length(meta_cols), length(adj_vector_names_full))))
+    data.table::setorderv(row_miss_counts, "QEID");
+    row_miss_counts <- reclass(x = row_miss_counts, c("ordered.row.connections", "row.connections", "ena.matrix"));
+    colnames(row_miss_counts) <- c(meta_cols, adj_vector_names_full);
+    context_model$model$row.miss.counts <- row_miss_counts;
+
+    miss_counts <- row_miss_counts[, unit_vector(.SD, adj_vector_names_full), by = units_by, .SDcols = adj_vector_names_full];
+  }
+
   cc_meta <- data.table::rbindlist(lapply(result_cpp, function(rc) rc[1, c("QEUNIT", units_by), with = FALSE]));
   cc_meta$ENA_UNIT <- context_model$model$unit.labels;
   cc_meta <- cc_meta[, lapply(.SD, reclass, "ena.metadata"), .SDcols = colnames(cc_meta)];
@@ -191,6 +219,11 @@ accumulate <- function(
   connection_counts <- cbind(cc_meta, connection_counts)
   connection_counts <- reclass(connection_counts, c(cc_type, "ena.connections", "ena.matrix"));
   context_model$connection.counts <- connection_counts;
+
+  if (isTRUE(misses)) {
+    miss_counts <- cbind(cc_meta, miss_counts);
+    context_model$miss.counts <- reclass(miss_counts, c(cc_type, "ena.connections", "ena.matrix"));
+  }
   
   context_model$meta.data <- context_model$connection.counts[, sapply(context_model$connection.counts, is, "ena.metadata"), with = FALSE];
   class(context_model$meta.data) = c("ena.matrix", class(context_model$meta.data));
@@ -206,6 +239,7 @@ accumulate <- function(
   context_model$`_function.params`$ordered     <- ordered;
   context_model$`_function.params`$binary      <- binary;
   context_model$`_function.params`$weight_by   <- weight_by;
+  context_model$`_function.params`$misses      <- isTRUE(misses);
 
   return(context_model);
 }

@@ -11,7 +11,8 @@ accumulate(
   time_column = NULL,
   ordered = FALSE,
   binary = TRUE,
-  weight_by = NULL
+  weight_by = NULL,
+  misses = FALSE
 )
 }
 \arguments{
@@ -28,11 +29,15 @@ accumulate(
 \item{binary}{Logical; if TRUE (default), binarizes each line's connection counts before they are summed per unit (unordered only; ordered counts are always summed raw). Ignored when `weight_by` is given.}
 
 \item{weight_by}{Weight model applied to each line's connection counts before they are summed into the unit network (= rENA's `weight.by`): `"binary"` (unordered: each positive count becomes 1; ordered: raw directed counts), `"product"` (the raw, non-binarized counts), `"sqrt"`, or `"log1p"` (alias `"log"`). For unordered networks the weight is applied after each line is folded to the upper triangle; for ordered networks, to each directed cell. Defaults to `"binary"` when `binary = TRUE`, otherwise `"product"`. `model$row.connection.counts` always holds the raw, unweighted line counts.}
+
+\item{misses}{Logical; if TRUE, also accumulate missed co-occurrences: for each response line, the (window-weighted) ground count of code i when code j is absent from the response. Ordered models only (`ordered = TRUE`); laid out like the ordered connection counts (ground i -> response j) with no response self-term. `weight_by` is applied per line, as for connection counts. Defaults to FALSE.}
 }
 \value{
 The input `context_model` with additional fields:
   \item{connection.counts}{A data.table of accumulated connection counts for each unit.}
   \item{model$row.connection.counts}{A data.table of row-level connection matrices for each unit.}
+  \item{miss.counts}{With `misses = TRUE`: a data.table of accumulated missed co-occurrences for each unit.}
+  \item{model$row.miss.counts}{With `misses = TRUE`: a data.table of raw, unweighted row-level missed co-occurrences.}
   \item{meta.data}{A data.table of metadata columns for each unit.}
   The class of the returned object is updated to reflect the type of accumulation (ordered or unordered).
 }

@@ -121,10 +121,15 @@ accumulate_unit_with_rows <- function(codes, unit_rows, decay_fn, ordered = FALS
 #' @param codes          Numeric matrix (n_context_rows x n_codes)
 #' @param times          Numeric vector of timestamps per context row
 #' @param ordered        TRUE = directed; FALSE = undirected
-#' @return List with `connection_counts` (vector) and `row_connection_counts` (matrix)
+#' @param misses         TRUE = also return missed co-occurrences: ground code
+#'   i present while response code j is absent (directed, n_codes^2, ground
+#'   i -> response j at j*n+i; no response self-term)
+#' @return List with `connection_counts` (vector) and `row_connection_counts`
+#'   (matrix); with `misses = TRUE`, also `miss_counts` (vector) and
+#'   `row_miss_counts` (matrix), always directed
 #' @export
-apply_tensor <- function(tensor, dims, dims_sender, dims_receiver, dims_mode, context_lookup, unit_rows, codes, times, ordered = TRUE) {
-    .Call(`_tma_apply_tensor`, tensor, dims, dims_sender, dims_receiver, dims_mode, context_lookup, unit_rows, codes, times, ordered)
+apply_tensor <- function(tensor, dims, dims_sender, dims_receiver, dims_mode, context_lookup, unit_rows, codes, times, ordered = TRUE, misses = FALSE) {
+    .Call(`_tma_apply_tensor`, tensor, dims, dims_sender, dims_receiver, dims_mode, context_lookup, unit_rows, codes, times, ordered, misses)
 }
 
 #' Apply the TMA window/weight tensor, additionally returning per-response-row

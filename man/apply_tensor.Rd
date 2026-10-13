@@ -14,7 +14,8 @@ apply_tensor(
   unit_rows,
   codes,
   times,
-  ordered = TRUE
+  ordered = TRUE,
+  misses = FALSE
 )
 }
 \arguments{
@@ -37,9 +38,15 @@ apply_tensor(
 \item{times}{Numeric vector of timestamps per context row}
 
 \item{ordered}{TRUE = directed; FALSE = undirected}
+
+\item{misses}{TRUE = also return missed co-occurrences: ground code
+i present while response code j is absent (directed, n_codes^2, ground
+i -> response j at j*n+i; no response self-term)}
 }
 \value{
-List with `connection_counts` (vector) and `row_connection_counts` (matrix)
+List with `connection_counts` (vector) and `row_connection_counts`
+  (matrix); with `misses = TRUE`, also `miss_counts` (vector) and
+  `row_miss_counts` (matrix), always directed
 }
 \description{
 Pure-C++ port of tma's apply_tensor().  Accepts 0-based index vectors
