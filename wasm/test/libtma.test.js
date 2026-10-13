@@ -118,6 +118,34 @@ test('accumulate_tensor_unit: default 1-D tensor smoke test', () => {
     expect(out.row_connection_counts.cols).toBe(4);
 });
 
+test('accumulate_tensor_unit_misses: ground present, response absent', () => {
+    // tma's R test-misses.R fixture: window 3, weight 1.
+    //   row 2 misses A->C 2, C->C 1; row 3 misses A->A 3, B->A 3, C->A 1
+    const args = [
+        new Float64Array([1, 3]), new Int32Array([2]),
+        new Int32Array([]), new Int32Array([]), new Int32Array([]),
+        new Int32Array([0, 0, 0]), 3, 1,
+        new Int32Array([0, 1, 2]),
+        new Float64Array([2, 0, 1,  1, 3, 0,  0, 1, 2]), 3, 3,
+        new Float64Array([0, 1, 2]),
+        /*ordered=*/true,
+    ];
+    const out = qe.accumulate_tensor_unit_misses(...args);
+    expect(out.row_miss_counts.rows).toBe(3);
+    expect(out.row_miss_counts.cols).toBe(9);
+    expect(Array.from(out.row_miss_counts.data)).toEqual([
+        0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 2, 0, 1,
+        3, 3, 1, 0, 0, 0, 0, 0, 0,
+    ]);
+    expect(Array.from(out.miss_counts)).toEqual([3, 3, 1, 0, 0, 0, 2, 0, 1]);
+
+    const plain = qe.accumulate_tensor_unit(...args);
+    expect(plain.miss_counts).toBeUndefined();
+    expect(Array.from(plain.row_connection_counts.data))
+        .toEqual(Array.from(out.row_connection_counts.data));
+});
+
 // ── aggregate_row_connections / finalize_row_connections (weight models) ─────
 
 // Two response rows × 3 codes, directed 3×3 per row (column-major within the

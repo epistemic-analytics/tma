@@ -191,7 +191,7 @@ end
 
 """
     accumulate_tensor_unit(codes, dims, dims_sender, dims_receiver, dims_mode,
-                           context_lookup, unit_rows, times; ordered=true)
+                           context_lookup, unit_rows, times; ordered=true, misses=false)
     -> NamedTuple{(:connection_counts, :row_connection_counts)}
 
 tma tensor-based accumulation for one unit.
@@ -206,8 +206,12 @@ tma tensor-based accumulation for one unit.
 - `unit_rows`      — `Vector{Int32}` **0-based** response-row indices for this unit
 - `times`          — `Vector{Float64}` one timestamp per context row
 - `ordered`        — `true` → directed n²; `false` → undirected upper-tri
+- `misses`         — `true` → also return missed co-occurrences: ground code i
+                     present while response code j is absent (directed n² rows,
+                     no response self-term)
 
-Returns `(connection_counts, row_connection_counts)`.
+Returns `(connection_counts, row_connection_counts)`; with `misses = true`,
+`(connection_counts, row_connection_counts, miss_counts, row_miss_counts)`.
 """
 function accumulate_tensor_unit(codes::Matrix{Float64},
                                  tensor::Vector{Float64},
@@ -218,10 +222,11 @@ function accumulate_tensor_unit(codes::Matrix{Float64},
                                  context_lookup::Matrix{<:Integer},
                                  unit_rows::AbstractVector{<:Integer},
                                  times::Vector{Float64};
-                                 ordered::Bool = true)
+                                 ordered::Bool = true,
+                                 misses::Bool = false)
     rows, cols = size(codes)
     cl_rows, cl_cols = size(context_lookup)
-    r = apply_tensor_unit(
+    r = (misses ? apply_tensor_unit_misses : apply_tensor_unit)(
             tensor,
             _sv_i32(dims), _sv_i32(dims_sender),
             _sv_i32(dims_receiver), _sv_i32(dims_mode),
@@ -230,9 +235,15 @@ function accumulate_tensor_unit(codes::Matrix{Float64},
             vec(codes), Int32(rows), Int32(cols),
             times,
             ordered)
-    (
+    hits = (
         connection_counts     = collect(Float64, r[1]),
         row_connection_counts = _mat(r[2], r[3], r[4]),
+    )
+    misses || return hits
+    (
+        hits...,
+        miss_counts     = collect(Float64, r[5]),
+        row_miss_counts = _mat(r[6], r[3], r[4]),
     )
 end
 

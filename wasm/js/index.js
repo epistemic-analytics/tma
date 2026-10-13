@@ -15,6 +15,10 @@
  *   flat_index, accumulate_unit, accumulate_unit_with_rows,
  *   accumulate_tensor_unit, aggregate_row_connections, finalize_row_connections
  *
+ * Also: accumulate_tensor_unit_misses — same arguments as
+ * accumulate_tensor_unit; the result adds miss_counts and row_miss_counts
+ * (ground code i present while response code j is absent, directed n² rows).
+ *
  * Matrix convention: inputs are flat row-major Float64Arrays with explicit
  * rows and cols; matrix results are { data: Float64Array, rows, cols }, so a
  * cell is data[row * cols + col].

@@ -232,3 +232,42 @@ class TestAggregateRowConnectionsWeights:
         np.testing.assert_allclose(agg("product"), [12, 9, 12])
         np.testing.assert_allclose(agg("sqrt"),  [4.73205080756888, 4.86370330515627, 4.73205080756888], rtol=1e-12)
         np.testing.assert_allclose(agg("log1p"), [3.68887945411394, 3.73766961828337, 3.68887945411394], rtol=1e-12)
+
+
+# ── missed co-occurrences ─────────────────────────────────────────────────────
+# One unit, window 3 (tma's R test-misses.R fixture):
+#   row 2: ground (2,0,1), C absent -> A->C 2, C->C 1
+#   row 3: ground (3,3,1), A absent -> A->A 3, B->A 3, C->A 1
+# Directed layout ground i -> response j at j*n+i.
+
+MISS_CODES = np.array([[2, 0, 1], [1, 3, 0], [0, 1, 2]], dtype=np.float64)
+ROW_MISSES = np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0],
+                       [0, 0, 0, 0, 0, 0, 2, 0, 1],
+                       [3, 3, 1, 0, 0, 0, 0, 0, 0]], dtype=np.float64)
+
+
+def _miss_tensor_unit(misses):
+    return accumulation.apply_tensor_unit(
+        np.array([1.0, 3.0]), [2], [], [], [],
+        np.zeros((3, 0), dtype=np.int32), [0, 1, 2],
+        MISS_CODES, np.array([0.0, 1.0, 2.0]), True, misses)
+
+
+class TestApplyTensorUnitMisses:
+    def test_row_and_unit_misses(self):
+        r = _miss_tensor_unit(True)
+        np.testing.assert_array_equal(r.row_miss_counts, ROW_MISSES)
+        np.testing.assert_array_equal(r.miss_counts, ROW_MISSES.sum(axis=0))
+
+    def test_off_by_default_and_hits_unchanged(self):
+        plain = _miss_tensor_unit(False)
+        assert plain.miss_counts is None and plain.row_miss_counts is None
+        np.testing.assert_array_equal(plain.row_connection_counts,
+                                      _miss_tensor_unit(True).row_connection_counts)
+
+    def test_unordered_fold(self):
+        # A & B = B->A 3; A & C = A->C 2 + C->A 1; B & C = 0
+        r = _miss_tensor_unit(True)
+        np.testing.assert_allclose(
+            accumulation.aggregate_row_connections(r.row_miss_counts, 3, False, "product"),
+            [3, 3, 0])

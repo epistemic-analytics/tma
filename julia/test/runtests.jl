@@ -96,3 +96,19 @@ end
     @test aggregate_row_connections(rc, 3; weight = "sqrt") ≈
           [4.73205080756888, 4.86370330515627, 4.73205080756888]
 end
+
+@testset "accumulate_tensor_unit misses" begin
+    # Same fixture: row 2 misses A->C 2, C->C 1; row 3 misses A->A 3, B->A 3, C->A 1
+    codes = Float64[2 0 1; 1 3 0; 0 1 2]
+    args  = (codes, [1.0, 3.0], Int32[2], Int32[], Int32[], Int32[],
+             zeros(Int32, 3, 0), Int32[0, 1, 2], [0.0, 1.0, 2.0])
+    r = accumulate_tensor_unit(args...; misses = true)
+    @test r.row_miss_counts == Float64[0 0 0 0 0 0 0 0 0;
+                                       0 0 0 0 0 0 2 0 1;
+                                       3 3 1 0 0 0 0 0 0]
+    @test r.miss_counts == vec(sum(r.row_miss_counts; dims = 1))
+    @test aggregate_row_connections(r.row_miss_counts, 3; ordered = false, weight = "product") ≈ [3, 3, 0]
+    plain = accumulate_tensor_unit(args...)
+    @test !haskey(plain, :miss_counts)
+    @test plain.row_connection_counts == r.row_connection_counts
+end

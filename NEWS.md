@@ -4,9 +4,16 @@
   response line, the window-weighted ground count of code i when code j is
   absent from the response, with no response self-term. Misses go through
   the same steps as connection counts: directed for ordered models, folded to
-  the upper triangle for unordered ones, `weight_by` applied per line. Results land in `miss.counts` and `model$row.miss.counts`. Backed by
+  the upper triangle for unordered ones, `weight_by` applied per line.
+  Results land in `miss.counts` and `model$row.miss.counts`. Backed by
   libtma's `miss_matrix()` and `apply_tensor_unit(..., return_misses = true)`;
   `apply_tensor()` gains `misses = FALSE`.
+* Misses in every binding: qe-tma `apply_tensor_unit(..., misses=False)` and
+  `TMA.fit(misses=False)` (→ `miss_networks_`); tma-wasm
+  `accumulate_tensor_unit_misses()` (same arguments as
+  `accumulate_tensor_unit`); TMA.jl `accumulate_tensor_unit(...; misses=false)`.
+  Results gain `miss_counts` / `row_miss_counts` only when misses are asked
+  for, so existing callers see no change.
 * qe-tma `TMA.fit()` fixes:
   - `connection_names_` match R's `adjacency_key()`: ordered labels were
     transposed (position j*n+i is ground i -> response j, labelled "i & j"),

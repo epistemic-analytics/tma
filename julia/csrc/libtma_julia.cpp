@@ -151,8 +151,7 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod) {
     // context_lookup is passed as a flat Int32 vector (column-major, Julia-native)
     // plus cl_rows/cl_cols.  All index vectors are Int32; copied to std::vector<int>
     // because qe::apply_tensor_unit takes std::vector<int>.
-    mod.method("apply_tensor_unit",
-        [](jlcxx::ArrayRef<double> tensor_ref,
+    auto tensor_unit = [](jlcxx::ArrayRef<double> tensor_ref,
            const std::vector<int32_t>& dims_i32,
            const std::vector<int32_t>& dims_sender_i32,
            const std::vector<int32_t>& dims_receiver_i32,
@@ -161,7 +160,7 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod) {
            const std::vector<int32_t>& unit_rows_i32,
            jlcxx::ArrayRef<double> codes_ref, int32_t rows, int32_t cols,
            jlcxx::ArrayRef<double> times_ref,
-           bool ordered) -> TensorNetworksTuple {
+           bool ordered, bool misses) -> qe::TensorNetworks {
 
             arma::vec tensor(tensor_ref.data(), tensor_ref.size(), false, true);
 
@@ -175,9 +174,37 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod) {
             arma::mat  codes          = view_mat(codes_ref, rows, cols);
             arma::vec  times(times_ref.data(), times_ref.size(), false, true);
 
-            return to_tuple(qe::apply_tensor_unit(
+            return qe::apply_tensor_unit(
                 tensor, dims, dims_sender, dims_receiver, dims_mode,
-                context_lookup, unit_rows, codes, times, ordered));
+                context_lookup, unit_rows, codes, times, ordered,
+                /*return_members=*/false, /*return_misses=*/misses);
+        };
+
+    mod.method("apply_tensor_unit",
+        [tensor_unit](jlcxx::ArrayRef<double> tensor, const std::vector<int32_t>& dims,
+           const std::vector<int32_t>& dims_sender, const std::vector<int32_t>& dims_receiver,
+           const std::vector<int32_t>& dims_mode,
+           jlcxx::ArrayRef<int32_t> ctx, int32_t cl_rows, int32_t cl_cols,
+           const std::vector<int32_t>& unit_rows,
+           jlcxx::ArrayRef<double> codes, int32_t rows, int32_t cols,
+           jlcxx::ArrayRef<double> times, bool ordered) -> TensorNetworksTuple {
+            return to_tuple(tensor_unit(tensor, dims, dims_sender, dims_receiver, dims_mode,
+                ctx, cl_rows, cl_cols, unit_rows, codes, rows, cols, times, ordered, false));
+        });
+
+    // apply_tensor_unit_misses — same arguments; also returns missed
+    // co-occurrences (ground i present, response j absent; directed n² rows).
+    // A separate method so apply_tensor_unit's tuple shape is unchanged.
+    mod.method("apply_tensor_unit_misses",
+        [tensor_unit](jlcxx::ArrayRef<double> tensor, const std::vector<int32_t>& dims,
+           const std::vector<int32_t>& dims_sender, const std::vector<int32_t>& dims_receiver,
+           const std::vector<int32_t>& dims_mode,
+           jlcxx::ArrayRef<int32_t> ctx, int32_t cl_rows, int32_t cl_cols,
+           const std::vector<int32_t>& unit_rows,
+           jlcxx::ArrayRef<double> codes, int32_t rows, int32_t cols,
+           jlcxx::ArrayRef<double> times, bool ordered) -> TensorMissesTuple {
+            return to_misses_tuple(tensor_unit(tensor, dims, dims_sender, dims_receiver, dims_mode,
+                ctx, cl_rows, cl_cols, unit_rows, codes, rows, cols, times, ordered, true));
         });
 
     // ── Weight models (not bound by LibQE.jl; added with the move) ────────────

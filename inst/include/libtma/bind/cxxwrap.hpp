@@ -53,6 +53,19 @@ inline TensorNetworksTuple to_tuple(const qe::TensorNetworks& r) {
             static_cast<int32_t>(r.row_connection_counts.n_cols)};
 }
 
+/// (connection_counts, row_connection_counts, rows, cols,
+///  miss_counts, row_miss_counts) — rows/cols shared by both matrices.
+using TensorMissesTuple = std::tuple<
+    std::vector<double>, std::vector<double>, int32_t, int32_t,
+    std::vector<double>, std::vector<double>>;
+
+inline TensorMissesTuple to_misses_tuple(const qe::TensorNetworks& r) {
+    return {pack(r.connection_counts), pack(r.row_connection_counts),
+            static_cast<int32_t>(r.row_connection_counts.n_rows),
+            static_cast<int32_t>(r.row_connection_counts.n_cols),
+            pack(r.miss_counts), pack(r.row_miss_counts)};
+}
+
 } // namespace jl
 } // namespace bind
 } // namespace qe

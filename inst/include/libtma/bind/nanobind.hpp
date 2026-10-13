@@ -41,11 +41,16 @@ inline ::nanobind::dict to_dict(const qe::UnitNetworks& r) {
     return out;
 }
 
-/// {connection_counts (1-D), row_connection_counts (2-D)}
+/// {connection_counts (1-D), row_connection_counts (2-D)}, plus
+/// {miss_counts (1-D), row_miss_counts (2-D)} when misses were computed.
 inline ::nanobind::dict to_dict(const qe::TensorNetworks& r) {
     ::nanobind::dict out;
     out["connection_counts"]     = from_rowvec(r.connection_counts);
     out["row_connection_counts"] = from_mat(r.row_connection_counts);
+    if (r.miss_counts.n_elem > 0) {
+        out["miss_counts"]     = from_rowvec(r.miss_counts);
+        out["row_miss_counts"] = from_mat(r.row_miss_counts);
+    }
     return out;
 }
 
@@ -171,16 +176,17 @@ inline void def_apply_tensor_unit(::nanobind::module_& m) {
                std::vector<int> dims_sender, std::vector<int> dims_receiver,
                std::vector<int> dims_mode,
                NpIMat context_lookup, std::vector<int> unit_rows,
-               NpMat codes, NpVec times, bool ordered) {
+               NpMat codes, NpVec times, bool ordered, bool misses) {
                 return to_dict(qe::apply_tensor_unit(
                     to_vec(tensor), dims, dims_sender, dims_receiver, dims_mode,
                     to_imat(context_lookup), unit_rows,
-                    to_mat(codes), to_vec(times), ordered));
+                    to_mat(codes), to_vec(times), ordered,
+                    /*return_members=*/false, /*return_misses=*/misses));
             },
             "tensor"_a, "dims"_a,
             "dims_sender"_a, "dims_receiver"_a, "dims_mode"_a,
             "context_lookup"_a, "unit_rows"_a,
-            "codes"_a, "times"_a, "ordered"_a = true,
+            "codes"_a, "times"_a, "ordered"_a = true, "misses"_a = false,
             "Tensor-based multi-modal accumulation for one unit (tma model).\n\n"
             "tensor         : ndarray 1-D  flat column-major tensor of weights/windows\n"
             "dims           : list[int]    shape of the tensor\n"
@@ -191,8 +197,11 @@ inline void def_apply_tensor_unit(::nanobind::module_& m) {
             "unit_rows      : list[int]    0-based response-row indices for this unit\n"
             "codes          : ndarray 2-D  (n_rows x n_codes) code matrix\n"
             "times          : ndarray 1-D  timestamp per context row\n"
-            "ordered        : bool         True = directed, False = undirected upper-tri\n\n"
-            "Returns a dict (TensorNetworks in tma.libtma) with .connection_counts (1-D) and .row_connection_counts (2-D).\n\n"
+            "ordered        : bool         True = directed, False = undirected upper-tri\n"
+            "misses         : bool         True = also return missed co-occurrences (ground i\n"
+            "                              present, response j absent; directed p^2 rows)\n\n"
+            "Returns a dict (TensorNetworks in tma.libtma) with .connection_counts (1-D) and .row_connection_counts (2-D);\n"
+            "with misses=True also .miss_counts (1-D) and .row_miss_counts (2-D).\n\n"
             "Default mode: when dims=[2] and tensor has 2 elements [weight, window], uses\n"
             "a simplified single-weight/window path (equivalent to tma's default tensor).");
 }

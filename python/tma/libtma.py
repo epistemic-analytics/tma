@@ -15,7 +15,7 @@ All matrix inputs/outputs are numpy float64 arrays.
 """
 from __future__ import annotations
 
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 
 import numpy as np
 
@@ -57,9 +57,15 @@ class TensorNetworks(NamedTuple):
 
     connection_counts     : ndarray 1-D — unit-level flat vector (p^2)
     row_connection_counts : ndarray 2-D — per-response-row p^2 matrix
+    miss_counts           : ndarray 1-D | None — unit-level missed co-occurrences
+                            (p^2); only with misses=True
+    row_miss_counts       : ndarray 2-D | None — per-response-row p^2 missed
+                            co-occurrences; only with misses=True
     """
     connection_counts: np.ndarray
     row_connection_counts: np.ndarray
+    miss_counts: Optional[np.ndarray] = None
+    row_miss_counts: Optional[np.ndarray] = None
 
     def __repr__(self) -> str:
         r = self.row_connection_counts.shape
@@ -110,10 +116,11 @@ def accumulate_unit_with_rows(codes, unit_rows, decay_fn, ordered=False) -> Unit
 
 @_doc
 def apply_tensor_unit(tensor, dims, dims_sender, dims_receiver, dims_mode,
-                      context_lookup, unit_rows, codes, times, ordered=True) -> TensorNetworks:
+                      context_lookup, unit_rows, codes, times, ordered=True,
+                      misses=False) -> TensorNetworks:
     return TensorNetworks(**_libtma.apply_tensor_unit(
         tensor, dims, dims_sender, dims_receiver, dims_mode,
-        context_lookup, unit_rows, codes, times, ordered))
+        context_lookup, unit_rows, codes, times, ordered, misses))
 
 
 @_doc

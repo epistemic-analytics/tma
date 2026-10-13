@@ -7,7 +7,9 @@
  *
  *   UnitNetworks   → { networks: rowvec_to_js, row_networks: {data, rows, cols} }
  *   TensorNetworks → { connection_counts: number[],
- *                      row_connection_counts: {data, rows, cols} }
+ *                      row_connection_counts: {data, rows, cols},
+ *                      miss_counts?: number[],                     (misses only)
+ *                      row_miss_counts?: {data, rows, cols} }      (misses only)
  *
  * It also holds the bindings themselves (namespace qe::bind::js::tma_fn) and
  * one registration function per libtma function (register_<name>, plus
@@ -46,6 +48,12 @@ inline ::emscripten::val to_js(const qe::TensorNetworks& r) {
     ::emscripten::val result = ::emscripten::val::object();
     result.set("connection_counts",     ::emscripten::val::array(cc.begin(), cc.end()));
     result.set("row_connection_counts", mat_to_js(r.row_connection_counts));
+    if (r.miss_counts.n_elem > 0) {
+        std::vector<double> mc(r.miss_counts.memptr(),
+                               r.miss_counts.memptr() + r.miss_counts.n_elem);
+        result.set("miss_counts",     ::emscripten::val::array(mc.begin(), mc.end()));
+        result.set("row_miss_counts", mat_to_js(r.row_miss_counts));
+    }
     return result;
 }
 
@@ -159,7 +167,7 @@ inline val accumulate_unit_with_rows(const val& codes_data, int rows, int cols,
 // codes            — Float64Array, row-major (rows × cols)
 // times            — Float64Array, one timestamp per context row
 // ordered          — bool (true → directed n²; false → undirected upper-tri)
-inline val accumulate_tensor_unit(
+inline val tensor_unit_impl(
         const val& tensor_val,
         const val& dims_val,
         const val& dims_sender_val,
@@ -169,7 +177,8 @@ inline val accumulate_tensor_unit(
         const val& unit_rows_val,
         const val& codes_val, int rows, int cols,
         const val& times_val,
-        bool ordered) {
+        bool ordered,
+        bool misses) {
 
     std::vector<double> tv = vecFromJSArray<double>(tensor_val);
     arma::vec tensor(tv.data(), tv.size());
@@ -188,7 +197,50 @@ inline val accumulate_tensor_unit(
 
     return to_js(qe::apply_tensor_unit(
         tensor, dims, dims_sender, dims_receiver, dims_mode,
-        context_lookup, unit_rows, codes_mat, times_vec, ordered));
+        context_lookup, unit_rows, codes_mat, times_vec, ordered,
+        /*return_members=*/false, /*return_misses=*/misses));
+}
+
+inline val accumulate_tensor_unit(
+        const val& tensor_val,
+        const val& dims_val,
+        const val& dims_sender_val,
+        const val& dims_receiver_val,
+        const val& dims_mode_val,
+        const val& context_lookup_val, int cl_rows, int cl_cols,
+        const val& unit_rows_val,
+        const val& codes_val, int rows, int cols,
+        const val& times_val,
+        bool ordered) {
+    return tensor_unit_impl(
+        tensor_val, dims_val, dims_sender_val, dims_receiver_val, dims_mode_val,
+        context_lookup_val, cl_rows, cl_cols, unit_rows_val,
+        codes_val, rows, cols, times_val, ordered, /*misses=*/false);
+}
+
+// accumulate_tensor_unit_misses(...same arguments as accumulate_tensor_unit...)
+// → accumulate_tensor_unit's object plus
+//   { miss_counts: number[], row_miss_counts: { data, rows, cols } }
+//
+// Missed co-occurrences: ground code i present while response code j is absent
+// (directed n² rows, ground i → response j at j*n+i; no response self-term).
+// A separate export because Embind matches on exact arity, so adding a
+// parameter to accumulate_tensor_unit would break existing callers.
+inline val accumulate_tensor_unit_misses(
+        const val& tensor_val,
+        const val& dims_val,
+        const val& dims_sender_val,
+        const val& dims_receiver_val,
+        const val& dims_mode_val,
+        const val& context_lookup_val, int cl_rows, int cl_cols,
+        const val& unit_rows_val,
+        const val& codes_val, int rows, int cols,
+        const val& times_val,
+        bool ordered) {
+    return tensor_unit_impl(
+        tensor_val, dims_val, dims_sender_val, dims_receiver_val, dims_mode_val,
+        context_lookup_val, cl_rows, cl_cols, unit_rows_val,
+        codes_val, rows, cols, times_val, ordered, /*misses=*/true);
 }
 
 // Weight model from JS: a name ('binary' | 'product' | 'sqrt' | 'log1p' | 'log')
@@ -237,6 +289,7 @@ inline void register_flat_index() { ::emscripten::function("flat_index", &tma_fn
 inline void register_accumulate_unit() { ::emscripten::function("accumulate_unit", &tma_fn::accumulate_unit); }
 inline void register_accumulate_unit_with_rows() { ::emscripten::function("accumulate_unit_with_rows", &tma_fn::accumulate_unit_with_rows); }
 inline void register_accumulate_tensor_unit() { ::emscripten::function("accumulate_tensor_unit", &tma_fn::accumulate_tensor_unit); }
+inline void register_accumulate_tensor_unit_misses() { ::emscripten::function("accumulate_tensor_unit_misses", &tma_fn::accumulate_tensor_unit_misses); }
 inline void register_aggregate_row_connections() { ::emscripten::function("aggregate_row_connections", &tma_fn::aggregate_row_connections); }
 inline void register_finalize_row_connections() { ::emscripten::function("finalize_row_connections", &tma_fn::finalize_row_connections); }
 
@@ -250,6 +303,7 @@ inline void register_libtma() {
     register_accumulate_unit();
     register_accumulate_unit_with_rows();
     register_accumulate_tensor_unit();
+    register_accumulate_tensor_unit_misses();
     register_aggregate_row_connections();
     register_finalize_row_connections();
 }

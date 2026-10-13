@@ -26,6 +26,8 @@ class TMA:
     codes_ : list[str]
     connection_names_ : list[str]
     networks_ : np.ndarray (n_units x n_connections)
+    miss_networks_ : np.ndarray (n_units x n_connections) | None
+        Missed co-occurrences; only when fit with ``misses=True``.
     normed_networks_ : np.ndarray
     positions_ : np.ndarray (n_codes x dims)
     centroids_ : np.ndarray (n_units x dims)
@@ -45,6 +47,7 @@ class TMA:
         ordered: bool = False,
         binary: bool = True,
         weight_by: Optional[str] = None,
+        misses: bool = False,
         norm: str = "sphere",
         dims: int = 2,
     ) -> "TMA":
@@ -76,6 +79,12 @@ class TMA:
             "binary" (unordered: positive counts become 1; ordered: raw
             directed counts), "product" (raw counts), "sqrt", "log1p" (alias
             "log"). Defaults to "binary" when ``binary`` else "product".
+        misses : bool
+            Also accumulate missed co-occurrences (= R tma's ``misses``): for
+            each response line, the window-weighted ground count of code i when
+            code j is absent from the response, with no response self-term.
+            Folded (unordered) and weighted per line like the connection
+            counts; stored in ``miss_networks_``. Not used for the model.
         norm : {"sphere", "skip_sphere"}
         dims : int
         """
@@ -117,6 +126,7 @@ class TMA:
         n_units = len(unit_labels)
 
         raw_networks = np.zeros((n_units, n_connections), dtype=np.float64)
+        miss_networks = np.zeros((n_units, n_connections), dtype=np.float64) if misses else None
 
         tensor_flat = tensor.flat
         tensor_dims = tensor.dims
@@ -171,7 +181,7 @@ class TMA:
                 sender_inds, receiver_inds, mode_inds,
                 ctx_lookup_sub, unit_rows_local,
                 codes_mat, times_sub,
-                True,
+                True, misses,
             )
 
             # Fold (unordered) + per-line weight model + sum, matching tma's R
@@ -180,6 +190,11 @@ class TMA:
                 np.ascontiguousarray(result.row_connection_counts),
                 n_codes, ordered, weight_by,
             )
+            if misses:
+                miss_networks[unit_idx] = libtma.aggregate_row_connections(
+                    np.ascontiguousarray(result.row_miss_counts),
+                    n_codes, ordered, weight_by,
+                )
 
         # 5. Normalize. qe-lib's normalization submodule exposes these as
         # normalize_networks (per-row L2 -> unit sphere, == rENA fun_sphere_norm)
@@ -225,6 +240,7 @@ class TMA:
             for i in range(n_codes)
         ]
         self.networks_         = raw_networks
+        self.miss_networks_    = miss_networks
         self.normed_networks_  = normed
         self.positions_        = nodes
         self.centroids_        = centroids_full

@@ -139,6 +139,29 @@ class TestWeightBy:
             self.networks(weight_by=np.sqrt)
 
 
+class TestMisses:
+    """misses=True mirrors R tma's accumulate(misses = TRUE) (test-misses.R)."""
+
+    TOY = TestWeightBy.TOY
+
+    def fit(self, **kw):
+        tensor = context_tensor(self.TOY, default_window=3.0)
+        return TMA().fit(self.TOY, units="u", conversations="c", codes=["A", "B", "C"],
+                         tensor=tensor, **kw)
+
+    def misses(self, **kw):
+        m = self.fit(misses=True, **kw)
+        return m.miss_networks_[list(m.units_).index("x")]
+
+    def test_unit_misses(self):
+        np.testing.assert_allclose(self.misses(weight_by="product"), [3, 3, 0])
+        np.testing.assert_allclose(self.misses(weight_by="binary"), [1, 2, 0])
+        np.testing.assert_allclose(self.misses(ordered=True), [3, 3, 1, 0, 0, 0, 2, 0, 1])
+
+    def test_off_by_default_and_model_unchanged(self):
+        plain = self.fit()
+        assert plain.miss_networks_ is None
+        np.testing.assert_array_equal(self.fit(misses=True).networks_, plain.networks_)
 class TestMatchesRAccumulate:
     """Unit networks equal R tma's accumulate() (weight_by = "product", window 3).
 
