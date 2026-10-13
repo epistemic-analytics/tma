@@ -22,6 +22,7 @@ toy_accum <- function(...) {
   accumulate(context_model = ctx, codes = toy_codes, tensor = tensor, ...)
 }
 co_cols <- function(x) unname(as.matrix(x[, sapply(x, is, "ena.co.occurrence"), with = FALSE]));
+unordered_cols <- function(x) unname(as.matrix(x[, c("A & B", "A & C", "B & C"), with = FALSE]));
 
 row_misses <- rbind(c(0, 0, 0, 0, 0, 0, 0, 0, 0),
                     c(0, 0, 0, 0, 0, 0, 2, 0, 1),
@@ -62,6 +63,22 @@ test_that("weight_by applies to misses per line", {
   expect_equal(co_cols(m$model$row.miss.counts), row_misses);  # rows stay raw
 })
 
-test_that("misses require an ordered model", {
-  expect_error(toy_accum(misses = TRUE), "requires `ordered = TRUE`");
+# Unordered: fold each line (i & j = i->j + j->i, diagonal dropped), then weight.
+#   row 2: A->C 2         -> A&C 2
+#   row 3: B->A 3, C->A 1 -> A&B 3, A&C 1
+# Columns A & B, A & C, B & C.
+test_that("unordered misses fold per line like connection counts", {
+  m <- toy_accum(misses = TRUE, weight_by = "product");
+  expect_equal(unordered_cols(m$miss.counts)[1, ], c(3, 3, 0));
+  expect_equal(co_cols(m$model$row.miss.counts),
+               rbind(c(0, 0, 0), c(0, 2, 0), c(3, 1, 0)));
+  expect_equal(colnames(m$miss.counts), colnames(m$connection.counts));
+
+  expect_equal(unordered_cols(toy_accum(misses = TRUE)$miss.counts)[1, ], c(1, 2, 0));  # binary per line
+  expect_equal(unordered_cols(toy_accum(misses = TRUE, weight_by = "sqrt")$miss.counts)[1, ],
+               c(sqrt(3), sqrt(2) + 1, 0));
+
+  plain <- toy_accum(weight_by = "product");
+  expect_equal(unordered_cols(m$connection.counts), unordered_cols(plain$connection.counts));
+  expect_equal(class(m$miss.counts), class(plain$connection.counts));
 })

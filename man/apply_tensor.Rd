@@ -40,13 +40,15 @@ apply_tensor(
 \item{ordered}{TRUE = directed; FALSE = undirected}
 
 \item{misses}{TRUE = also return missed co-occurrences: ground code
-i present while response code j is absent (directed, n_codes^2, ground
-i -> response j at j*n+i; no response self-term)}
+i present while response code j is absent (n_codes^2, ground i ->
+response j at j*n+i; no response self-term). Raw directed rows, like
+`row_connection_counts`; fold them with `finalize_row_connections()` /
+`aggregate_row_connections()` for unordered networks.}
 }
 \value{
 List with `connection_counts` (vector) and `row_connection_counts`
   (matrix); with `misses = TRUE`, also `miss_counts` (vector) and
-  `row_miss_counts` (matrix), always directed
+  `row_miss_counts` (matrix)
 }
 \description{
 Pure-C++ port of tma's apply_tensor().  Accepts 0-based index vectors

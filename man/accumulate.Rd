@@ -30,7 +30,7 @@ accumulate(
 
 \item{weight_by}{Weight model applied to each line's connection counts before they are summed into the unit network (= rENA's `weight.by`): `"binary"` (unordered: each positive count becomes 1; ordered: raw directed counts), `"product"` (the raw, non-binarized counts), `"sqrt"`, or `"log1p"` (alias `"log"`). For unordered networks the weight is applied after each line is folded to the upper triangle; for ordered networks, to each directed cell. Defaults to `"binary"` when `binary = TRUE`, otherwise `"product"`. `model$row.connection.counts` always holds the raw, unweighted line counts.}
 
-\item{misses}{Logical; if TRUE, also accumulate missed co-occurrences: for each response line, the (window-weighted) ground count of code i when code j is absent from the response. Ordered models only (`ordered = TRUE`); laid out like the ordered connection counts (ground i -> response j) with no response self-term. `weight_by` is applied per line, as for connection counts. Defaults to FALSE.}
+\item{misses}{Logical; if TRUE, also accumulate missed co-occurrences: for each response line, the (window-weighted) ground count of code i when code j is absent from the response, with no response self-term. Misses follow the connection counts through the same steps: ordered models keep the directed layout (ground i -> response j); unordered models fold each line to the upper triangle (i & j = i -> j + j -> i, self-misses dropped), and `weight_by` is applied per line. Defaults to FALSE.}
 }
 \value{
 The input `context_model` with additional fields:

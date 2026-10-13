@@ -165,11 +165,13 @@ List accumulate_unit_with_rows(arma::mat codes, std::vector<int> unit_rows,
 //' @param times          Numeric vector of timestamps per context row
 //' @param ordered        TRUE = directed; FALSE = undirected
 //' @param misses         TRUE = also return missed co-occurrences: ground code
-//'   i present while response code j is absent (directed, n_codes^2, ground
-//'   i -> response j at j*n+i; no response self-term)
+//'   i present while response code j is absent (n_codes^2, ground i ->
+//'   response j at j*n+i; no response self-term). Raw directed rows, like
+//'   `row_connection_counts`; fold them with `finalize_row_connections()` /
+//'   `aggregate_row_connections()` for unordered networks.
 //' @return List with `connection_counts` (vector) and `row_connection_counts`
 //'   (matrix); with `misses = TRUE`, also `miss_counts` (vector) and
-//'   `row_miss_counts` (matrix), always directed
+//'   `row_miss_counts` (matrix)
 //' @export
 // [[Rcpp::export]]
 List apply_tensor(arma::vec tensor,

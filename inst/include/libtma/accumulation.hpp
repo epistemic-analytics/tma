@@ -370,10 +370,11 @@ struct TensorNetworks {
  *
  *  The counterpart of connection_matrix()'s ground→response term: entry
  *  (i, j) is the ground weight of code @c i when code @c j is @em absent from
- *  the response, i.e. @c ground.t() * [response == 0].  Always directed (a
- *  miss has a direction: present in the ground, absent in the response) and
- *  laid out like the ordered connection matrix (ground i → response j at
- *  @c j*p+i once vectorised).  There is no response self-term.
+ *  the response, i.e. @c ground.t() * [response == 0].  Laid out like the
+ *  ordered connection matrix (ground i → response j at @c j*p+i once
+ *  vectorised), with no response self-term.  Unordered networks fold it the
+ *  same way as connections (finalize_row_connections() /
+ *  aggregate_row_connections()).
  *
  *  @param[in] ground    Row vector of accumulated (weighted) ground codes (length p).
  *  @param[in] response  Row vector of the response codes (length p).
@@ -414,7 +415,8 @@ inline arma::mat miss_matrix(const arma::rowvec& ground, const arma::rowvec& res
  *                             in-window ground rows and window sizes.
  *  @param[in] return_misses   When @c true, also compute missed co-occurrences
  *                             (see miss_matrix()) from the same ground vector.
- *                             Misses are always directed, whatever @p ordered.
+ *                             Rows are directed p², like row_connection_counts;
+ *                             @c miss_counts is their unfolded sum.
  *
  *  @returns A TensorNetworks struct containing the unit-level connection counts
  *           and the per-response-row connection counts (plus misses / window

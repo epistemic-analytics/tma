@@ -2,9 +2,9 @@
 
 * `accumulate(misses = TRUE)` also accumulates missed co-occurrences: for each
   response line, the window-weighted ground count of code i when code j is
-  absent from the response. Ordered models only, laid out like the ordered
-  connection counts, with no response self-term; `weight_by` is applied per
-  line. Results land in `miss.counts` and `model$row.miss.counts`. Backed by
+  absent from the response, with no response self-term. Misses go through
+  the same steps as connection counts: directed for ordered models, folded to
+  the upper triangle for unordered ones, `weight_by` applied per line. Results land in `miss.counts` and `model$row.miss.counts`. Backed by
   libtma's `miss_matrix()` and `apply_tensor_unit(..., return_misses = true)`;
   `apply_tensor()` gains `misses = FALSE`.
 * qe-tma `TMA.fit()` fixes:

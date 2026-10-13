@@ -10,7 +10,7 @@
 #' @param ordered Logical; if TRUE (default), computes ordered adjacency matrices (ONA); if FALSE, computes unordered (ENA-style) matrices.
 #' @param binary Logical; if TRUE (default), binarizes each line's connection counts before they are summed per unit (unordered only; ordered counts are always summed raw). Ignored when `weight_by` is given.
 #' @param weight_by Weight model applied to each line's connection counts before they are summed into the unit network (= rENA's `weight.by`): `"binary"` (unordered: each positive count becomes 1; ordered: raw directed counts), `"product"` (the raw, non-binarized counts), `"sqrt"`, or `"log1p"` (alias `"log"`). For unordered networks the weight is applied after each line is folded to the upper triangle; for ordered networks, to each directed cell. Defaults to `"binary"` when `binary = TRUE`, otherwise `"product"`. `model$row.connection.counts` always holds the raw, unweighted line counts.
-#' @param misses Logical; if TRUE, also accumulate missed co-occurrences: for each response line, the (window-weighted) ground count of code i when code j is absent from the response. Ordered models only (`ordered = TRUE`); laid out like the ordered connection counts (ground i -> response j) with no response self-term. `weight_by` is applied per line, as for connection counts. Defaults to FALSE.
+#' @param misses Logical; if TRUE, also accumulate missed co-occurrences: for each response line, the (window-weighted) ground count of code i when code j is absent from the response, with no response self-term. Misses follow the connection counts through the same steps: ordered models keep the directed layout (ground i -> response j); unordered models fold each line to the upper triangle (i & j = i -> j + j -> i, self-misses dropped), and `weight_by` is applied per line. Defaults to FALSE.
 #'
 #' @return The input `context_model` with additional fields:
 #'   \item{connection.counts}{A data.table of accumulated connection counts for each unit.}
@@ -34,9 +34,6 @@ accumulate <- function(
   weight_by = NULL,
   misses = FALSE
 ) {
-  if (isTRUE(misses) && !isTRUE(ordered)) {
-    stop("`misses = TRUE` requires `ordered = TRUE`: missed co-occurrences are directed.")
-  }
 
   if (is.null(weight_by)) {
     weight_by <- if (isTRUE(binary)) "binary" else "product"
@@ -209,7 +206,14 @@ accumulate <- function(
     colnames(row_miss_counts) <- c(meta_cols, adj_vector_names_full);
     context_model$model$row.miss.counts <- row_miss_counts;
 
-    miss_counts <- row_miss_counts[, unit_vector(.SD, adj_vector_names_full), by = units_by, .SDcols = adj_vector_names_full];
+    # Same aggregation as the connection counts above (fold + weight per line).
+    if (isTRUE(ordered)) {
+      miss_counts <- row_miss_counts[, unit_vector(.SD, adj_vector_names_full), by = units_by, .SDcols = adj_vector_names_full];
+    }
+    else {
+      miss_counts <- row_miss_counts[, unit_vector(.SD, adj_vector_names), by = "QEUNIT", .SDcols = adj_vector_names_full];
+      context_model$model$row.miss.counts <- as.unordered(context_model$model$row.miss.counts);
+    }
   }
 
   cc_meta <- data.table::rbindlist(lapply(result_cpp, function(rc) rc[1, c("QEUNIT", units_by), with = FALSE]));
