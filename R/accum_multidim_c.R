@@ -15,7 +15,10 @@
 #' @return The input `context_model` with additional fields:
 #'   \item{connection.counts}{A data.table of accumulated connection counts for each unit.}
 #'   \item{model$row.connection.counts}{A data.table of row-level connection matrices for each unit.}
+#'   \item{self.connection.counts}{A data.table of each unit's self-connections, one column per code: each line's ground count of the code times its response count (the ordered network's diagonal, which unordered networks fold away), weighted per line by `weight_by` and summed per unit. Kept for ordered and unordered models; not used in the model.}
+#'   \item{model$row.self.connection.counts}{A data.table of raw, unweighted per-line self-connections.}
 #'   \item{miss.counts}{With `misses = TRUE`: a data.table of accumulated missed co-occurrences for each unit.}
+#'   \item{self.miss.counts, model$row.self.miss.counts}{With `misses = TRUE`: self-misses (the code in the ground, absent from the response), per unit and per line, as for self-connections.}
 #'   \item{model$row.miss.counts}{With `misses = TRUE`: a data.table of raw, unweighted row-level missed co-occurrences.}
 #'   \item{meta.data}{A data.table of metadata columns for each unit.}
 #'   The class of the returned object is updated to reflect the type of accumulation (ordered or unordered).
@@ -216,6 +219,32 @@ accumulate <- function(
     }
   }
 
+  # Self-connections: each line's ground i x response i (the directed rows'
+  # diagonal, which unordered networks drop when they fold), weighted per line
+  # and summed per unit by libtma, like the connection counts. Read from the
+  # directed rows before any fold; the same for misses (ground i present,
+  # response i absent). Grouped as the connection counts are, so rows line up
+  # with cc_meta.
+  unit_by <- if (isTRUE(ordered)) units_by else "QEUNIT";
+  self_vector <- function(rows) {
+    v <- as.list(aggregate_self_connections(as.matrix(rows), n_codes, isTRUE(ordered), weight_by));
+    names(v) <- codes;
+    lapply(v, reclass, "ena.co.occurrence")
+  };
+  row_self <- function(rows) {
+    raw <- finalize_self_connections(as.matrix(rows[, adj_vector_names_full, with = FALSE]),
+                                     n_codes, TRUE, "product");
+    colnames(raw) <- codes;
+    out <- cbind(rows[, meta_cols, with = FALSE], data.table::as.data.table(raw));
+    out <- reclass_columns(out, rep(c("ena.metadata", "ena.co.occurrence"), c(length(meta_cols), n_codes)));
+    reclass(x = out, c("row.self.connections", "ena.matrix"))
+  };
+  unit_self <- function(rows) {
+    self_counts <- rows[, self_vector(.SD), by = unit_by, .SDcols = adj_vector_names_full];
+    self_counts <- cbind(cc_meta, self_counts[, codes, with = FALSE]);
+    reclass(self_counts, c("self.connections", "ena.matrix"))
+  };
+
   cc_meta <- data.table::rbindlist(lapply(result_cpp, function(rc) rc[1, c("QEUNIT", units_by), with = FALSE]));
   cc_meta$ENA_UNIT <- context_model$model$unit.labels;
   cc_meta <- cc_meta[, lapply(.SD, reclass, "ena.metadata"), .SDcols = colnames(cc_meta)];
@@ -224,9 +253,14 @@ accumulate <- function(
   connection_counts <- reclass(connection_counts, c(cc_type, "ena.connections", "ena.matrix"));
   context_model$connection.counts <- connection_counts;
 
+  context_model$self.connection.counts <- unit_self(row_connection_counts);
+  context_model$model$row.self.connection.counts <- row_self(row_connection_counts);
+
   if (isTRUE(misses)) {
     miss_counts <- cbind(cc_meta, miss_counts);
     context_model$miss.counts <- reclass(miss_counts, c(cc_type, "ena.connections", "ena.matrix"));
+    context_model$self.miss.counts <- unit_self(row_miss_counts);
+    context_model$model$row.self.miss.counts <- row_self(row_miss_counts);
   }
   
   context_model$meta.data <- context_model$connection.counts[, sapply(context_model$connection.counts, is, "ena.metadata"), with = FALSE];

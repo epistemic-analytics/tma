@@ -97,6 +97,13 @@ end
           [4.73205080756888, 4.86370330515627, 4.73205080756888]
 end
 
+@testset "finalize/aggregate_self_connections" begin
+    rc = Float64[1 2 3 4; 5 0 0 2]     # 2 codes: each row's diagonal at columns 1 and 4
+    @test finalize_self_connections(rc, 2; ordered = true, weight = "product") == Float64[1 4; 5 2]
+    @test finalize_self_connections(rc, 2; weight = "binary") == Float64[1 1; 1 1]
+    @test aggregate_self_connections(rc, 2; weight = "sqrt") ≈ [1 + sqrt(5), 2 + sqrt(2)]
+end
+
 @testset "accumulate_tensor_unit misses" begin
     # Same fixture: row 2 misses A->C 2, C->C 1; row 3 misses A->A 3, B->A 3, C->A 1
     codes = Float64[2 0 1; 1 3 0; 0 1 2]

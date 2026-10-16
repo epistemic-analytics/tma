@@ -1,5 +1,18 @@
 # tma (development version)
 
+* `accumulate()` keeps self-connections: `self.connection.counts` (one column
+  per code) and `model$row.self.connection.counts` (raw, per line). A code's
+  self-connection on a line is its ground count times its response count -- the
+  ordered network's diagonal, which unordered networks drop when they fold to
+  the upper triangle -- weighted per line by `weight_by` and summed per unit,
+  for ordered and unordered models alike. With `misses = TRUE`, also
+  `self.miss.counts` / `model$row.self.miss.counts` (the code in the ground,
+  absent from the response). Not used in the model yet.
+* libtma `finalize_self_connections()` / `aggregate_self_connections()` compute
+  them from `apply_tensor_unit`'s per-line rows, exported in R, qe-tma, tma-wasm
+  and TMA.jl. qe-tma `TMA.fit()` stores `self_networks_` (and
+  `self_miss_networks_` with `misses=True`).
+
 # tma 0.3.7
 
 * `accumulate(misses = TRUE)` also accumulates missed co-occurrences: for each

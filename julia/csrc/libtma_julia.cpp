@@ -228,4 +228,23 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod) {
                 view_mat(row_conn, rows, cols), n_codes, ordered,
                 qe::weight_model_from_string(weight)));
         });
+
+    // Self-connections: each directed row's diagonal (ground i x response i).
+    mod.method("finalize_self_connections",
+        [](jlcxx::ArrayRef<double> row_conn, int32_t rows, int32_t cols,
+           int32_t n_codes, bool ordered, const std::string& weight)
+         -> std::vector<double> {
+            return pack(qe::finalize_self_connections(
+                view_mat(row_conn, rows, cols), n_codes, ordered,
+                qe::weight_model_from_string(weight)));
+        });
+
+    mod.method("aggregate_self_connections",
+        [](jlcxx::ArrayRef<double> row_conn, int32_t rows, int32_t cols,
+           int32_t n_codes, bool ordered, const std::string& weight)
+         -> std::vector<double> {
+            return pack(qe::aggregate_self_connections(
+                view_mat(row_conn, rows, cols), n_codes, ordered,
+                qe::weight_model_from_string(weight)));
+        });
 }

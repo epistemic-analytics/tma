@@ -39,7 +39,8 @@ export
     connection_matrix, accumulate_stanza, row_connections,
     rolling_window_sum, flat_index, accumulate_unit,
     accumulate_unit_with_rows, accumulate_tensor_unit,
-    aggregate_row_connections, finalize_row_connections
+    aggregate_row_connections, finalize_row_connections,
+    aggregate_self_connections, finalize_self_connections
 
 # ── Load shared library ───────────────────────────────────────────────────────
 # The library built by CMake is installed into julia/lib/ (one level up from
@@ -291,6 +292,39 @@ function finalize_row_connections(row_conn::Matrix{Float64}, n_codes::Integer;
                                                       Int32(n_codes), ordered,
                                                       _weight_name(weight))),
             rows, n_out)
+end
+
+"""
+    finalize_self_connections(row_conn, n_codes; ordered=false, weight="binary")
+    -> Matrix{Float64}
+
+Per-line self-connections: the diagonal (ground i × response i) of each
+directed row of `row_connection_counts` (or `row_miss_counts`, for
+self-misses), weighted per line as `finalize_row_connections` weights it.
+Returns `n_response_rows × n_codes`.
+"""
+function finalize_self_connections(row_conn::Matrix{Float64}, n_codes::Integer;
+                                   ordered::Bool = false,
+                                   weight::Union{AbstractString,Bool} = "binary")
+    rows, cols = size(row_conn)
+    reshape(collect(Float64, finalize_self_connections(vec(row_conn), Int32(rows), Int32(cols),
+                                                       Int32(n_codes), ordered,
+                                                       _weight_name(weight))),
+            rows, n_codes)
+end
+
+"""
+    aggregate_self_connections(row_conn, n_codes; ordered=false, weight="binary")
+    -> Vector{Float64}
+
+`finalize_self_connections` summed over the lines (length `n_codes`).
+"""
+function aggregate_self_connections(row_conn::Matrix{Float64}, n_codes::Integer;
+                                    ordered::Bool = false,
+                                    weight::Union{AbstractString,Bool} = "binary")
+    rows, cols = size(row_conn)
+    collect(Float64, aggregate_self_connections(vec(row_conn), Int32(rows), Int32(cols),
+                                                Int32(n_codes), ordered, _weight_name(weight)))
 end
 
 end # module TMA

@@ -28,6 +28,13 @@ class TMA:
     networks_ : np.ndarray (n_units x n_connections)
     miss_networks_ : np.ndarray (n_units x n_connections) | None
         Missed co-occurrences; only when fit with ``misses=True``.
+    self_networks_ : np.ndarray (n_units x n_codes)
+        Self-connections: each line's ground i x response i (the ordered
+        network's diagonal, which unordered networks fold away), weighted per
+        line and summed per unit. Not used for the model.
+    self_miss_networks_ : np.ndarray (n_units x n_codes) | None
+        Self-misses (code i in the ground, absent from the response); only
+        when fit with ``misses=True``.
     normed_networks_ : np.ndarray
     positions_ : np.ndarray (n_codes x dims)
     centroids_ : np.ndarray (n_units x dims)
@@ -127,6 +134,8 @@ class TMA:
 
         raw_networks = np.zeros((n_units, n_connections), dtype=np.float64)
         miss_networks = np.zeros((n_units, n_connections), dtype=np.float64) if misses else None
+        self_networks = np.zeros((n_units, n_codes), dtype=np.float64)
+        self_miss_networks = np.zeros((n_units, n_codes), dtype=np.float64) if misses else None
 
         tensor_flat = tensor.flat
         tensor_dims = tensor.dims
@@ -190,8 +199,16 @@ class TMA:
                 np.ascontiguousarray(result.row_connection_counts),
                 n_codes, ordered, weight_by,
             )
+            self_networks[unit_idx] = libtma.aggregate_self_connections(
+                np.ascontiguousarray(result.row_connection_counts),
+                n_codes, ordered, weight_by,
+            )
             if misses:
                 miss_networks[unit_idx] = libtma.aggregate_row_connections(
+                    np.ascontiguousarray(result.row_miss_counts),
+                    n_codes, ordered, weight_by,
+                )
+                self_miss_networks[unit_idx] = libtma.aggregate_self_connections(
                     np.ascontiguousarray(result.row_miss_counts),
                     n_codes, ordered, weight_by,
                 )
@@ -241,6 +258,8 @@ class TMA:
         ]
         self.networks_         = raw_networks
         self.miss_networks_    = miss_networks
+        self.self_networks_    = self_networks
+        self.self_miss_networks_ = self_miss_networks
         self.normed_networks_  = normed
         self.positions_        = nodes
         self.centroids_        = centroids_full

@@ -725,6 +725,58 @@ inline arma::rowvec aggregate_row_connections(
                                      weight_model_from_bool(binary));
 }
 
+/** @brief Per-line self-connections: the diagonal of each directed row.
+ *
+ *  Entry (r, i) is line @c r's ground→response count for code @c i to itself,
+ *  i.e. ground i × response i: the ordered network's diagonal, which unordered
+ *  networks drop when they fold to the upper triangle.  Rows are taken from
+ *  @c TensorNetworks::row_connection_counts (or @c row_miss_counts, giving
+ *  self-misses: ground i present, response i absent), and the weight model is
+ *  applied per line exactly as finalize_row_connections() applies it, so
+ *  @c "binary" clamps unordered self-connections to 1 and leaves ordered ones
+ *  raw.
+ *
+ *  @param[in] row_conn  Per-response-row directed matrix (n_response_rows × p²).
+ *  @param[in] n_codes   Number of codes @c p.
+ *  @param[in] ordered   Selects the weight model's ordered/unordered behaviour.
+ *  @param[in] weight    Per-line weight model (see WeightModel).
+ *
+ *  @returns Matrix of shape n_response_rows × p.
+ */
+inline arma::mat finalize_self_connections(
+    const arma::mat& row_conn,
+    int         n_codes,
+    bool        ordered,
+    WeightModel weight
+) {
+    if (row_conn.n_cols != static_cast<arma::uword>(n_codes * n_codes))
+        throw std::invalid_argument("row_conn must have n_codes^2 columns");
+    const int n_rows = static_cast<int>(row_conn.n_rows);
+    arma::mat out(n_rows, n_codes, arma::fill::zeros);
+    for (int r = 0; r < n_rows; ++r) {
+        arma::rowvec v(n_codes);
+        for (int i = 0; i < n_codes; ++i) v[i] = row_conn(r, i * n_codes + i);
+        apply_weight_model(v, weight, ordered);
+        out.row(r) = v;
+    }
+    return out;
+}
+
+/** @brief Unit self-connection vector: finalize_self_connections() summed
+ *         over the lines.
+ *
+ *  @returns Vector of length @c p.
+ */
+inline arma::rowvec aggregate_self_connections(
+    const arma::mat& row_conn,
+    int         n_codes,
+    bool        ordered,
+    WeightModel weight
+) {
+    if (row_conn.n_rows == 0) return arma::rowvec(n_codes, arma::fill::zeros);
+    return arma::sum(finalize_self_connections(row_conn, n_codes, ordered, weight), 0);
+}
+
 /// @}
 
 /// @name Per-row co-occurrence and rolling window (rENA accumulation primitives)

@@ -201,3 +201,31 @@ aggregate_row_connections <- function(row_conn, n_codes, ordered = FALSE, weight
     .Call(`_tma_aggregate_row_connections`, row_conn, n_codes, ordered, weight)
 }
 
+#' Per-line self-connections (diagonal of each directed row)
+#'
+#' Each line's ground-to-response count for a code to itself (ground i x
+#' response i): the ordered network's diagonal, which unordered networks drop
+#' when they fold to the upper triangle. Pass
+#' \code{apply_tensor()$row_connection_counts}, or \code{$row_miss_counts}
+#' for self-misses (ground i present, response i absent). The weight model is
+#' applied per line as in \code{finalize_row_connections()}: \code{"binary"}
+#' clamps unordered self-connections to 1 and leaves ordered ones raw.
+#'
+#' @inheritParams finalize_row_connections
+#' @return Numeric matrix (n_response_rows x n_codes)
+#' @export
+finalize_self_connections <- function(row_conn, n_codes, ordered = FALSE, weight = NULL) {
+    .Call(`_tma_finalize_self_connections`, row_conn, n_codes, ordered, weight)
+}
+
+#' Aggregate per-line self-connections into a unit vector
+#'
+#' \code{finalize_self_connections()} summed over the lines.
+#'
+#' @inheritParams finalize_row_connections
+#' @return Numeric vector of length n_codes
+#' @export
+aggregate_self_connections <- function(row_conn, n_codes, ordered = FALSE, weight = NULL) {
+    .Call(`_tma_aggregate_self_connections`, row_conn, n_codes, ordered, weight)
+}
+

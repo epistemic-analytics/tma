@@ -173,6 +173,34 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// finalize_self_connections
+arma::mat finalize_self_connections(arma::mat row_conn, int n_codes, bool ordered, SEXP weight);
+RcppExport SEXP _tma_finalize_self_connections(SEXP row_connSEXP, SEXP n_codesSEXP, SEXP orderedSEXP, SEXP weightSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type row_conn(row_connSEXP);
+    Rcpp::traits::input_parameter< int >::type n_codes(n_codesSEXP);
+    Rcpp::traits::input_parameter< bool >::type ordered(orderedSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type weight(weightSEXP);
+    rcpp_result_gen = Rcpp::wrap(finalize_self_connections(row_conn, n_codes, ordered, weight));
+    return rcpp_result_gen;
+END_RCPP
+}
+// aggregate_self_connections
+NumericVector aggregate_self_connections(arma::mat row_conn, int n_codes, bool ordered, SEXP weight);
+RcppExport SEXP _tma_aggregate_self_connections(SEXP row_connSEXP, SEXP n_codesSEXP, SEXP orderedSEXP, SEXP weightSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type row_conn(row_connSEXP);
+    Rcpp::traits::input_parameter< int >::type n_codes(n_codesSEXP);
+    Rcpp::traits::input_parameter< bool >::type ordered(orderedSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type weight(weightSEXP);
+    rcpp_result_gen = Rcpp::wrap(aggregate_self_connections(row_conn, n_codes, ordered, weight));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_tma_connection_matrix", (DL_FUNC) &_tma_connection_matrix, 4},
@@ -186,6 +214,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_tma_apply_tensor_members", (DL_FUNC) &_tma_apply_tensor_members, 10},
     {"_tma_finalize_row_connections", (DL_FUNC) &_tma_finalize_row_connections, 4},
     {"_tma_aggregate_row_connections", (DL_FUNC) &_tma_aggregate_row_connections, 4},
+    {"_tma_finalize_self_connections", (DL_FUNC) &_tma_finalize_self_connections, 4},
+    {"_tma_aggregate_self_connections", (DL_FUNC) &_tma_aggregate_self_connections, 4},
     {NULL, NULL, 0}
 };
 

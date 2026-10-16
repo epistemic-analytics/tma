@@ -146,6 +146,20 @@ test('accumulate_tensor_unit_misses: ground present, response absent', () => {
         .toEqual(Array.from(out.row_connection_counts.data));
 });
 
+test('finalize/aggregate_self_connections: diagonal of each directed row', () => {
+    // 2 rows x 2 codes, directed 2x2 per row (column-major): diagonal at 0 and 3.
+    const rc = new Float64Array([1, 2, 3, 4,  5, 0, 0, 2]);
+    const fin = qe.finalize_self_connections(rc, 2, 4, 2, true, 'product');
+    expect(fin.rows).toBe(2);
+    expect(fin.cols).toBe(2);
+    expect(Array.from(fin.data)).toEqual([1, 4, 5, 2]);
+    expect(Array.from(qe.finalize_self_connections(rc, 2, 4, 2, false, 'binary').data))
+        .toEqual([1, 1, 1, 1]);
+    const agg = Array.from(qe.aggregate_self_connections(rc, 2, 4, 2, false, 'sqrt'));
+    expect(agg[0]).toBeCloseTo(1 + Math.sqrt(5), 12);
+    expect(agg[1]).toBeCloseTo(2 + Math.sqrt(2), 12);
+});
+
 // ── aggregate_row_connections / finalize_row_connections (weight models) ─────
 
 // Two response rows × 3 codes, directed 3×3 per row (column-major within the

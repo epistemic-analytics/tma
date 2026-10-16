@@ -277,6 +277,30 @@ inline val finalize_row_connections(
         row_conn, n_codes, ordered, weight_model_from_val(weight)));
 }
 
+// finalize_self_connections(row_conn, rows, cols, n_codes, ordered, weight)
+//   Per-line self-connections: each directed row's diagonal (ground i x
+//   response i), weighted per line. Pass row_miss_counts for self-misses.
+// → { data: Float64Array, rows, cols } — row-major, cols = n_codes
+inline val finalize_self_connections(
+        const val& row_conn_val, int rows, int cols,
+        int n_codes, bool ordered, const val& weight) {
+    arma::mat row_conn = js_to_mat(row_conn_val, rows, cols);
+    return mat_to_js(qe::finalize_self_connections(
+        row_conn, n_codes, ordered, weight_model_from_val(weight)));
+}
+
+// aggregate_self_connections(row_conn, rows, cols, n_codes, ordered, weight)
+// → Float64Array — unit self vector, length n_codes
+inline val aggregate_self_connections(
+        const val& row_conn_val, int rows, int cols,
+        int n_codes, bool ordered, const val& weight) {
+    arma::mat row_conn = js_to_mat(row_conn_val, rows, cols);
+    arma::rowvec out = qe::aggregate_self_connections(
+        row_conn, n_codes, ordered, weight_model_from_val(weight));
+    std::vector<double> v(out.memptr(), out.memptr() + out.n_elem);
+    return val::array(v.begin(), v.end());
+}
+
 } // namespace tma_fn
 
 // ── Registration ──────────────────────────────────────────────────────────────
@@ -292,6 +316,8 @@ inline void register_accumulate_tensor_unit() { ::emscripten::function("accumula
 inline void register_accumulate_tensor_unit_misses() { ::emscripten::function("accumulate_tensor_unit_misses", &tma_fn::accumulate_tensor_unit_misses); }
 inline void register_aggregate_row_connections() { ::emscripten::function("aggregate_row_connections", &tma_fn::aggregate_row_connections); }
 inline void register_finalize_row_connections() { ::emscripten::function("finalize_row_connections", &tma_fn::finalize_row_connections); }
+inline void register_finalize_self_connections() { ::emscripten::function("finalize_self_connections", &tma_fn::finalize_self_connections); }
+inline void register_aggregate_self_connections() { ::emscripten::function("aggregate_self_connections", &tma_fn::aggregate_self_connections); }
 
 /// All of libtma's functions.
 inline void register_libtma() {
@@ -306,6 +332,8 @@ inline void register_libtma() {
     register_accumulate_tensor_unit_misses();
     register_aggregate_row_connections();
     register_finalize_row_connections();
+    register_finalize_self_connections();
+    register_aggregate_self_connections();
 }
 
 } // namespace js

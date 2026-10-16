@@ -34,6 +34,8 @@ __all__ = [
     "apply_tensor_unit",
     "aggregate_row_connections",
     "finalize_row_connections",
+    "finalize_self_connections",
+    "aggregate_self_connections",
 ]
 
 
@@ -131,3 +133,13 @@ def aggregate_row_connections(row_conn, n_codes, ordered=False, weight="binary")
 @_doc
 def finalize_row_connections(row_conn, n_codes, ordered=False, weight="binary"):
     return _libtma.finalize_row_connections(row_conn, n_codes, ordered, weight)
+
+
+@_doc
+def finalize_self_connections(row_conn, n_codes, ordered=False, weight="binary"):
+    return _libtma.finalize_self_connections(row_conn, n_codes, ordered, weight)
+
+
+@_doc
+def aggregate_self_connections(row_conn, n_codes, ordered=False, weight="binary"):
+    return _libtma.aggregate_self_connections(row_conn, n_codes, ordered, weight)

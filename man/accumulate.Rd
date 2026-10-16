@@ -36,7 +36,10 @@ accumulate(
 The input `context_model` with additional fields:
   \item{connection.counts}{A data.table of accumulated connection counts for each unit.}
   \item{model$row.connection.counts}{A data.table of row-level connection matrices for each unit.}
+  \item{self.connection.counts}{A data.table of each unit's self-connections, one column per code: each line's ground count of the code times its response count (the ordered network's diagonal, which unordered networks fold away), weighted per line by `weight_by` and summed per unit. Kept for ordered and unordered models; not used in the model.}
+  \item{model$row.self.connection.counts}{A data.table of raw, unweighted per-line self-connections.}
   \item{miss.counts}{With `misses = TRUE`: a data.table of accumulated missed co-occurrences for each unit.}
+  \item{self.miss.counts, model$row.self.miss.counts}{With `misses = TRUE`: self-misses (the code in the ground, absent from the response), per unit and per line, as for self-connections.}
   \item{model$row.miss.counts}{With `misses = TRUE`: a data.table of raw, unweighted row-level missed co-occurrences.}
   \item{meta.data}{A data.table of metadata columns for each unit.}
   The class of the returned object is updated to reflect the type of accumulation (ordered or unordered).

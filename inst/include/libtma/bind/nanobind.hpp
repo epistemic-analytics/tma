@@ -244,6 +244,35 @@ inline void def_finalize_row_connections(::nanobind::module_& m) {
             "Returns a 2-D ndarray (n_response_rows x p^2 ordered, or x choose(p,2)).");
 }
 
+inline void def_finalize_self_connections(::nanobind::module_& m) {
+    using namespace ::nanobind::literals;
+        m.def("finalize_self_connections",
+            [](NpMat row_conn, int n_codes, bool ordered,
+                           std::variant<bool, std::string> weight) {
+                return from_mat(qe::finalize_self_connections(
+                    to_mat(row_conn), n_codes, ordered, weight_model_from_variant(weight)));
+            },
+            "row_conn"_a, "n_codes"_a, "ordered"_a = false, "weight"_a = "binary",
+            "Per-line self-connections: the diagonal (ground i x response i) of each\n"
+            "directed row of apply_tensor_unit's row_connection_counts (or\n"
+            "row_miss_counts, for self-misses), weighted per line as\n"
+            "finalize_row_connections weights it.\n\n"
+            "Returns a 2-D ndarray (n_response_rows x p).");
+}
+
+inline void def_aggregate_self_connections(::nanobind::module_& m) {
+    using namespace ::nanobind::literals;
+        m.def("aggregate_self_connections",
+            [](NpMat row_conn, int n_codes, bool ordered,
+                           std::variant<bool, std::string> weight) {
+                return from_rowvec(qe::aggregate_self_connections(
+                    to_mat(row_conn), n_codes, ordered, weight_model_from_variant(weight)));
+            },
+            "row_conn"_a, "n_codes"_a, "ordered"_a = false, "weight"_a = "binary",
+            "finalize_self_connections summed over the lines.\n\n"
+            "Returns a 1-D ndarray of length p.");
+}
+
 /// All of libtma's functions.
 inline void def_libtma(::nanobind::module_& m) {
     def_connection_matrix(m);
@@ -256,6 +285,8 @@ inline void def_libtma(::nanobind::module_& m) {
     def_apply_tensor_unit(m);
     def_aggregate_row_connections(m);
     def_finalize_row_connections(m);
+    def_finalize_self_connections(m);
+    def_aggregate_self_connections(m);
 }
 
 } // namespace py

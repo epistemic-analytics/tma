@@ -203,3 +203,36 @@ class TestMatchesRAccumulate:
         nets = self.networks(True)
         for u, ref in self.R_ORDERED.items():
             np.testing.assert_allclose(nets[u], ref, err_msg=u)
+
+
+class TestSelfConnections:
+    """self_networks_ = R tma's self.connection.counts (test-self-connections.R)."""
+
+    TOY = TestMatchesRAccumulate.TOY
+
+    def fit(self, **kw):
+        tensor = context_tensor(self.TOY, default_window=3.0)
+        return TMA().fit(self.TOY, units="u", conversations="c", codes=["A", "B", "C"],
+                         tensor=tensor, **kw)
+
+    def unit_x(self, values, m):
+        return values[list(m.units_).index("x")]
+
+    def test_self_networks(self):
+        for kw, ref in [({"weight_by": "product"}, [2, 3, 2]),
+                        ({"weight_by": "binary"}, [1, 1, 1]),
+                        ({"weight_by": "sqrt"}, [np.sqrt(2), np.sqrt(3), np.sqrt(2)]),
+                        ({"ordered": True}, [2, 3, 2])]:
+            m = self.fit(**kw)
+            assert m.self_networks_.shape == (len(m.units_), 3)
+            np.testing.assert_allclose(self.unit_x(m.self_networks_, m), ref, err_msg=str(kw))
+
+    def test_ordered_self_equals_connection_diagonal(self):
+        m = self.fit(ordered=True, weight_by="product")
+        diag = [m.connection_names_.index(f"{c} & {c}") for c in ["A", "B", "C"]]
+        np.testing.assert_allclose(m.self_networks_, m.networks_[:, diag])
+
+    def test_self_misses(self):
+        assert self.fit().self_miss_networks_ is None
+        m = self.fit(misses=True, weight_by="product")
+        np.testing.assert_allclose(self.unit_x(m.self_miss_networks_, m), [3, 0, 1])
