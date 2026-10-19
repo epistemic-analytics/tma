@@ -38,6 +38,7 @@ __all__ = [
     "aggregate_self_connections",
     "UnitAccumulation",
     "accumulate_unit_networks",
+    "weight_rows",
 ]
 
 
@@ -165,6 +166,11 @@ def accumulate_unit_networks(tensor, dims, dims_sender, dims_receiver, dims_mode
     return UnitAccumulation(**_libtma.accumulate_unit_networks(
         tensor, dims, dims_sender, dims_receiver, dims_mode,
         context_lookup, unit_rows, codes, times, ordered, weight, misses))
+
+
+@_doc
+def weight_rows(rows, ordered=False, weight="binary"):
+    return _libtma.weight_rows(rows, ordered, weight)
 
 
 @_doc

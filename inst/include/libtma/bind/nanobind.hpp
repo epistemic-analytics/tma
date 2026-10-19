@@ -290,6 +290,18 @@ inline ::nanobind::dict to_dict(const qe::UnitAccumulation& r) {
     return out;
 }
 
+inline void def_weight_rows(::nanobind::module_& m) {
+    using namespace ::nanobind::literals;
+        m.def("weight_rows",
+            [](NpMat rows, bool ordered, std::variant<bool, std::string> weight) {
+                return from_mat(qe::weight_rows(to_mat(rows), ordered, weight_model_from_variant(weight)));
+            },
+            "rows"_a, "ordered"_a = false, "weight"_a = "binary",
+            "Apply the weight model per line to already-finalised rows (folded when\n"
+            "unordered), e.g. accumulate_unit_networks' raw row_connection_counts.\n\n"
+            "Returns a 2-D ndarray of the same shape.");
+}
+
 inline void def_accumulate_unit_networks(::nanobind::module_& m) {
     using namespace ::nanobind::literals;
         m.def("accumulate_unit_networks",
@@ -334,6 +346,7 @@ inline void def_libtma(::nanobind::module_& m) {
     def_finalize_self_connections(m);
     def_aggregate_self_connections(m);
     def_accumulate_unit_networks(m);
+    def_weight_rows(m);
 }
 
 } // namespace py

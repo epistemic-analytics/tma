@@ -201,6 +201,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// weight_rows
+arma::mat weight_rows(arma::mat rows, bool ordered, SEXP weight);
+RcppExport SEXP _tma_weight_rows(SEXP rowsSEXP, SEXP orderedSEXP, SEXP weightSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type rows(rowsSEXP);
+    Rcpp::traits::input_parameter< bool >::type ordered(orderedSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type weight(weightSEXP);
+    rcpp_result_gen = Rcpp::wrap(weight_rows(rows, ordered, weight));
+    return rcpp_result_gen;
+END_RCPP
+}
 // accumulate_unit_networks
 List accumulate_unit_networks(arma::vec tensor, std::vector<int> dims, std::vector<int> dims_sender, std::vector<int> dims_receiver, std::vector<int> dims_mode, arma::imat context_lookup, std::vector<int> unit_rows, arma::mat codes, arma::vec times, bool ordered, SEXP weight, bool misses);
 RcppExport SEXP _tma_accumulate_unit_networks(SEXP tensorSEXP, SEXP dimsSEXP, SEXP dims_senderSEXP, SEXP dims_receiverSEXP, SEXP dims_modeSEXP, SEXP context_lookupSEXP, SEXP unit_rowsSEXP, SEXP codesSEXP, SEXP timesSEXP, SEXP orderedSEXP, SEXP weightSEXP, SEXP missesSEXP) {
@@ -238,6 +251,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_tma_aggregate_row_connections", (DL_FUNC) &_tma_aggregate_row_connections, 4},
     {"_tma_finalize_self_connections", (DL_FUNC) &_tma_finalize_self_connections, 4},
     {"_tma_aggregate_self_connections", (DL_FUNC) &_tma_aggregate_self_connections, 4},
+    {"_tma_weight_rows", (DL_FUNC) &_tma_weight_rows, 3},
     {"_tma_accumulate_unit_networks", (DL_FUNC) &_tma_accumulate_unit_networks, 12},
     {NULL, NULL, 0}
 };

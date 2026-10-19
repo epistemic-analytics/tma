@@ -41,7 +41,7 @@ export
     accumulate_unit_with_rows, accumulate_tensor_unit,
     aggregate_row_connections, finalize_row_connections,
     aggregate_self_connections, finalize_self_connections,
-    accumulate_unit_networks
+    accumulate_unit_networks, weight_rows
 
 # ── Load shared library ───────────────────────────────────────────────────────
 # The library built by CMake is installed into julia/lib/ (one level up from
@@ -381,6 +381,19 @@ function accumulate_unit_networks(codes::Matrix{Float64},
         self_miss_counts     = collect(Float64, r[8]),
         row_self_miss_counts = _mat(r[9], n_lines, n_codes),
     )
+end
+
+"""
+    weight_rows(rows; ordered=false, weight="binary") -> Matrix{Float64}
+
+Apply the weight model per line to already-finalised rows (folded when
+unordered), e.g. `accumulate_unit_networks`'s raw `row_connection_counts`.
+"""
+function weight_rows(rows::Matrix{Float64}; ordered::Bool = false,
+                     weight::Union{AbstractString,Bool} = "binary")
+    r, c = size(rows)
+    reshape(collect(Float64, weight_rows(vec(rows), Int32(r), Int32(c), ordered,
+                                         _weight_name(weight))), r, c)
 end
 
 end # module TMA

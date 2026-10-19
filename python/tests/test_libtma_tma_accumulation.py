@@ -304,3 +304,10 @@ class TestAccumulateUnitNetworks:
     def test_misses_off(self):
         u = self.call(False, "binary", misses=False)
         assert u.miss_counts is None and u.row_self_miss_counts is None
+
+    def test_weighted_rows_sum_to_unit_vector(self):
+        for ordered in (False, True):
+            for w in ("binary", "product", "sqrt"):
+                u = self.call(ordered, w)
+                rows = accumulation.weight_rows(u.row_connection_counts, ordered, w)
+                np.testing.assert_allclose(rows.sum(axis=0), u.connection_counts)

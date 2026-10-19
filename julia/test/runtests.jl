@@ -113,6 +113,13 @@ end
     @test !haskey(off, :miss_counts)
 end
 
+@testset "weight_rows" begin
+    rc = Float64[1 2 3 4; 5 0 0 2]
+    raw = finalize_row_connections(rc, 2; weight = "product")
+    @test weight_rows(raw; weight = "sqrt") ≈ finalize_row_connections(rc, 2; weight = "sqrt")
+    @test weight_rows(rc; ordered = true, weight = "log1p") ≈ finalize_row_connections(rc, 2; ordered = true, weight = "log1p")
+end
+
 @testset "finalize/aggregate_self_connections" begin
     rc = Float64[1 2 3 4; 5 0 0 2]     # 2 codes: each row's diagonal at columns 1 and 4
     @test finalize_self_connections(rc, 2; ordered = true, weight = "product") == Float64[1 4; 5 2]

@@ -99,3 +99,12 @@ test_that("accumulate_unit_networks returns finished vectors in one call", {
   expect_equal(o$self_connection_counts, c(2, 3, 2));       # ordered binary = raw
   expect_null(call(FALSE, "binary", misses = FALSE)$miss_counts);
 })
+
+test_that("weight_rows weights finalised rows like finalize_row_connections", {
+  rc <- rbind(c(1, 2, 3, 4), c(5, 0, 0, 2));   # 2 codes, directed rows
+  for (w in c("binary", "product", "sqrt", "log1p")) {
+    raw_unordered <- finalize_row_connections(rc, 2L, FALSE, "product");
+    expect_equal(weight_rows(raw_unordered, FALSE, w), finalize_row_connections(rc, 2L, FALSE, w));
+    expect_equal(weight_rows(rc, TRUE, w), finalize_row_connections(rc, 2L, TRUE, w));
+  }
+})

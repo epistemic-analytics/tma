@@ -166,6 +166,23 @@ test('accumulate_unit_networks: finished vectors in one call', () => {
     expect(off.miss_counts).toBeUndefined();
 });
 
+test('weight_rows: weighted rows sum to the unit vector', () => {
+    const args = [
+        new Float64Array([1, 3]), new Int32Array([2]),
+        new Int32Array([]), new Int32Array([]), new Int32Array([]),
+        new Int32Array([0, 0, 0]), 3, 1,
+        new Int32Array([0, 1, 2]),
+        new Float64Array([2, 0, 1,  1, 3, 0,  0, 1, 2]), 3, 3,
+        new Float64Array([0, 1, 2]),
+    ];
+    const u = qe.accumulate_unit_networks(...args, false, 'sqrt', false);
+    const rc = u.row_connection_counts;
+    const w = qe.weight_rows(rc.data, rc.rows, rc.cols, false, 'sqrt');
+    const sums = new Array(w.cols).fill(0);
+    for (let r = 0; r < w.rows; r++) for (let c = 0; c < w.cols; c++) sums[c] += w.data[r * w.cols + c];
+    sums.forEach((v, c) => expect(v).toBeCloseTo(u.connection_counts[c], 12));
+});
+
 test('finalize/aggregate_self_connections: diagonal of each directed row', () => {
     // 2 rows x 2 codes, directed 2x2 per row (column-major): diagonal at 0 and 3.
     const rc = new Float64Array([1, 2, 3, 4,  5, 0, 0, 2]);

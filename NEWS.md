@@ -12,6 +12,12 @@
   qe-tma, tma-wasm and TMA.jl. `accumulate()` and `TMA.fit()` use it instead of
   folding and aggregating in R / Python, which makes `accumulate()` faster
   (about 40% on 15k lines and 12 codes with misses).
+* libtma `weight_rows()` applies the weight model per line to rows that are
+  already folded (unordered) or directed (ordered) -- the weight step of
+  `finalize_row_connections()` on its own -- so callers of
+  `accumulate_unit_networks()` that need per-line weighted rows (rena-wasm's
+  `rowConnectionCounts`) get them from libtma. Exported in R, qe-tma, tma-wasm
+  and TMA.jl.
 * `accumulate()` keeps self-connections: `self.connection.counts` (one column
   per code) and `model$row.self.connection.counts` (raw, per line). A code's
   self-connection on a line is its ground count times its response count -- the

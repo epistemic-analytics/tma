@@ -777,6 +777,28 @@ inline arma::rowvec aggregate_self_connections(
     return arma::sum(finalize_self_connections(row_conn, n_codes, ordered, weight), 0);
 }
 
+/** @brief Apply the weight model per line to already-finalised rows.
+ *
+ *  For rows that are already folded (unordered) or directed (ordered) -- e.g.
+ *  accumulate_unit_networks()'s raw @c row_connection_counts -- this is the
+ *  weight step of finalize_row_connections() on its own, so callers that need
+ *  per-line weighted rows (summing by unit to the weighted unit vector) get
+ *  them without re-folding.
+ *
+ *  @param[in] rows     n_lines × n_cols raw rows.
+ *  @param[in] ordered  Selects the weight model's ordered/unordered behaviour.
+ *  @param[in] weight   Per-line weight model (see WeightModel).
+ */
+inline arma::mat weight_rows(const arma::mat& rows, bool ordered, WeightModel weight) {
+    arma::mat out = rows;
+    for (arma::uword r = 0; r < out.n_rows; ++r) {
+        arma::rowvec v = out.row(r);
+        apply_weight_model(v, weight, ordered);
+        out.row(r) = v;
+    }
+    return out;
+}
+
 /// @}
 
 /// @name Finished unit networks (one call per unit, for every binding)

@@ -353,6 +353,21 @@ NumericVector aggregate_self_connections(arma::mat row_conn,
     return NumericVector(out.begin(), out.end());
 }
 
+//' Apply the weight model per line to already-finalised rows
+//'
+//' The weight step of \code{finalize_row_connections()} on its own, for rows
+//' that are already folded (unordered) or directed (ordered), such as
+//' \code{accumulate_unit_networks()$row_connection_counts}.
+//'
+//' @param rows    Numeric matrix of raw per-line rows
+//' @inheritParams finalize_row_connections
+//' @return Numeric matrix, same shape as \code{rows}
+//' @export
+// [[Rcpp::export]]
+arma::mat weight_rows(arma::mat rows, bool ordered = false, SEXP weight = R_NilValue) {
+    return qe::weight_rows(rows, ordered, weight_model_from_sexp(weight));
+}
+
 //' Accumulate one unit's networks end to end
 //'
 //' One libtma call per unit: runs \code{apply_tensor()} for the directed

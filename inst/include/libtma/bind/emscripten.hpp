@@ -329,6 +329,16 @@ inline val accumulate_unit_networks(
         ordered, weight_model_from_val(weight), misses));
 }
 
+// weight_rows(rows_data, rows, cols, ordered, weight)
+//   Weight model per line on already-finalised rows (folded when unordered),
+//   e.g. accumulate_unit_networks' raw row_connection_counts.
+// → { data: Float64Array, rows, cols } — row-major
+inline val weight_rows(const val& rows_val, int rows, int cols,
+                       bool ordered, const val& weight) {
+    return mat_to_js(qe::weight_rows(js_to_mat(rows_val, rows, cols),
+                                     ordered, weight_model_from_val(weight)));
+}
+
 // finalize_self_connections(row_conn, rows, cols, n_codes, ordered, weight)
 //   Per-line self-connections: each directed row's diagonal (ground i x
 //   response i), weighted per line. Pass row_miss_counts for self-misses.
@@ -369,6 +379,7 @@ inline void register_accumulate_tensor_unit_misses() { ::emscripten::function("a
 inline void register_aggregate_row_connections() { ::emscripten::function("aggregate_row_connections", &tma_fn::aggregate_row_connections); }
 inline void register_finalize_row_connections() { ::emscripten::function("finalize_row_connections", &tma_fn::finalize_row_connections); }
 inline void register_finalize_self_connections() { ::emscripten::function("finalize_self_connections", &tma_fn::finalize_self_connections); }
+inline void register_weight_rows() { ::emscripten::function("weight_rows", &tma_fn::weight_rows); }
 inline void register_accumulate_unit_networks() { ::emscripten::function("accumulate_unit_networks", &tma_fn::accumulate_unit_networks); }
 inline void register_aggregate_self_connections() { ::emscripten::function("aggregate_self_connections", &tma_fn::aggregate_self_connections); }
 
@@ -388,6 +399,7 @@ inline void register_libtma() {
     register_finalize_self_connections();
     register_aggregate_self_connections();
     register_accumulate_unit_networks();
+    register_weight_rows();
 }
 
 } // namespace js

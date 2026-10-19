@@ -229,6 +229,20 @@ aggregate_self_connections <- function(row_conn, n_codes, ordered = FALSE, weigh
     .Call(`_tma_aggregate_self_connections`, row_conn, n_codes, ordered, weight)
 }
 
+#' Apply the weight model per line to already-finalised rows
+#'
+#' The weight step of \code{finalize_row_connections()} on its own, for rows
+#' that are already folded (unordered) or directed (ordered), such as
+#' \code{accumulate_unit_networks()$row_connection_counts}.
+#'
+#' @param rows    Numeric matrix of raw per-line rows
+#' @inheritParams finalize_row_connections
+#' @return Numeric matrix, same shape as \code{rows}
+#' @export
+weight_rows <- function(rows, ordered = FALSE, weight = NULL) {
+    .Call(`_tma_weight_rows`, rows, ordered, weight)
+}
+
 #' Accumulate one unit's networks end to end
 #'
 #' One libtma call per unit: runs \code{apply_tensor()} for the directed
