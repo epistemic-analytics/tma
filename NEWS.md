@@ -1,3 +1,5 @@
+# tma (development version)
+
 # tma 0.3.8
 
 * `accumulate()` now keeps missed co-occurrences by default (`misses = TRUE`):
