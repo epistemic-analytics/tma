@@ -201,6 +201,28 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// accumulate_unit_networks
+List accumulate_unit_networks(arma::vec tensor, std::vector<int> dims, std::vector<int> dims_sender, std::vector<int> dims_receiver, std::vector<int> dims_mode, arma::imat context_lookup, std::vector<int> unit_rows, arma::mat codes, arma::vec times, bool ordered, SEXP weight, bool misses);
+RcppExport SEXP _tma_accumulate_unit_networks(SEXP tensorSEXP, SEXP dimsSEXP, SEXP dims_senderSEXP, SEXP dims_receiverSEXP, SEXP dims_modeSEXP, SEXP context_lookupSEXP, SEXP unit_rowsSEXP, SEXP codesSEXP, SEXP timesSEXP, SEXP orderedSEXP, SEXP weightSEXP, SEXP missesSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::vec >::type tensor(tensorSEXP);
+    Rcpp::traits::input_parameter< std::vector<int> >::type dims(dimsSEXP);
+    Rcpp::traits::input_parameter< std::vector<int> >::type dims_sender(dims_senderSEXP);
+    Rcpp::traits::input_parameter< std::vector<int> >::type dims_receiver(dims_receiverSEXP);
+    Rcpp::traits::input_parameter< std::vector<int> >::type dims_mode(dims_modeSEXP);
+    Rcpp::traits::input_parameter< arma::imat >::type context_lookup(context_lookupSEXP);
+    Rcpp::traits::input_parameter< std::vector<int> >::type unit_rows(unit_rowsSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type codes(codesSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type times(timesSEXP);
+    Rcpp::traits::input_parameter< bool >::type ordered(orderedSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type weight(weightSEXP);
+    Rcpp::traits::input_parameter< bool >::type misses(missesSEXP);
+    rcpp_result_gen = Rcpp::wrap(accumulate_unit_networks(tensor, dims, dims_sender, dims_receiver, dims_mode, context_lookup, unit_rows, codes, times, ordered, weight, misses));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_tma_connection_matrix", (DL_FUNC) &_tma_connection_matrix, 4},
@@ -216,6 +238,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_tma_aggregate_row_connections", (DL_FUNC) &_tma_aggregate_row_connections, 4},
     {"_tma_finalize_self_connections", (DL_FUNC) &_tma_finalize_self_connections, 4},
     {"_tma_aggregate_self_connections", (DL_FUNC) &_tma_aggregate_self_connections, 4},
+    {"_tma_accumulate_unit_networks", (DL_FUNC) &_tma_accumulate_unit_networks, 12},
     {NULL, NULL, 0}
 };
 

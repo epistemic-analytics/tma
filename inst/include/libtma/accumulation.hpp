@@ -779,6 +779,79 @@ inline arma::rowvec aggregate_self_connections(
 
 /// @}
 
+/// @name Finished unit networks (one call per unit, for every binding)
+/// @{
+
+/** @brief Result of accumulate_unit_networks(): a unit's finished vectors plus
+ *         its raw per-line rows.
+ *
+ *  "Raw" rows carry no weight model: ordered rows are the directed p² counts,
+ *  unordered rows are folded to choose_two(p) (as finalize_row_connections()
+ *  with the product model). Unit vectors have the weight model applied per
+ *  line before the sum. Miss fields are empty unless misses were requested.
+ */
+struct UnitAccumulation {
+    arma::rowvec connection_counts;           ///< p² (ordered) or choose_two(p)
+    arma::mat    row_connection_counts;       ///< n_lines × (p² or choose_two(p)), raw
+    arma::rowvec self_connection_counts;      ///< p
+    arma::mat    row_self_connection_counts;  ///< n_lines × p, raw
+    arma::rowvec miss_counts;                 ///< as connection_counts (misses only)
+    arma::mat    row_miss_counts;             ///< as row_connection_counts (misses only)
+    arma::rowvec self_miss_counts;            ///< p (misses only)
+    arma::mat    row_self_miss_counts;        ///< n_lines × p, raw (misses only)
+};
+
+/** @brief Accumulate one unit's networks end to end.
+ *
+ *  Runs apply_tensor_unit() for the directed per-line rows (and misses), then
+ *  finalises them in one place: folds unordered rows, applies the weight model
+ *  per line, sums the lines, and pulls out the self-connection diagonal --
+ *  the steps every binding would otherwise repeat. Unit vectors are additive
+ *  over lines, so a unit spread over several contexts is the sum of its
+ *  per-context results.
+ *
+ *  Arguments as apply_tensor_unit(), plus:
+ *  @param[in] ordered  @c true: directed p² networks; @c false: folded choose_two(p).
+ *  @param[in] weight   Per-line weight model (see WeightModel).
+ *  @param[in] misses   Also accumulate missed co-occurrences and self-misses.
+ */
+inline UnitAccumulation accumulate_unit_networks(
+    const arma::vec&        tensor,
+    const std::vector<int>& dims,
+    const std::vector<int>& dims_sender,
+    const std::vector<int>& dims_receiver,
+    const std::vector<int>& dims_mode,
+    const arma::imat&       context_lookup,
+    const std::vector<int>& unit_rows,
+    const arma::mat&        codes,
+    const arma::vec&        times,
+    bool        ordered = false,
+    WeightModel weight  = WeightModel::Binary,
+    bool        misses  = true
+) {
+    const int p = static_cast<int>(codes.n_cols);
+    // Directed rows always: ordered/unordered is decided in the finalise step.
+    TensorNetworks tn = apply_tensor_unit(
+        tensor, dims, dims_sender, dims_receiver, dims_mode,
+        context_lookup, unit_rows, codes, times,
+        /*ordered=*/true, /*return_members=*/false, /*return_misses=*/misses);
+
+    UnitAccumulation out;
+    out.connection_counts          = aggregate_row_connections(tn.row_connection_counts, p, ordered, weight);
+    out.row_connection_counts      = finalize_row_connections(tn.row_connection_counts, p, ordered, WeightModel::Product);
+    out.self_connection_counts     = aggregate_self_connections(tn.row_connection_counts, p, ordered, weight);
+    out.row_self_connection_counts = finalize_self_connections(tn.row_connection_counts, p, true, WeightModel::Product);
+    if (misses) {
+        out.miss_counts          = aggregate_row_connections(tn.row_miss_counts, p, ordered, weight);
+        out.row_miss_counts      = finalize_row_connections(tn.row_miss_counts, p, ordered, WeightModel::Product);
+        out.self_miss_counts     = aggregate_self_connections(tn.row_miss_counts, p, ordered, weight);
+        out.row_self_miss_counts = finalize_self_connections(tn.row_miss_counts, p, true, WeightModel::Product);
+    }
+    return out;
+}
+
+/// @}
+
 /// @name Per-row co-occurrence and rolling window (rENA accumulation primitives)
 /// @{
 

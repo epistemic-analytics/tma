@@ -66,6 +66,27 @@ inline TensorMissesTuple to_misses_tuple(const qe::TensorNetworks& r) {
             pack(r.miss_counts), pack(r.row_miss_counts)};
 }
 
+/// (connection_counts, row_connection_counts, row_cols, self_connection_counts,
+///  row_self_connection_counts, miss_counts, row_miss_counts,
+///  self_miss_counts, row_self_miss_counts, n_lines, n_codes) — matrices
+///  column-major; miss fields empty without misses.
+using UnitAccumulationTuple = std::tuple<
+    std::vector<double>, std::vector<double>, int32_t,
+    std::vector<double>, std::vector<double>,
+    std::vector<double>, std::vector<double>,
+    std::vector<double>, std::vector<double>,
+    int32_t, int32_t>;
+
+inline UnitAccumulationTuple to_tuple(const qe::UnitAccumulation& r) {
+    return {pack(r.connection_counts), pack(r.row_connection_counts),
+            static_cast<int32_t>(r.row_connection_counts.n_cols),
+            pack(r.self_connection_counts), pack(r.row_self_connection_counts),
+            pack(r.miss_counts), pack(r.row_miss_counts),
+            pack(r.self_miss_counts), pack(r.row_self_miss_counts),
+            static_cast<int32_t>(r.row_connection_counts.n_rows),
+            static_cast<int32_t>(r.self_connection_counts.n_elem)};
+}
+
 } // namespace jl
 } // namespace bind
 } // namespace qe

@@ -60,9 +60,10 @@ test_that("self.connection.counts rows and columns line up with connection.count
   expect_s3_class(a$self.connection.counts, "self.connections");
 })
 
-test_that("self-misses with misses = TRUE only", {
-  expect_null(self_accum()$self.miss.counts);
-  expect_null(self_accum()$model$row.self.miss.counts);
+test_that("self-misses come with misses (on by default)", {
+  expect_null(self_accum(misses = FALSE)$self.miss.counts);
+  expect_null(self_accum(misses = FALSE)$model$row.self.miss.counts);
+  expect_equal(unit_x(self_accum()$self.miss.counts), c(1, 0, 1));   # default: misses, binary
   a <- self_accum(misses = TRUE, weight_by = "product");
   expect_equal(unit_x(a$self.miss.counts), c(3, 0, 1));
   expect_equal(unit_x(self_accum(misses = TRUE)$self.miss.counts), c(1, 0, 1));   # binary
@@ -76,4 +77,25 @@ test_that("self-connections do not change the connection counts", {
   a <- self_accum(weight_by = "product");
   expect_equal(unname(unlist(as.data.frame(a$connection.counts)[1, c("A & B", "A & C", "B & C")])),
                c(12, 9, 12));
+})
+
+test_that("accumulate_unit_networks returns finished vectors in one call", {
+  codes <- as.matrix(self_toy[self_toy$u == "x", self_codes]);
+  call <- function(ordered, weight, misses = TRUE)
+    accumulate_unit_networks(tensor = c(1, 3), dims = 2L, dims_sender = integer(0),
+                             dims_receiver = integer(0), dims_mode = integer(0),
+                             context_lookup = matrix(0L, 3, 0), unit_rows = 0:2,
+                             codes = codes, times = c(0, 1, 2),
+                             ordered = ordered, weight = weight, misses = misses);
+  u <- call(FALSE, "product");
+  expect_equal(u$connection_counts, c(12, 9, 12));          # A & B, A & C, B & C
+  expect_equal(dim(u$row_connection_counts), c(3L, 3L));    # folded, raw
+  expect_equal(u$self_connection_counts, c(2, 3, 2));
+  expect_equal(u$row_self_connection_counts, rbind(c(0, 0, 0), c(2, 0, 0), c(0, 3, 2)));
+  expect_equal(u$miss_counts, c(3, 3, 0));
+  expect_equal(u$self_miss_counts, c(3, 0, 1));
+  o <- call(TRUE, "binary");
+  expect_equal(length(o$connection_counts), 9L);
+  expect_equal(o$self_connection_counts, c(2, 3, 2));       # ordered binary = raw
+  expect_null(call(FALSE, "binary", misses = FALSE)$miss_counts);
 })

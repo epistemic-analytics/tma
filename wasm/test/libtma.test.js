@@ -146,6 +146,26 @@ test('accumulate_tensor_unit_misses: ground present, response absent', () => {
         .toEqual(Array.from(out.row_connection_counts.data));
 });
 
+test('accumulate_unit_networks: finished vectors in one call', () => {
+    const args = [
+        new Float64Array([1, 3]), new Int32Array([2]),
+        new Int32Array([]), new Int32Array([]), new Int32Array([]),
+        new Int32Array([0, 0, 0]), 3, 1,
+        new Int32Array([0, 1, 2]),
+        new Float64Array([2, 0, 1,  1, 3, 0,  0, 1, 2]), 3, 3,
+        new Float64Array([0, 1, 2]),
+    ];
+    const u = qe.accumulate_unit_networks(...args, false, 'product', true);
+    expect(Array.from(u.connection_counts)).toEqual([12, 9, 12]);
+    expect(u.row_connection_counts.cols).toBe(3);
+    expect(Array.from(u.self_connection_counts)).toEqual([2, 3, 2]);
+    expect(Array.from(u.miss_counts)).toEqual([3, 3, 0]);
+    expect(Array.from(u.self_miss_counts)).toEqual([3, 0, 1]);
+    const off = qe.accumulate_unit_networks(...args, true, 'binary', false);
+    expect(off.connection_counts.length).toBe(9);
+    expect(off.miss_counts).toBeUndefined();
+});
+
 test('finalize/aggregate_self_connections: diagonal of each directed row', () => {
     // 2 rows x 2 codes, directed 2x2 per row (column-major): diagonal at 0 and 3.
     const rc = new Float64Array([1, 2, 3, 4,  5, 0, 0, 2]);

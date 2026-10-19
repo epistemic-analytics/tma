@@ -1,5 +1,17 @@
 # tma (development version)
 
+* `accumulate()` now keeps missed co-occurrences by default (`misses = TRUE`):
+  every result carries `miss.counts`, `model$row.miss.counts` and the
+  self-miss tables. Pass `misses = FALSE` to skip them, e.g. for many codes or
+  long data (the per-line miss table has one column per directed pair when
+  ordered). qe-tma `TMA.fit()` follows (`misses=True`). Existing fields are
+  unchanged.
+* libtma `accumulate_unit_networks()` returns one unit's finished networks in
+  one call -- fold (unordered), per-line weight model, unit sum and the
+  self-connection diagonal, for hits and misses -- and is exported in R,
+  qe-tma, tma-wasm and TMA.jl. `accumulate()` and `TMA.fit()` use it instead of
+  folding and aggregating in R / Python, which makes `accumulate()` faster
+  (about 40% on 15k lines and 12 codes with misses).
 * `accumulate()` keeps self-connections: `self.connection.counts` (one column
   per code) and `model$row.self.connection.counts` (raw, per line). A code's
   self-connection on a line is its ground count times its response count -- the

@@ -273,6 +273,52 @@ inline void def_aggregate_self_connections(::nanobind::module_& m) {
             "Returns a 1-D ndarray of length p.");
 }
 
+/// {connection_counts, row_connection_counts, self_connection_counts,
+///  row_self_connection_counts} plus the four miss fields when computed.
+inline ::nanobind::dict to_dict(const qe::UnitAccumulation& r) {
+    ::nanobind::dict out;
+    out["connection_counts"]          = from_rowvec(r.connection_counts);
+    out["row_connection_counts"]      = from_mat(r.row_connection_counts);
+    out["self_connection_counts"]     = from_rowvec(r.self_connection_counts);
+    out["row_self_connection_counts"] = from_mat(r.row_self_connection_counts);
+    if (r.miss_counts.n_elem > 0) {
+        out["miss_counts"]          = from_rowvec(r.miss_counts);
+        out["row_miss_counts"]      = from_mat(r.row_miss_counts);
+        out["self_miss_counts"]     = from_rowvec(r.self_miss_counts);
+        out["row_self_miss_counts"] = from_mat(r.row_self_miss_counts);
+    }
+    return out;
+}
+
+inline void def_accumulate_unit_networks(::nanobind::module_& m) {
+    using namespace ::nanobind::literals;
+        m.def("accumulate_unit_networks",
+            [](NpVec tensor, std::vector<int> dims,
+               std::vector<int> dims_sender, std::vector<int> dims_receiver,
+               std::vector<int> dims_mode,
+               NpIMat context_lookup, std::vector<int> unit_rows,
+               NpMat codes, NpVec times, bool ordered,
+               std::variant<bool, std::string> weight, bool misses) {
+                return to_dict(qe::accumulate_unit_networks(
+                    to_vec(tensor), dims, dims_sender, dims_receiver, dims_mode,
+                    to_imat(context_lookup), unit_rows,
+                    to_mat(codes), to_vec(times), ordered,
+                    weight_model_from_variant(weight), misses));
+            },
+            "tensor"_a, "dims"_a,
+            "dims_sender"_a, "dims_receiver"_a, "dims_mode"_a,
+            "context_lookup"_a, "unit_rows"_a,
+            "codes"_a, "times"_a, "ordered"_a = false, "weight"_a = "binary",
+            "misses"_a = true,
+            "One unit's networks end to end: apply_tensor_unit, then fold (unordered),\n"
+            "per-line weight model, unit sum and the self-connection diagonal, for hits\n"
+            "and (misses=True, default) missed co-occurrences.\n\n"
+            "Returns a dict with connection_counts, row_connection_counts (raw; folded\n"
+            "when unordered), self_connection_counts, row_self_connection_counts, and\n"
+            "with misses miss_counts, row_miss_counts, self_miss_counts,\n"
+            "row_self_miss_counts.");
+}
+
 /// All of libtma's functions.
 inline void def_libtma(::nanobind::module_& m) {
     def_connection_matrix(m);
@@ -287,6 +333,7 @@ inline void def_libtma(::nanobind::module_& m) {
     def_finalize_row_connections(m);
     def_finalize_self_connections(m);
     def_aggregate_self_connections(m);
+    def_accumulate_unit_networks(m);
 }
 
 } // namespace py

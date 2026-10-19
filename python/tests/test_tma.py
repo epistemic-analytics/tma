@@ -158,9 +158,10 @@ class TestMisses:
         np.testing.assert_allclose(self.misses(weight_by="binary"), [1, 2, 0])
         np.testing.assert_allclose(self.misses(ordered=True), [3, 3, 1, 0, 0, 0, 2, 0, 1])
 
-    def test_off_by_default_and_model_unchanged(self):
-        plain = self.fit()
+    def test_on_by_default_off_with_false_and_model_unchanged(self):
+        plain = self.fit(misses=False)
         assert plain.miss_networks_ is None
+        assert self.fit().miss_networks_ is not None   # on by default
         np.testing.assert_array_equal(self.fit(misses=True).networks_, plain.networks_)
 class TestMatchesRAccumulate:
     """Unit networks equal R tma's accumulate() (weight_by = "product", window 3).
@@ -233,6 +234,6 @@ class TestSelfConnections:
         np.testing.assert_allclose(m.self_networks_, m.networks_[:, diag])
 
     def test_self_misses(self):
-        assert self.fit().self_miss_networks_ is None
+        assert self.fit(misses=False).self_miss_networks_ is None
         m = self.fit(misses=True, weight_by="product")
         np.testing.assert_allclose(self.unit_x(m.self_miss_networks_, m), [3, 0, 1])

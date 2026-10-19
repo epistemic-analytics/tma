@@ -40,7 +40,8 @@ export
     rolling_window_sum, flat_index, accumulate_unit,
     accumulate_unit_with_rows, accumulate_tensor_unit,
     aggregate_row_connections, finalize_row_connections,
-    aggregate_self_connections, finalize_self_connections
+    aggregate_self_connections, finalize_self_connections,
+    accumulate_unit_networks
 
 # ── Load shared library ───────────────────────────────────────────────────────
 # The library built by CMake is installed into julia/lib/ (one level up from
@@ -325,6 +326,61 @@ function aggregate_self_connections(row_conn::Matrix{Float64}, n_codes::Integer;
     rows, cols = size(row_conn)
     collect(Float64, aggregate_self_connections(vec(row_conn), Int32(rows), Int32(cols),
                                                 Int32(n_codes), ordered, _weight_name(weight)))
+end
+
+"""
+    accumulate_unit_networks(codes, tensor, dims, dims_sender, dims_receiver, dims_mode,
+                             context_lookup, unit_rows, times;
+                             ordered=false, weight="binary", misses=true)
+    -> NamedTuple
+
+One unit's finished networks in one call (arguments as `accumulate_tensor_unit`):
+fold (unordered), per-line weight model, unit sum and the self-connection
+diagonal, for hits and — with `misses` (default) — missed co-occurrences.
+
+Returns `(connection_counts, row_connection_counts, self_connection_counts,
+row_self_connection_counts)`, plus `miss_counts, row_miss_counts,
+self_miss_counts, row_self_miss_counts` with `misses = true`. Row matrices are
+raw (no weight model); unordered rows are folded.
+"""
+function accumulate_unit_networks(codes::Matrix{Float64},
+                                  tensor::Vector{Float64},
+                                  dims::AbstractVector{<:Integer},
+                                  dims_sender::AbstractVector{<:Integer},
+                                  dims_receiver::AbstractVector{<:Integer},
+                                  dims_mode::AbstractVector{<:Integer},
+                                  context_lookup::Matrix{<:Integer},
+                                  unit_rows::AbstractVector{<:Integer},
+                                  times::Vector{Float64};
+                                  ordered::Bool = false,
+                                  weight::Union{AbstractString,Bool} = "binary",
+                                  misses::Bool = true)
+    rows, cols = size(codes)
+    cl_rows, cl_cols = size(context_lookup)
+    r = accumulate_unit_networks(
+            tensor,
+            _sv_i32(dims), _sv_i32(dims_sender),
+            _sv_i32(dims_receiver), _sv_i32(dims_mode),
+            vec(Int32.(context_lookup)), Int32(cl_rows), Int32(cl_cols),
+            _sv_i32(unit_rows),
+            vec(codes), Int32(rows), Int32(cols),
+            times, ordered, _weight_name(weight), misses)
+    n_lines, n_codes = Int(r[10]), Int(r[11])
+    row_cols = Int(r[3])
+    hits = (
+        connection_counts          = collect(Float64, r[1]),
+        row_connection_counts      = _mat(r[2], n_lines, row_cols),
+        self_connection_counts     = collect(Float64, r[4]),
+        row_self_connection_counts = _mat(r[5], n_lines, n_codes),
+    )
+    misses || return hits
+    (
+        hits...,
+        miss_counts          = collect(Float64, r[6]),
+        row_miss_counts      = _mat(r[7], n_lines, row_cols),
+        self_miss_counts     = collect(Float64, r[8]),
+        row_self_miss_counts = _mat(r[9], n_lines, n_codes),
+    )
 end
 
 end # module TMA

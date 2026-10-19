@@ -271,3 +271,36 @@ class TestApplyTensorUnitMisses:
         np.testing.assert_allclose(
             accumulation.aggregate_row_connections(r.row_miss_counts, 3, False, "product"),
             [3, 3, 0])
+
+
+class TestAccumulateUnitNetworks:
+    """accumulate_unit_networks: one call = fold + weight + sum + self diagonal."""
+
+    def call(self, ordered, weight, misses=True):
+        return accumulation.accumulate_unit_networks(
+            np.array([1.0, 3.0]), [2], [], [], [],
+            np.zeros((3, 0), dtype=np.int32), [0, 1, 2],
+            MISS_CODES, np.array([0.0, 1.0, 2.0]), ordered, weight, misses)
+
+    def test_unordered_product(self):
+        u = self.call(False, "product")
+        np.testing.assert_allclose(u.connection_counts, [12, 9, 12])
+        assert u.row_connection_counts.shape == (3, 3)
+        np.testing.assert_allclose(u.self_connection_counts, [2, 3, 2])
+        np.testing.assert_allclose(u.row_self_connection_counts, [[0, 0, 0], [2, 0, 0], [0, 3, 2]])
+        np.testing.assert_allclose(u.miss_counts, [3, 3, 0])
+        np.testing.assert_allclose(u.self_miss_counts, [3, 0, 1])
+
+    def test_matches_aggregating_apply_tensor_unit(self):
+        rc = _miss_tensor_unit(True)
+        for ordered in (False, True):
+            for w in ("binary", "product", "sqrt"):
+                u = self.call(ordered, w)
+                np.testing.assert_allclose(u.connection_counts, accumulation.aggregate_row_connections(
+                    rc.row_connection_counts, 3, ordered, w))
+                np.testing.assert_allclose(u.miss_counts, accumulation.aggregate_row_connections(
+                    rc.row_miss_counts, 3, ordered, w))
+
+    def test_misses_off(self):
+        u = self.call(False, "binary", misses=False)
+        assert u.miss_counts is None and u.row_self_miss_counts is None

@@ -10,7 +10,7 @@
 #' @param ordered Logical; if TRUE (default), computes ordered adjacency matrices (ONA); if FALSE, computes unordered (ENA-style) matrices.
 #' @param binary Logical; if TRUE (default), binarizes each line's connection counts before they are summed per unit (unordered only; ordered counts are always summed raw). Ignored when `weight_by` is given.
 #' @param weight_by Weight model applied to each line's connection counts before they are summed into the unit network (= rENA's `weight.by`): `"binary"` (unordered: each positive count becomes 1; ordered: raw directed counts), `"product"` (the raw, non-binarized counts), `"sqrt"`, or `"log1p"` (alias `"log"`). For unordered networks the weight is applied after each line is folded to the upper triangle; for ordered networks, to each directed cell. Defaults to `"binary"` when `binary = TRUE`, otherwise `"product"`. `model$row.connection.counts` always holds the raw, unweighted line counts.
-#' @param misses Logical; if TRUE, also accumulate missed co-occurrences: for each response line, the (window-weighted) ground count of code i when code j is absent from the response, with no response self-term. Misses follow the connection counts through the same steps: ordered models keep the directed layout (ground i -> response j); unordered models fold each line to the upper triangle (i & j = i -> j + j -> i, self-misses dropped), and `weight_by` is applied per line. Defaults to FALSE.
+#' @param misses Logical; if TRUE, also accumulate missed co-occurrences: for each response line, the (window-weighted) ground count of code i when code j is absent from the response, with no response self-term. Misses follow the connection counts through the same steps: ordered models keep the directed layout (ground i -> response j); unordered models fold each line to the upper triangle (i & j = i -> j + j -> i, self-misses dropped), and `weight_by` is applied per line. Defaults to TRUE; set FALSE to skip them (less memory for many codes or long data).
 #'
 #' @return The input `context_model` with additional fields:
 #'   \item{connection.counts}{A data.table of accumulated connection counts for each unit.}
@@ -35,7 +35,7 @@ accumulate <- function(
   ordered = FALSE,
   binary = TRUE,
   weight_by = NULL,
-  misses = FALSE
+  misses = TRUE
 ) {
 
   if (is.null(weight_by)) {
@@ -104,17 +104,21 @@ accumulate <- function(
     matrix(lookup, nrow = nrow(ctx_rows), ncol = length(cols_to_encode))
   }
 
-  miss_rows <- list();
+  # One libtma call per context (accumulate_unit_networks): it folds unordered
+  # rows, applies the weight model per line, sums the lines and pulls out the
+  # self-connection diagonal, for hits and (with misses) missed co-occurrences.
+  # R only stacks the per-line rows into tables and adds up each unit's
+  # per-context vectors (unit vectors are additive over lines).
+  n_codes <- length(codes);
   result_cpp <- lapply(context_model$model$contexts, function(ctx) {
     ctx_fun <- function(ctx_o) {
       ctx__ <- data.table::copy(ctx_o);
       unit_context_lookup <- context_lookup(ctx__)
 
       unit_rows <- attr(ctx__, "tma.unit_rows")
-      this_unit <- attr(ctx__, "tma.unit")
       unit_to_last <- seq.int(last(unit_rows))
       ctx_unit_to_last <- ctx__[unit_to_last, ]
-      res2 <- apply_tensor(
+      res <- accumulate_unit_networks(
         tensor,
         tensor_dim,
         tensor_sender_inds,
@@ -124,145 +128,113 @@ accumulate <- function(
         unit_rows - 1,
         as.matrix(ctx_unit_to_last[ , ..codes]),
         ctx_unit_to_last[[time_column]],
+        ordered = isTRUE(ordered),
+        weight = weight_by,
         misses = isTRUE(misses)
       )
-
-      rcc <- data.table::as.data.table(res2$row_connection_counts);
-      unit_row_meta <- ctx_o[unit_rows, meta_cols, with = FALSE];
-      # rcc <- cbind(unit_row_meta, rcc)
-      # browser()
-      rcc[, names(unit_row_meta) := unit_row_meta]
-      data.table::setcolorder(rcc, c(names(unit_row_meta), setdiff(names(rcc), names(unit_row_meta))))
-
-      if (isTRUE(misses)) {
-        rmc <- data.table::as.data.table(res2$row_miss_counts);
-        rmc[, names(unit_row_meta) := unit_row_meta]
-        data.table::setcolorder(rmc, c(names(unit_row_meta), setdiff(names(rmc), names(unit_row_meta))))
-        miss_rows[[length(miss_rows) + 1]] <<- rmc;
-      }
-      rcc
+      res$meta <- ctx_o[unit_rows, meta_cols, with = FALSE];
+      res
     }
 
-    if(is.data.frame(ctx)) {
-      res <- ctx_fun(ctx);
-    }
-    else {
-      results <- lapply(ctx, ctx_fun);
-      
-      res <- data.table::rbindlist(results);
-      res <- reclass(x = res, c("ordered.row.connections", "row.connections", "ena.matrix"));
-    }
-    
-    return(res);
+    if (is.data.frame(ctx)) list(ctx_fun(ctx)) else lapply(ctx, ctx_fun)
   });
-  
-  row_connection_counts <- rbindlist(result_cpp);
-  # colnames(row_connection_counts) <- c(meta_cols, adj_vector_names_full);
-  
-  # browser()
-  # row_connection_counts[, lapply(seq.int(nrow(.SD)), function(col_ind) {
-  #   col <- .SD[[col_ind]];
-  #   new_class_nm <- ifelse(col_ind <= length(meta_cols), "ena.metadata", "ena.co.occurrence");
-  #   reclass(col, new_class_nm)
-  # }), .SDcols = seq.int(ncol(row_connection_counts))];
-  # browser()
-  row_connection_counts <- reclass_columns(row_connection_counts, rep(c("ena.metadata","ena.co.occurrence"), c(length(meta_cols), length(adj_vector_names_full))))
-  data.table::setorderv(row_connection_counts, "QEID");
-  row_connection_counts <- reclass(x = row_connection_counts, c("ordered.row.connections", "row.connections", "ena.matrix"));
-  colnames(row_connection_counts) <- c(meta_cols, adj_vector_names_full);
+  parts <- unlist(result_cpp, recursive = FALSE);
+
+  conn_names <- if (isTRUE(ordered)) adj_vector_names_full else adj_vector_names;
+
+  # Per-line rows: meta columns + one column per connection (or code), in QEID
+  # order, as the row tables have always been laid out.
+  row_table <- function(field, cols, table_class) {
+    rows <- data.table::rbindlist(lapply(parts, function(pt) {
+      m <- pt[[field]];
+      dt <- data.table::as.data.table(matrix(m, nrow = nrow(m), dimnames = list(NULL, cols)));
+      cbind(pt$meta, dt)
+    }));
+    rows <- reclass_columns(rows, rep(c("ena.metadata", "ena.co.occurrence"), c(length(meta_cols), length(cols))));
+    data.table::setorderv(rows, "QEID");
+    reclass(x = rows, table_class)
+  };
+
+  # Unit vectors: each unit's per-context vectors summed, units in the order
+  # they first appear by QEID.
+  unit_of <- vapply(parts, function(pt) as.character(pt$meta$QEUNIT[1]), character(1));
+  first_qeid <- tapply(vapply(parts, function(pt) min(pt$meta$QEID), numeric(1)), unit_of, min);
+  unit_order <- names(sort(first_qeid));
+  unit_matrix <- function(field, cols) {
+    m <- rowsum(do.call(rbind, lapply(parts, `[[`, field)), unit_of, reorder = FALSE);
+    m <- m[unit_order, , drop = FALSE];
+    colnames(m) <- cols;
+    m
+  };
+  unit_first_meta <- function(by_cols) {
+    first <- data.table::rbindlist(lapply(parts, `[[`, "meta"));
+    data.table::setorderv(first, "QEID");
+    first <- first[!duplicated(first$QEUNIT), ];
+    first <- first[match(unit_order, as.character(first$QEUNIT)), by_cols, with = FALSE];
+    first[, lapply(.SD, reclass, "ena.metadata"), .SDcols = by_cols]
+  };
+
+  row_connection_counts <- row_table("row_connection_counts", conn_names,
+    if (isTRUE(ordered)) c("ordered.row.connections", "row.connections", "ena.matrix")
+    else c("unordered.row.connections", "row.connections", "ena.matrix"));
   context_model$model$row.connection.counts <- row_connection_counts;
-  
-  # Unit networks: libqe's aggregate_row_connections finalises each line's raw
-  # directed counts (fold for unordered, then the weight model) and sums the
-  # lines per unit -- the same per-line stage rENA applies weight.by.
-  # Column classes match the previous aggregation: ordered sums kept the
-  # ena.co.occurrence class, unordered colSums returned plain numerics.
-  n_codes <- length(codes);
-  unit_vector <- function(rows, out_names) {
-    v <- as.list(aggregate_row_connections(as.matrix(rows), n_codes, isTRUE(ordered), weight_by));
-    names(v) <- out_names;
-    if (isTRUE(ordered)) lapply(v, reclass, "ena.co.occurrence") else v
+
+  # Column classes match the earlier aggregation: ordered unit sums keep the
+  # ena.co.occurrence class, unordered ones are plain numerics; ordered tables
+  # lead with the units_by columns, unordered with QEUNIT.
+  unit_table <- function(field) {
+    m <- unit_matrix(field, conn_names);
+    vals <- lapply(seq_len(ncol(m)), function(j) {
+      v <- unname(m[, j]);
+      if (isTRUE(ordered)) reclass(v, "ena.co.occurrence") else v
+    });
+    names(vals) <- conn_names;
+    cbind(unit_first_meta(if (isTRUE(ordered)) units_by else "QEUNIT"), data.table::as.data.table(vals))
   };
 
   cc_type <- NULL;
   if(isTRUE(ordered)) {
     class(context_model) <- c("ena.ordered.set", class(context_model));
-    connection_counts <- row_connection_counts[, unit_vector(.SD, adj_vector_names_full), by = units_by, .SDcols = adj_vector_names_full];
-    connection_counts <- reclass(x = connection_counts, c("ordered.ena.connections", "ena.connections", "ena.matrix"));
-
+    connection_counts <- reclass(x = unit_table("connection_counts"), c("ordered.ena.connections", "ena.connections", "ena.matrix"));
     cc_type <- "ordered.ena.connections";
   }
   else {
     class(context_model) <- c("ena.unordered.set", class(context_model));
-
-    connection_counts <- row_connection_counts[, unit_vector(.SD, adj_vector_names), by = "QEUNIT", .SDcols = adj_vector_names_full];
-    context_model$model$row.connection.counts <- as.unordered(context_model$model$row.connection.counts);
-
+    connection_counts <- unit_table("connection_counts");
     cc_type <- "unordered.ena.connections";
   }
-  
-  if (isTRUE(misses)) {
-    row_miss_counts <- data.table::rbindlist(miss_rows);
-    row_miss_counts <- reclass_columns(row_miss_counts, rep(c("ena.metadata","ena.co.occurrence"), c(length(meta_cols), length(adj_vector_names_full))))
-    data.table::setorderv(row_miss_counts, "QEID");
-    row_miss_counts <- reclass(x = row_miss_counts, c("ordered.row.connections", "row.connections", "ena.matrix"));
-    colnames(row_miss_counts) <- c(meta_cols, adj_vector_names_full);
-    context_model$model$row.miss.counts <- row_miss_counts;
 
-    # Same aggregation as the connection counts above (fold + weight per line).
-    if (isTRUE(ordered)) {
-      miss_counts <- row_miss_counts[, unit_vector(.SD, adj_vector_names_full), by = units_by, .SDcols = adj_vector_names_full];
-    }
-    else {
-      miss_counts <- row_miss_counts[, unit_vector(.SD, adj_vector_names), by = "QEUNIT", .SDcols = adj_vector_names_full];
-      context_model$model$row.miss.counts <- as.unordered(context_model$model$row.miss.counts);
-    }
-  }
-
-  # Self-connections: each line's ground i x response i (the directed rows'
-  # diagonal, which unordered networks drop when they fold), weighted per line
-  # and summed per unit by libtma, like the connection counts. Read from the
-  # directed rows before any fold; the same for misses (ground i present,
-  # response i absent). Grouped as the connection counts are, so rows line up
-  # with cc_meta.
-  unit_by <- if (isTRUE(ordered)) units_by else "QEUNIT";
-  self_vector <- function(rows) {
-    v <- as.list(aggregate_self_connections(as.matrix(rows), n_codes, isTRUE(ordered), weight_by));
-    names(v) <- codes;
-    lapply(v, reclass, "ena.co.occurrence")
-  };
-  row_self <- function(rows) {
-    raw <- finalize_self_connections(as.matrix(rows[, adj_vector_names_full, with = FALSE]),
-                                     n_codes, TRUE, "product");
-    colnames(raw) <- codes;
-    out <- cbind(rows[, meta_cols, with = FALSE], data.table::as.data.table(raw));
-    out <- reclass_columns(out, rep(c("ena.metadata", "ena.co.occurrence"), c(length(meta_cols), n_codes)));
-    reclass(x = out, c("row.self.connections", "ena.matrix"))
-  };
-  unit_self <- function(rows) {
-    self_counts <- rows[, self_vector(.SD), by = unit_by, .SDcols = adj_vector_names_full];
-    self_counts <- cbind(cc_meta, self_counts[, codes, with = FALSE]);
-    reclass(self_counts, c("self.connections", "ena.matrix"))
-  };
-
-  cc_meta <- data.table::rbindlist(lapply(result_cpp, function(rc) rc[1, c("QEUNIT", units_by), with = FALSE]));
+  cc_meta <- data.table::rbindlist(lapply(result_cpp, function(rc) rc[[1]]$meta[1, c("QEUNIT", units_by), with = FALSE]));
   cc_meta$ENA_UNIT <- context_model$model$unit.labels;
   cc_meta <- cc_meta[, lapply(.SD, reclass, "ena.metadata"), .SDcols = colnames(cc_meta)];
-  
+
   connection_counts <- cbind(cc_meta, connection_counts)
   connection_counts <- reclass(connection_counts, c(cc_type, "ena.connections", "ena.matrix"));
   context_model$connection.counts <- connection_counts;
 
-  context_model$self.connection.counts <- unit_self(row_connection_counts);
-  context_model$model$row.self.connection.counts <- row_self(row_connection_counts);
+  # Self-connections: each line's ground i x response i (the ordered diagonal,
+  # which unordered networks fold away), one column per code.
+  self_table <- function(field) {
+    m <- unit_matrix(field, codes);
+    vals <- lapply(seq_len(ncol(m)), function(j) reclass(unname(m[, j]), "ena.co.occurrence"));
+    names(vals) <- codes;
+    reclass(cbind(cc_meta, data.table::as.data.table(vals)), c("self.connections", "ena.matrix"))
+  };
+  context_model$self.connection.counts <- self_table("self_connection_counts");
+  context_model$model$row.self.connection.counts <- row_table("row_self_connection_counts", codes, c("row.self.connections", "ena.matrix"));
 
   if (isTRUE(misses)) {
-    miss_counts <- cbind(cc_meta, miss_counts);
-    context_model$miss.counts <- reclass(miss_counts, c(cc_type, "ena.connections", "ena.matrix"));
-    context_model$self.miss.counts <- unit_self(row_miss_counts);
-    context_model$model$row.self.miss.counts <- row_self(row_miss_counts);
+    context_model$model$row.miss.counts <- row_table("row_miss_counts", conn_names,
+      if (isTRUE(ordered)) c("ordered.row.connections", "row.connections", "ena.matrix")
+      else c("unordered.row.connections", "row.connections", "ena.matrix"));
+    miss_counts <- if (isTRUE(ordered))
+      reclass(x = unit_table("miss_counts"), c("ordered.ena.connections", "ena.connections", "ena.matrix"))
+    else unit_table("miss_counts");
+    context_model$miss.counts <- reclass(cbind(cc_meta, miss_counts), c(cc_type, "ena.connections", "ena.matrix"));
+    context_model$self.miss.counts <- self_table("self_miss_counts");
+    context_model$model$row.self.miss.counts <- row_table("row_self_miss_counts", codes, c("row.self.connections", "ena.matrix"));
   }
-  
+
   context_model$meta.data <- context_model$connection.counts[, sapply(context_model$connection.counts, is, "ena.metadata"), with = FALSE];
   class(context_model$meta.data) = c("ena.matrix", class(context_model$meta.data));
 

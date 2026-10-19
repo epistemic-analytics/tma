@@ -36,6 +36,8 @@ __all__ = [
     "finalize_row_connections",
     "finalize_self_connections",
     "aggregate_self_connections",
+    "UnitAccumulation",
+    "accumulate_unit_networks",
 ]
 
 
@@ -73,6 +75,27 @@ class TensorNetworks(NamedTuple):
         r = self.row_connection_counts.shape
         return (f"<TensorNetworks connection_counts len={self.connection_counts.shape[0]} "
                 f"row_connection_counts={r[0]}x{r[1]}>")
+
+
+class UnitAccumulation(NamedTuple):
+    """Result of accumulate_unit_networks: one unit's finished networks.
+
+    connection_counts          : ndarray 1-D — p^2 (ordered) or choose(p,2), weighted
+    row_connection_counts      : ndarray 2-D — raw per line (folded when unordered)
+    self_connection_counts     : ndarray 1-D — p, weighted
+    row_self_connection_counts : ndarray 2-D — raw per line (n_lines x p)
+    miss_counts, row_miss_counts, self_miss_counts, row_self_miss_counts :
+                                 the same for missed co-occurrences, or None
+                                 when misses=False
+    """
+    connection_counts: np.ndarray
+    row_connection_counts: np.ndarray
+    self_connection_counts: np.ndarray
+    row_self_connection_counts: np.ndarray
+    miss_counts: Optional[np.ndarray] = None
+    row_miss_counts: Optional[np.ndarray] = None
+    self_miss_counts: Optional[np.ndarray] = None
+    row_self_miss_counts: Optional[np.ndarray] = None
 
 
 def _doc(fn):
@@ -133,6 +156,15 @@ def aggregate_row_connections(row_conn, n_codes, ordered=False, weight="binary")
 @_doc
 def finalize_row_connections(row_conn, n_codes, ordered=False, weight="binary"):
     return _libtma.finalize_row_connections(row_conn, n_codes, ordered, weight)
+
+
+@_doc
+def accumulate_unit_networks(tensor, dims, dims_sender, dims_receiver, dims_mode,
+                             context_lookup, unit_rows, codes, times, ordered=False,
+                             weight="binary", misses=True) -> UnitAccumulation:
+    return UnitAccumulation(**_libtma.accumulate_unit_networks(
+        tensor, dims, dims_sender, dims_receiver, dims_mode,
+        context_lookup, unit_rows, codes, times, ordered, weight, misses))
 
 
 @_doc

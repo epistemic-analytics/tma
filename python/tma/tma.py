@@ -54,7 +54,7 @@ class TMA:
         ordered: bool = False,
         binary: bool = True,
         weight_by: Optional[str] = None,
-        misses: bool = False,
+        misses: bool = True,
         norm: str = "sphere",
         dims: int = 2,
     ) -> "TMA":
@@ -91,7 +91,9 @@ class TMA:
             each response line, the window-weighted ground count of code i when
             code j is absent from the response, with no response self-term.
             Folded (unordered) and weighted per line like the connection
-            counts; stored in ``miss_networks_``. Not used for the model.
+            counts; stored in ``miss_networks_`` (and self-misses in
+            ``self_miss_networks_``). Not used for the model. Default True;
+            False skips them (less memory for many codes or long data).
         norm : {"sphere", "skip_sphere"}
         dims : int
         """
@@ -180,38 +182,21 @@ class TMA:
             times_sub = np.ascontiguousarray(times[visible_rows])
             ctx_lookup_sub = np.ascontiguousarray(context_lookup[visible_rows])
 
-            # Always accumulate the DIRECTED per-response-row counts (ordered
-            # kernel), exactly as tma does in R (apply_tensor with default
-            # ordered=TRUE); the ordered-vs-unordered decision is deferred to
-            # aggregation.  Passing the unordered flag here would make the kernel
-            # emit an already-symmetric matrix that the fold below double-counts.
-            result = libtma.apply_tensor_unit(
+            # One libtma call per unit, as tma's R accumulate(): fold
+            # (unordered), per-line weight model, unit sum and the
+            # self-connection diagonal, for hits and misses.
+            result = libtma.accumulate_unit_networks(
                 tensor_flat, tensor_dims,
                 sender_inds, receiver_inds, mode_inds,
                 ctx_lookup_sub, unit_rows_local,
                 codes_mat, times_sub,
-                True, misses,
+                ordered, weight_by, misses,
             )
-
-            # Fold (unordered) + per-line weight model + sum, matching tma's R
-            # aggregation.  Uses the per-row counts, not the raw connection_counts.
-            raw_networks[unit_idx] = libtma.aggregate_row_connections(
-                np.ascontiguousarray(result.row_connection_counts),
-                n_codes, ordered, weight_by,
-            )
-            self_networks[unit_idx] = libtma.aggregate_self_connections(
-                np.ascontiguousarray(result.row_connection_counts),
-                n_codes, ordered, weight_by,
-            )
+            raw_networks[unit_idx] = result.connection_counts
+            self_networks[unit_idx] = result.self_connection_counts
             if misses:
-                miss_networks[unit_idx] = libtma.aggregate_row_connections(
-                    np.ascontiguousarray(result.row_miss_counts),
-                    n_codes, ordered, weight_by,
-                )
-                self_miss_networks[unit_idx] = libtma.aggregate_self_connections(
-                    np.ascontiguousarray(result.row_miss_counts),
-                    n_codes, ordered, weight_by,
-                )
+                miss_networks[unit_idx] = result.miss_counts
+                self_miss_networks[unit_idx] = result.self_miss_counts
 
         # 5. Normalize. qe-lib's normalization submodule exposes these as
         # normalize_networks (per-row L2 -> unit sphere, == rENA fun_sphere_norm)

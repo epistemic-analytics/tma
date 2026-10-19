@@ -52,8 +52,11 @@ test_that("accumulate(misses = TRUE) stores row and unit misses; hits unchanged"
   expect_equal(colnames(m$miss.counts), colnames(m$connection.counts));
   expect_true(m$`_function.params`$misses);
 
-  plain <- toy_accum(ordered = TRUE);
+  # misses are on by default; misses = FALSE leaves them out
+  expect_equal(toy_accum(ordered = TRUE)$miss.counts, m$miss.counts);
+  plain <- toy_accum(ordered = TRUE, misses = FALSE);
   expect_null(plain$miss.counts);
+  expect_false(plain$`_function.params`$misses);
   expect_equal(co_cols(m$connection.counts), co_cols(plain$connection.counts));
 })
 

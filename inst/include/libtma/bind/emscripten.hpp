@@ -42,6 +42,21 @@ inline ::emscripten::val to_js(const qe::UnitNetworks& r) {
     return result;
 }
 
+inline ::emscripten::val to_js(const qe::UnitAccumulation& r) {
+    ::emscripten::val result = ::emscripten::val::object();
+    result.set("connection_counts",          rowvec_to_js(r.connection_counts));
+    result.set("row_connection_counts",      mat_to_js(r.row_connection_counts));
+    result.set("self_connection_counts",     rowvec_to_js(r.self_connection_counts));
+    result.set("row_self_connection_counts", mat_to_js(r.row_self_connection_counts));
+    if (r.miss_counts.n_elem > 0) {
+        result.set("miss_counts",          rowvec_to_js(r.miss_counts));
+        result.set("row_miss_counts",      mat_to_js(r.row_miss_counts));
+        result.set("self_miss_counts",     rowvec_to_js(r.self_miss_counts));
+        result.set("row_self_miss_counts", mat_to_js(r.row_self_miss_counts));
+    }
+    return result;
+}
+
 inline ::emscripten::val to_js(const qe::TensorNetworks& r) {
     std::vector<double> cc(r.connection_counts.memptr(),
                            r.connection_counts.memptr() + r.connection_counts.n_elem);
@@ -277,6 +292,43 @@ inline val finalize_row_connections(
         row_conn, n_codes, ordered, weight_model_from_val(weight)));
 }
 
+// accumulate_unit_networks(tensor, dims, dims_sender, dims_receiver, dims_mode,
+//                          context_lookup, cl_rows, cl_cols, unit_rows,
+//                          codes, rows, cols, times, ordered, weight, misses)
+// → { connection_counts, row_connection_counts, self_connection_counts,
+//     row_self_connection_counts, [miss_counts, row_miss_counts,
+//     self_miss_counts, row_self_miss_counts] }
+//   One unit's finished networks (fold, per-line weight model, unit sum, self
+//   diagonal) in one call; arguments as accumulate_tensor_unit plus weight
+//   (model name or legacy boolean) and misses.
+inline val accumulate_unit_networks(
+        const val& tensor_val,
+        const val& dims_val,
+        const val& dims_sender_val,
+        const val& dims_receiver_val,
+        const val& dims_mode_val,
+        const val& context_lookup_val, int cl_rows, int cl_cols,
+        const val& unit_rows_val,
+        const val& codes_val, int rows, int cols,
+        const val& times_val,
+        bool ordered, const val& weight, bool misses) {
+    std::vector<double> tv = vecFromJSArray<double>(tensor_val);
+    arma::vec tensor(tv.data(), tv.size());
+    std::vector<int> dims          = vecFromJSArray<int>(dims_val);
+    std::vector<int> dims_sender   = vecFromJSArray<int>(dims_sender_val);
+    std::vector<int> dims_receiver = vecFromJSArray<int>(dims_receiver_val);
+    std::vector<int> dims_mode     = vecFromJSArray<int>(dims_mode_val);
+    std::vector<int> unit_rows     = vecFromJSArray<int>(unit_rows_val);
+    arma::imat context_lookup = js_to_imat(context_lookup_val, cl_rows, cl_cols);
+    arma::mat  codes_mat      = js_to_mat(codes_val, rows, cols);
+    std::vector<double> timev = vecFromJSArray<double>(times_val);
+    arma::vec times_vec(timev.data(), timev.size());
+    return to_js(qe::accumulate_unit_networks(
+        tensor, dims, dims_sender, dims_receiver, dims_mode,
+        context_lookup, unit_rows, codes_mat, times_vec,
+        ordered, weight_model_from_val(weight), misses));
+}
+
 // finalize_self_connections(row_conn, rows, cols, n_codes, ordered, weight)
 //   Per-line self-connections: each directed row's diagonal (ground i x
 //   response i), weighted per line. Pass row_miss_counts for self-misses.
@@ -317,6 +369,7 @@ inline void register_accumulate_tensor_unit_misses() { ::emscripten::function("a
 inline void register_aggregate_row_connections() { ::emscripten::function("aggregate_row_connections", &tma_fn::aggregate_row_connections); }
 inline void register_finalize_row_connections() { ::emscripten::function("finalize_row_connections", &tma_fn::finalize_row_connections); }
 inline void register_finalize_self_connections() { ::emscripten::function("finalize_self_connections", &tma_fn::finalize_self_connections); }
+inline void register_accumulate_unit_networks() { ::emscripten::function("accumulate_unit_networks", &tma_fn::accumulate_unit_networks); }
 inline void register_aggregate_self_connections() { ::emscripten::function("aggregate_self_connections", &tma_fn::aggregate_self_connections); }
 
 /// All of libtma's functions.
@@ -334,6 +387,7 @@ inline void register_libtma() {
     register_finalize_row_connections();
     register_finalize_self_connections();
     register_aggregate_self_connections();
+    register_accumulate_unit_networks();
 }
 
 } // namespace js

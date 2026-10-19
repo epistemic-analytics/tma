@@ -352,3 +352,55 @@ NumericVector aggregate_self_connections(arma::mat row_conn,
                                                       weight_model_from_sexp(weight));
     return NumericVector(out.begin(), out.end());
 }
+
+//' Accumulate one unit's networks end to end
+//'
+//' One libtma call per unit: runs \code{apply_tensor()} for the directed
+//' per-line rows (and misses), then folds unordered rows, applies the weight
+//' model per line, sums the lines and pulls out the self-connection diagonal --
+//' the steps \code{accumulate()} and every other binding share.
+//'
+//' @inheritParams apply_tensor
+//' @param weight  Weight model name (\code{"binary"}, \code{"product"},
+//'   \code{"sqrt"}, \code{"log1p"}), or TRUE/FALSE for the legacy binary flag.
+//'   NULL (default) = \code{"binary"}.
+//' @param misses  TRUE (default) = also accumulate missed co-occurrences and
+//'   self-misses.
+//' @return List with \code{connection_counts} (n_codes^2 ordered, or
+//'   choose(n_codes, 2)), \code{row_connection_counts} (raw per line, folded
+//'   when unordered), \code{self_connection_counts} (n_codes),
+//'   \code{row_self_connection_counts} (raw per line); with misses, also
+//'   \code{miss_counts}, \code{row_miss_counts}, \code{self_miss_counts},
+//'   \code{row_self_miss_counts}.
+//' @export
+// [[Rcpp::export]]
+List accumulate_unit_networks(arma::vec tensor,
+                              std::vector<int> dims,
+                              std::vector<int> dims_sender,
+                              std::vector<int> dims_receiver,
+                              std::vector<int> dims_mode,
+                              arma::imat context_lookup,
+                              std::vector<int> unit_rows,
+                              arma::mat codes,
+                              arma::vec times,
+                              bool ordered = false,
+                              SEXP weight  = R_NilValue,
+                              bool misses  = true) {
+    qe::UnitAccumulation r = qe::accumulate_unit_networks(
+        tensor, dims, dims_sender, dims_receiver, dims_mode,
+        context_lookup, unit_rows, codes, times,
+        ordered, weight_model_from_sexp(weight), misses);
+    List out = List::create(
+        _("connection_counts")          = NumericVector(r.connection_counts.begin(), r.connection_counts.end()),
+        _("row_connection_counts")      = r.row_connection_counts,
+        _("self_connection_counts")     = NumericVector(r.self_connection_counts.begin(), r.self_connection_counts.end()),
+        _("row_self_connection_counts") = r.row_self_connection_counts
+    );
+    if (misses) {
+        out["miss_counts"]          = NumericVector(r.miss_counts.begin(), r.miss_counts.end());
+        out["row_miss_counts"]      = r.row_miss_counts;
+        out["self_miss_counts"]     = NumericVector(r.self_miss_counts.begin(), r.self_miss_counts.end());
+        out["row_self_miss_counts"] = r.row_self_miss_counts;
+    }
+    return out;
+}

@@ -229,6 +229,34 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod) {
                 qe::weight_model_from_string(weight)));
         });
 
+    // accumulate_unit_networks — one unit's finished networks (fold, per-line
+    // weight model, unit sum, self diagonal; misses too) in one call.
+    mod.method("accumulate_unit_networks",
+        [](jlcxx::ArrayRef<double> tensor_ref,
+           const std::vector<int32_t>& dims_i32,
+           const std::vector<int32_t>& dims_sender_i32,
+           const std::vector<int32_t>& dims_receiver_i32,
+           const std::vector<int32_t>& dims_mode_i32,
+           jlcxx::ArrayRef<int32_t> ctx_ref, int32_t cl_rows, int32_t cl_cols,
+           const std::vector<int32_t>& unit_rows_i32,
+           jlcxx::ArrayRef<double> codes_ref, int32_t rows, int32_t cols,
+           jlcxx::ArrayRef<double> times_ref,
+           bool ordered, const std::string& weight, bool misses) -> UnitAccumulationTuple {
+            arma::vec tensor(tensor_ref.data(), tensor_ref.size(), false, true);
+            std::vector<int> dims(dims_i32.begin(), dims_i32.end());
+            std::vector<int> dims_sender(dims_sender_i32.begin(), dims_sender_i32.end());
+            std::vector<int> dims_receiver(dims_receiver_i32.begin(), dims_receiver_i32.end());
+            std::vector<int> dims_mode(dims_mode_i32.begin(), dims_mode_i32.end());
+            std::vector<int> unit_rows(unit_rows_i32.begin(), unit_rows_i32.end());
+            arma::imat context_lookup = copy_imat(ctx_ref, cl_rows, cl_cols);
+            arma::mat  codes          = view_mat(codes_ref, rows, cols);
+            arma::vec  times(times_ref.data(), times_ref.size(), false, true);
+            return to_tuple(qe::accumulate_unit_networks(
+                tensor, dims, dims_sender, dims_receiver, dims_mode,
+                context_lookup, unit_rows, codes, times,
+                ordered, qe::weight_model_from_string(weight), misses));
+        });
+
     // Self-connections: each directed row's diagonal (ground i x response i).
     mod.method("finalize_self_connections",
         [](jlcxx::ArrayRef<double> row_conn, int32_t rows, int32_t cols,
