@@ -7,17 +7,16 @@ build-backend = "scikit_build_core.build"
 # convention with libqe's phase 4b split.
 name = "qe-tma"
 version = "0.1.8"
-description = "Python TMA (Transmodal Analysis) modeling — sister package to tma, with libtma compiled in"
+description = "Python TMA (Transmodal Analysis) accumulation — sister package to tma, with libtma compiled in"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "GPL-3.0-only"
 authors = [{ name = "Cody L Marquart", email = "cody.marquart@wisc.edu" }]
 dependencies = [
-    # Generic numerics (normalization, centering).  qe-lib is 0.x: a minor
-    # bump may change its API.
-    "qe-lib>=0.1.7,<0.3",
-    # Node positions (libena).  0.1.6 is the first qe-ena with ena.libena.
-    "qe-ena>=0.1.6",
+    # Adjacency layout (n_connections / connection_names with the diagonal,
+    # 0.2.1).  qe-lib is 0.x: a minor bump may change its API.  No qe-ena:
+    # modeling is qe-ena's, on top of this package (as rENA on tma).
+    "qe-lib>=0.2.1,<0.3",
     "numpy>=1.24",
     "pandas>=1.5",
 ]

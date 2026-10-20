@@ -4,11 +4,13 @@ Python Transmodal Analysis (TMA) — sister package to the
 [tma](https://gitlab.com/epistemic-analytics/qe-packages/tma) R package
 (`import tma`). Formerly pyTMA (`import pytma`), which was never published.
 
-The math runs in C++ shared with R: accumulation (stanza windows, context
+qe-tma accumulates, as R's tma does: accumulation (stanza windows, context
 tensors, row connections, weight models) is libtma, compiled into this package
-(`tma.libtma`); node positions come from [qe-ena](https://qe-libs.org/py/project/qe-ena/)
-(libena) and generic numerics from [qe-lib](https://qe-libs.org/py/project/qe-lib/)
-(libqe).
+(`tma.libtma`), with generic numerics from
+[qe-lib](https://qe-libs.org/py/project/qe-lib/) (libqe). Modeling the
+accumulated networks (normalization, rotation, node positions) is
+[qe-ena](https://qe-libs.org/py/project/qe-ena/)'s, as rENA models tma's
+accumulation in R.
 
 ## Installation
 
@@ -29,7 +31,7 @@ libqe instead).
 
 ```bash
 sh scripts/sync-headers.sh                 # from the repo root
-pip install qe-lib qe-ena --extra-index-url https://qe-libs.org/py/simple/
+pip install qe-lib --extra-index-url https://qe-libs.org/py/simple/
 pip install "./python[dev]"
 pytest python/tests --import-mode=importlib   # tests the installed package
 ```
@@ -38,10 +40,16 @@ pytest python/tests --import-mode=importlib   # tests the installed package
 
 ```python
 import pandas as pd
-from tma import TMA, contexts, context_tensor
+from tma import accumulate, context_tensor
 
-# rules / contexts / context_tensor mirror tma's R functions; TMA().fit()
-# runs contexts -> accumulate -> normalize -> SVD -> node positions.
+# rules / contexts / context_tensor / accumulate mirror tma's R functions.
+accum = accumulate(data, units="speaker", conversations="group", codes=CODES,
+                   tensor=context_tensor(data, default_window=4), ordered=True)
+accum.connection_counts_        # units x connections (= R connection.counts)
+
+# Model it with qe-ena (pip install qe-ena):
+from ena import ENA
+model = ENA().fit(accum)
 ```
 
 The low-level accumulation functions (`apply_tensor_unit`,

@@ -65,12 +65,12 @@ test:python:
   before_script:
     - apt-get update -qq
     - apt-get install -y --no-install-recommends build-essential cmake libarmadillo-dev git
-    # Public dependencies from PyPI, then qe-lib and qe-ena (>= 0.1.6, for
-    # ena.libena) from qe-libs.org *only*: --extra-index-url would let pip
-    # pick a same-named package from PyPI (PyPI's pyena is unrelated).
+    # Public dependencies from PyPI, then qe-lib from qe-libs.org *only*:
+    # --extra-index-url would let pip pick a same-named package from PyPI.
+    # No qe-ena: qe-tma accumulates; modeling is qe-ena's.
     - pip install --cache-dir .pip-cache numpy pandas pytest
     - pip install --cache-dir .pip-cache --no-deps
-        --index-url https://qe-libs.org/py/dev/simple/ qe-lib qe-ena
+        --index-url https://qe-libs.org/py/dev/simple/ qe-lib
   script:
     # tma._libtma builds against headers vendored into python/include/
     # (libtma from inst/include, libqe from Conan).

@@ -1,5 +1,17 @@
 # tma (development version)
 
+* qe-tma (Python) accumulates only, as R's tma does; modeling is qe-ena's.
+  Breaking: `TMA().fit()` is replaced by `tma.accumulate()`, which returns a
+  `TMAAccumulation` with R's fields -- `connection_counts_`,
+  `self_connection_counts_`, `miss_counts_`, `self_miss_counts_`, the per-line
+  `row_*` tables, `meta` (one row per unit), `unit_labels_`, `codes_`,
+  `connection_names_`, `adjacency_key_`, `ordered_` -- and gains
+  `self_connections` (unordered A & A columns, as R). The normalization, SVD
+  and node positions that `TMA.fit()` ran are gone: model the accumulation
+  with qe-ena (`ena.ENA().fit(accum)`), as rENA models tma's in R. qe-tma no
+  longer depends on qe-ena (it imported it for node positions since the
+  libqe split); it requires qe-lib >= 0.2.1.
+
 # tma 0.3.9
 
 * `accumulate(self_connections = TRUE)` (unordered networks; default `FALSE`)
