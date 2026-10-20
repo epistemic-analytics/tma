@@ -42,7 +42,7 @@ class LibtmaConan(ConanFile):
         # through it Armadillo.  Same floor as DESCRIPTION's LinkingTo.
         # libqe < 0.2.0 also ships a copy of libtma; this package's include
         # directory comes first for consumers.
-        self.requires("libqe/[>=0.1.9 <0.3]", transitive_headers=True)
+        self.requires("libqe/[>=0.2.1 <0.3]", transitive_headers=True)
 
     def layout(self):
         basic_layout(self, src_folder=".")

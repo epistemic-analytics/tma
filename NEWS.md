@@ -10,8 +10,11 @@
   carry the diagonal. `self.connection.counts` is kept separately either way.
 * libtma `finalize_row_connections()`, `aggregate_row_connections()` and
   `accumulate_unit_networks()` take `diagonal` (default `false`; in tma-wasm an
-  optional trailing argument), using libqe's diagonal fold. Requires a libqe
-  with `n_connections()` / `fold_directed_network(v, diagonal)` (> 0.2.0).
+  optional trailing argument), using libqe's diagonal fold
+  (`n_connections()`, `fold_directed_network(v, diagonal)`).
+* Requires libqe >= 0.2.1 (DESCRIPTION, the libtma Conan recipe and
+  `scripts/sync-headers.sh`).
+
 # tma 0.3.8
 
 * `accumulate()` now keeps missed co-occurrences by default (`misses = TRUE`):

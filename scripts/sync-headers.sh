@@ -27,7 +27,7 @@
 set -e
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 # Bump with DESCRIPTION's LinkingTo: libqe minimum.
-LIBQE_VERSION="${LIBQE_VERSION:-0.2.0}"
+LIBQE_VERSION="${LIBQE_VERSION:-0.2.1}"
 CONAN_REMOTE="https://gitlab.com/api/v4/projects/22522458/packages/conan"
 DESTS="${REPO_ROOT}/python/include ${REPO_ROOT}/wasm/include ${REPO_ROOT}/julia/include"
 
