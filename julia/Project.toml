@@ -1,7 +1,7 @@
 name = "TMA"
 uuid = "7ba660bc-c62b-4c57-b875-5821cfe207a6"
 authors = ["Cody L Marquart <cody.marquart@wisc.edu>"]
-version = "0.1.3"
+version = "0.1.4"
 
 [deps]
 CxxWrap = "1f15a43c-97ca-5a2a-ae31-89f07a497df4"

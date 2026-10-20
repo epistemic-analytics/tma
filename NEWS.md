@@ -1,3 +1,5 @@
+# tma (development version)
+
 # tma 0.3.9
 
 * `accumulate(self_connections = TRUE)` (unordered networks; default `FALSE`)
