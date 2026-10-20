@@ -4,12 +4,16 @@
 \alias{adjacency_key}
 \title{Adjacency Key}
 \usage{
-adjacency_key(codes, upper = TRUE)
+adjacency_key(codes, upper = TRUE, diagonal = FALSE)
 }
 \arguments{
 \item{codes}{character vector}
 
 \item{upper}{logical, default, TRUE, returns the key for the upper triangle, FALSE - not implemented yet}
+
+\item{diagonal}{logical, default FALSE. With \code{upper}, include the
+diagonal (self-connections): columns A & A, A & B, B & B, A & C, ... (the
+column-major upper triangle, as libqe's \code{connection_names(codes, TRUE)}).}
 }
 \value{
 matrix

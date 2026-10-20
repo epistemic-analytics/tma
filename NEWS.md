@@ -1,5 +1,17 @@
 # tma (development version)
 
+* `accumulate(self_connections = TRUE)` (unordered networks; default `FALSE`)
+  also puts each code's self-connection into `connection.counts` and the
+  per-line table -- and with misses, each self-miss into `miss.counts` -- so a
+  model built on them includes self-connections. Columns run A & A, A & B,
+  B & B, A & C, ... (the upper triangle with the diagonal), as the adjacency
+  key says (`adjacency_key(codes, diagonal = TRUE)`). Off by default, so
+  existing results and column layouts are unchanged; ordered networks always
+  carry the diagonal. `self.connection.counts` is kept separately either way.
+* libtma `finalize_row_connections()`, `aggregate_row_connections()` and
+  `accumulate_unit_networks()` take `diagonal` (default `false`; in tma-wasm an
+  optional trailing argument), using libqe's diagonal fold. Requires a libqe
+  with `n_connections()` / `fold_directed_network(v, diagonal)` (> 0.2.0).
 # tma 0.3.8
 
 * `accumulate()` now keeps missed co-occurrences by default (`misses = TRUE`):

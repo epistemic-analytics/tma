@@ -651,24 +651,29 @@ inline void apply_weight_model(arma::rowvec& v, WeightModel weight, bool ordered
  *  @param[in] ordered   @c true keeps directed p² rows; @c false folds each row
  *                       to @c choose_two(p).
  *  @param[in] weight    Per-line weight model (see WeightModel).
+ *  @param[in] diagonal  Unordered only: keep self-connections in the folded
+ *                       rows (libqe @c fold_directed_network with diagonal:
+ *                       A & A, A & B, B & B, ...).  Ordered rows always
+ *                       carry the diagonal.  Default @c false.
  *
  *  @returns Matrix of shape n_response_rows × p² (ordered) or
- *           n_response_rows × @c choose_two(p) (unordered).
+ *           n_response_rows × @c n_connections(p, diagonal) (unordered).
  */
 inline arma::mat finalize_row_connections(
     const arma::mat& row_conn,
     int         n_codes,
     bool        ordered,
-    WeightModel weight
+    WeightModel weight,
+    bool        diagonal = false
 ) {
     const int n_rows = static_cast<int>(row_conn.n_rows);
-    const int n_out  = ordered ? n_codes * n_codes : choose_two(n_codes);
+    const int n_out  = ordered ? n_codes * n_codes : n_connections(n_codes, diagonal);
     arma::mat out(n_rows, n_out, arma::fill::zeros);
 
     for (int r = 0; r < n_rows; ++r) {
         arma::rowvec v = ordered
             ? arma::rowvec(row_conn.row(r))
-            : fold_directed_network(arma::vectorise(row_conn.row(r)));
+            : fold_directed_network(arma::vectorise(row_conn.row(r)), diagonal);
         apply_weight_model(v, weight, ordered);
         out.row(r) = v;
     }
@@ -694,19 +699,22 @@ inline arma::mat finalize_row_connections(
  *  @param[in] ordered   @c true: directed p² sums; @c false: fold to
  *                       @c choose_two(p) and sum.
  *  @param[in] weight    Per-line weight model (see WeightModel).
+ *  @param[in] diagonal  Unordered only: keep self-connections (see
+ *                       finalize_row_connections()).  Default @c false.
  *
  *  @returns Flat unit connection vector of length p² (ordered) or
- *           @c choose_two(p) (unordered).
+ *           @c n_connections(p, diagonal) (unordered).
  */
 inline arma::rowvec aggregate_row_connections(
     const arma::mat& row_conn,
     int         n_codes,
     bool        ordered,
-    WeightModel weight
+    WeightModel weight,
+    bool        diagonal = false
 ) {
-    const int n_out = ordered ? n_codes * n_codes : choose_two(n_codes);
+    const int n_out = ordered ? n_codes * n_codes : n_connections(n_codes, diagonal);
     if (row_conn.n_rows == 0) return arma::rowvec(n_out, arma::fill::zeros);
-    return arma::sum(finalize_row_connections(row_conn, n_codes, ordered, weight), 0);
+    return arma::sum(finalize_row_connections(row_conn, n_codes, ordered, weight, diagonal), 0);
 }
 
 /** @brief Legacy form: @p binary selects Binary (@c true) or Product (@c false).
@@ -808,13 +816,14 @@ inline arma::mat weight_rows(const arma::mat& rows, bool ordered, WeightModel we
  *         its raw per-line rows.
  *
  *  "Raw" rows carry no weight model: ordered rows are the directed p² counts,
- *  unordered rows are folded to choose_two(p) (as finalize_row_connections()
- *  with the product model). Unit vectors have the weight model applied per
- *  line before the sum. Miss fields are empty unless misses were requested.
+ *  unordered rows are folded to n_connections(p, diagonal) (as
+ *  finalize_row_connections() with the product model). Unit vectors have the
+ *  weight model applied per line before the sum. Miss fields are empty unless
+ *  misses were requested.
  */
 struct UnitAccumulation {
-    arma::rowvec connection_counts;           ///< p² (ordered) or choose_two(p)
-    arma::mat    row_connection_counts;       ///< n_lines × (p² or choose_two(p)), raw
+    arma::rowvec connection_counts;           ///< p² (ordered) or n_connections(p, diagonal)
+    arma::mat    row_connection_counts;       ///< n_lines × (p² or n_connections(p, diagonal)), raw
     arma::rowvec self_connection_counts;      ///< p
     arma::mat    row_self_connection_counts;  ///< n_lines × p, raw
     arma::rowvec miss_counts;                 ///< as connection_counts (misses only)
@@ -836,6 +845,11 @@ struct UnitAccumulation {
  *  @param[in] ordered  @c true: directed p² networks; @c false: folded choose_two(p).
  *  @param[in] weight   Per-line weight model (see WeightModel).
  *  @param[in] misses   Also accumulate missed co-occurrences and self-misses.
+ *  @param[in] diagonal Unordered only: self-connections (and self-misses) are
+ *                      also columns of the connection (and miss) vectors, in
+ *                      the A & A, A & B, B & B, ... layout.  Ordered networks
+ *                      always carry them.  The separate self vectors are
+ *                      returned either way.  Default @c false.
  */
 inline UnitAccumulation accumulate_unit_networks(
     const arma::vec&        tensor,
@@ -849,7 +863,8 @@ inline UnitAccumulation accumulate_unit_networks(
     const arma::vec&        times,
     bool        ordered = false,
     WeightModel weight  = WeightModel::Binary,
-    bool        misses  = true
+    bool        misses  = true,
+    bool        diagonal = false
 ) {
     const int p = static_cast<int>(codes.n_cols);
     // Directed rows always: ordered/unordered is decided in the finalise step.
@@ -859,13 +874,13 @@ inline UnitAccumulation accumulate_unit_networks(
         /*ordered=*/true, /*return_members=*/false, /*return_misses=*/misses);
 
     UnitAccumulation out;
-    out.connection_counts          = aggregate_row_connections(tn.row_connection_counts, p, ordered, weight);
-    out.row_connection_counts      = finalize_row_connections(tn.row_connection_counts, p, ordered, WeightModel::Product);
+    out.connection_counts          = aggregate_row_connections(tn.row_connection_counts, p, ordered, weight, diagonal);
+    out.row_connection_counts      = finalize_row_connections(tn.row_connection_counts, p, ordered, WeightModel::Product, diagonal);
     out.self_connection_counts     = aggregate_self_connections(tn.row_connection_counts, p, ordered, weight);
     out.row_self_connection_counts = finalize_self_connections(tn.row_connection_counts, p, true, WeightModel::Product);
     if (misses) {
-        out.miss_counts          = aggregate_row_connections(tn.row_miss_counts, p, ordered, weight);
-        out.row_miss_counts      = finalize_row_connections(tn.row_miss_counts, p, ordered, WeightModel::Product);
+        out.miss_counts          = aggregate_row_connections(tn.row_miss_counts, p, ordered, weight, diagonal);
+        out.row_miss_counts      = finalize_row_connections(tn.row_miss_counts, p, ordered, WeightModel::Product, diagonal);
         out.self_miss_counts     = aggregate_self_connections(tn.row_miss_counts, p, ordered, weight);
         out.row_self_miss_counts = finalize_self_connections(tn.row_miss_counts, p, true, WeightModel::Product);
     }

@@ -182,10 +182,13 @@ apply_tensor_members <- function(tensor, dims, dims_sender, dims_receiver, dims_
 #'   \code{"sqrt"}, \code{"log1p"}), or TRUE/FALSE for the legacy binary flag
 #'   (TRUE = \code{"binary"}, FALSE = \code{"product"}). NULL (default) =
 #'   \code{"binary"}.
-#' @return Numeric matrix (n_response_rows x n_codes^2, or x choose(n_codes, 2))
+#' @param diagonal Unordered only: keep self-connections in the folded rows,
+#'   as columns A & A, A & B, B & B, ... (ordered rows always carry them)
+#' @return Numeric matrix (n_response_rows x n_codes^2, or x choose(n_codes, 2),
+#'   or x n_codes(n_codes + 1)/2 with \code{diagonal})
 #' @export
-finalize_row_connections <- function(row_conn, n_codes, ordered = FALSE, weight = NULL) {
-    .Call(`_tma_finalize_row_connections`, row_conn, n_codes, ordered, weight)
+finalize_row_connections <- function(row_conn, n_codes, ordered = FALSE, weight = NULL, diagonal = FALSE) {
+    .Call(`_tma_finalize_row_connections`, row_conn, n_codes, ordered, weight, diagonal)
 }
 
 #' Aggregate per-response-row tensor connections into a unit vector
@@ -197,8 +200,8 @@ finalize_row_connections <- function(row_conn, n_codes, ordered = FALSE, weight 
 #' @inheritParams finalize_row_connections
 #' @return Numeric vector of length n_codes^2 (ordered) or choose(n_codes, 2)
 #' @export
-aggregate_row_connections <- function(row_conn, n_codes, ordered = FALSE, weight = NULL) {
-    .Call(`_tma_aggregate_row_connections`, row_conn, n_codes, ordered, weight)
+aggregate_row_connections <- function(row_conn, n_codes, ordered = FALSE, weight = NULL, diagonal = FALSE) {
+    .Call(`_tma_aggregate_row_connections`, row_conn, n_codes, ordered, weight, diagonal)
 }
 
 #' Per-line self-connections (diagonal of each directed row)
@@ -256,6 +259,9 @@ weight_rows <- function(rows, ordered = FALSE, weight = NULL) {
 #'   NULL (default) = \code{"binary"}.
 #' @param misses  TRUE (default) = also accumulate missed co-occurrences and
 #'   self-misses.
+#' @param diagonal Unordered only: self-connections (and self-misses) are also
+#'   columns of the connection (and miss) vectors, in the A & A, A & B,
+#'   B & B, ... layout. The separate self vectors are returned either way.
 #' @return List with \code{connection_counts} (n_codes^2 ordered, or
 #'   choose(n_codes, 2)), \code{row_connection_counts} (raw per line, folded
 #'   when unordered), \code{self_connection_counts} (n_codes),
@@ -263,7 +269,7 @@ weight_rows <- function(rows, ordered = FALSE, weight = NULL) {
 #'   \code{miss_counts}, \code{row_miss_counts}, \code{self_miss_counts},
 #'   \code{row_self_miss_counts}.
 #' @export
-accumulate_unit_networks <- function(tensor, dims, dims_sender, dims_receiver, dims_mode, context_lookup, unit_rows, codes, times, ordered = FALSE, weight = NULL, misses = TRUE) {
-    .Call(`_tma_accumulate_unit_networks`, tensor, dims, dims_sender, dims_receiver, dims_mode, context_lookup, unit_rows, codes, times, ordered, weight, misses)
+accumulate_unit_networks <- function(tensor, dims, dims_sender, dims_receiver, dims_mode, context_lookup, unit_rows, codes, times, ordered = FALSE, weight = NULL, misses = TRUE, diagonal = FALSE) {
+    .Call(`_tma_accumulate_unit_networks`, tensor, dims, dims_sender, dims_receiver, dims_mode, context_lookup, unit_rows, codes, times, ordered, weight, misses, diagonal)
 }
 

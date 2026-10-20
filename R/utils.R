@@ -2,15 +2,18 @@
 #'
 #' @param codes character vector
 #' @param upper logical, default, TRUE, returns the key for the upper triangle, FALSE - not implemented yet
-#' 
+#' @param diagonal logical, default FALSE. With \code{upper}, include the
+#'   diagonal (self-connections): columns A & A, A & B, B & B, A & C, ... (the
+#'   column-major upper triangle, as libqe's \code{connection_names(codes, TRUE)}).
+#'
 #' @export
 #'
 #' @return matrix
-adjacency_key <- function(codes, upper = TRUE) {
+adjacency_key <- function(codes, upper = TRUE, diagonal = FALSE) {
   expanded <- expand.grid(codes, codes);
   rownames(expanded) <- apply(expanded, 1, paste, collapse = " & ");
   if(upper == TRUE) {
-    upper_inds <- which(upper.tri(matrix(nrow = length(codes), ncol = length(codes))));
+    upper_inds <- which(upper.tri(matrix(nrow = length(codes), ncol = length(codes)), diag = isTRUE(diagonal)));
     t(expanded[upper_inds,])
   }
   else {

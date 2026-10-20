@@ -150,22 +150,22 @@ def apply_tensor_unit(tensor, dims, dims_sender, dims_receiver, dims_mode,
 
 
 @_doc
-def aggregate_row_connections(row_conn, n_codes, ordered=False, weight="binary"):
-    return _libtma.aggregate_row_connections(row_conn, n_codes, ordered, weight)
+def aggregate_row_connections(row_conn, n_codes, ordered=False, weight="binary", diagonal=False):
+    return _libtma.aggregate_row_connections(row_conn, n_codes, ordered, weight, diagonal)
 
 
 @_doc
-def finalize_row_connections(row_conn, n_codes, ordered=False, weight="binary"):
-    return _libtma.finalize_row_connections(row_conn, n_codes, ordered, weight)
+def finalize_row_connections(row_conn, n_codes, ordered=False, weight="binary", diagonal=False):
+    return _libtma.finalize_row_connections(row_conn, n_codes, ordered, weight, diagonal)
 
 
 @_doc
 def accumulate_unit_networks(tensor, dims, dims_sender, dims_receiver, dims_mode,
                              context_lookup, unit_rows, codes, times, ordered=False,
-                             weight="binary", misses=True) -> UnitAccumulation:
+                             weight="binary", misses=True, diagonal=False) -> UnitAccumulation:
     return UnitAccumulation(**_libtma.accumulate_unit_networks(
         tensor, dims, dims_sender, dims_receiver, dims_mode,
-        context_lookup, unit_rows, codes, times, ordered, weight, misses))
+        context_lookup, unit_rows, codes, times, ordered, weight, misses, diagonal))
 
 
 @_doc

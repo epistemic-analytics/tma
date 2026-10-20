@@ -266,14 +266,18 @@ model to each row before the sum (rENA's `weight.by`).
 
 `weight`: `"binary"` (unordered: clamp to 1; ordered: raw counts), `"product"`
 (raw counts), `"sqrt"`, `"log1p"` (alias `"log"`), or a legacy `Bool`.
-Returns length `n_codes²` (ordered) or `choose(n_codes, 2)` (unordered).
+`diagonal` (unordered only) keeps self-connections: A & A, A & B, B & B, ...
+Returns length `n_codes²` (ordered), `choose(n_codes, 2)` (unordered) or
+`n_codes(n_codes+1)/2` (unordered with `diagonal`).
 """
 function aggregate_row_connections(row_conn::Matrix{Float64}, n_codes::Integer;
                                    ordered::Bool = false,
-                                   weight::Union{AbstractString,Bool} = "binary")
+                                   weight::Union{AbstractString,Bool} = "binary",
+                                   diagonal::Bool = false)
     rows, cols = size(row_conn)
     collect(Float64, aggregate_row_connections(vec(row_conn), Int32(rows), Int32(cols),
-                                               Int32(n_codes), ordered, _weight_name(weight)))
+                                               Int32(n_codes), ordered, _weight_name(weight),
+                                               diagonal))
 end
 
 """
@@ -282,16 +286,19 @@ end
 
 The per-row step of `aggregate_row_connections` (fold + weight model) without
 the sum: its rows sum to `aggregate_row_connections`.  Returns
-`n_response_rows × n_codes²` (ordered) or `× choose(n_codes, 2)`.
+`n_response_rows × n_codes²` (ordered), `× choose(n_codes, 2)`, or
+`× n_codes(n_codes+1)/2` with `diagonal` (unordered: self-connections kept).
 """
 function finalize_row_connections(row_conn::Matrix{Float64}, n_codes::Integer;
                                   ordered::Bool = false,
-                                  weight::Union{AbstractString,Bool} = "binary")
+                                  weight::Union{AbstractString,Bool} = "binary",
+                                  diagonal::Bool = false)
     rows, cols = size(row_conn)
-    n_out = ordered ? n_codes^2 : n_codes * (n_codes - 1) ÷ 2
+    n_out = ordered ? n_codes^2 :
+            diagonal ? n_codes * (n_codes + 1) ÷ 2 : n_codes * (n_codes - 1) ÷ 2
     reshape(collect(Float64, finalize_row_connections(vec(row_conn), Int32(rows), Int32(cols),
                                                       Int32(n_codes), ordered,
-                                                      _weight_name(weight))),
+                                                      _weight_name(weight), diagonal)),
             rows, n_out)
 end
 
@@ -341,7 +348,9 @@ diagonal, for hits and — with `misses` (default) — missed co-occurrences.
 Returns `(connection_counts, row_connection_counts, self_connection_counts,
 row_self_connection_counts)`, plus `miss_counts, row_miss_counts,
 self_miss_counts, row_self_miss_counts` with `misses = true`. Row matrices are
-raw (no weight model); unordered rows are folded.
+raw (no weight model); unordered rows are folded. `diagonal` (unordered only)
+also puts the self-connections into the connection / miss vectors: A & A,
+A & B, B & B, ...
 """
 function accumulate_unit_networks(codes::Matrix{Float64},
                                   tensor::Vector{Float64},
@@ -354,7 +363,8 @@ function accumulate_unit_networks(codes::Matrix{Float64},
                                   times::Vector{Float64};
                                   ordered::Bool = false,
                                   weight::Union{AbstractString,Bool} = "binary",
-                                  misses::Bool = true)
+                                  misses::Bool = true,
+                                  diagonal::Bool = false)
     rows, cols = size(codes)
     cl_rows, cl_cols = size(context_lookup)
     r = accumulate_unit_networks(
@@ -364,7 +374,7 @@ function accumulate_unit_networks(codes::Matrix{Float64},
             vec(Int32.(context_lookup)), Int32(cl_rows), Int32(cl_cols),
             _sv_i32(unit_rows),
             vec(codes), Int32(rows), Int32(cols),
-            times, ordered, _weight_name(weight), misses)
+            times, ordered, _weight_name(weight), misses, diagonal)
     n_lines, n_codes = Int(r[10]), Int(r[11])
     row_cols = Int(r[3])
     hits = (

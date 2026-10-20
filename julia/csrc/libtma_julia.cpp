@@ -213,20 +213,20 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod) {
 
     mod.method("aggregate_row_connections",
         [](jlcxx::ArrayRef<double> row_conn, int32_t rows, int32_t cols,
-           int32_t n_codes, bool ordered, const std::string& weight)
+           int32_t n_codes, bool ordered, const std::string& weight, bool diagonal)
          -> std::vector<double> {
             return pack(qe::aggregate_row_connections(
                 view_mat(row_conn, rows, cols), n_codes, ordered,
-                qe::weight_model_from_string(weight)));
+                qe::weight_model_from_string(weight), diagonal));
         });
 
     mod.method("finalize_row_connections",
         [](jlcxx::ArrayRef<double> row_conn, int32_t rows, int32_t cols,
-           int32_t n_codes, bool ordered, const std::string& weight)
+           int32_t n_codes, bool ordered, const std::string& weight, bool diagonal)
          -> std::vector<double> {
             return pack(qe::finalize_row_connections(
                 view_mat(row_conn, rows, cols), n_codes, ordered,
-                qe::weight_model_from_string(weight)));
+                qe::weight_model_from_string(weight), diagonal));
         });
 
     // accumulate_unit_networks — one unit's finished networks (fold, per-line
@@ -241,7 +241,7 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod) {
            const std::vector<int32_t>& unit_rows_i32,
            jlcxx::ArrayRef<double> codes_ref, int32_t rows, int32_t cols,
            jlcxx::ArrayRef<double> times_ref,
-           bool ordered, const std::string& weight, bool misses) -> UnitAccumulationTuple {
+           bool ordered, const std::string& weight, bool misses, bool diagonal) -> UnitAccumulationTuple {
             arma::vec tensor(tensor_ref.data(), tensor_ref.size(), false, true);
             std::vector<int> dims(dims_i32.begin(), dims_i32.end());
             std::vector<int> dims_sender(dims_sender_i32.begin(), dims_sender_i32.end());
@@ -254,7 +254,7 @@ JLCXX_MODULE define_julia_module(jlcxx::Module& mod) {
             return to_tuple(qe::accumulate_unit_networks(
                 tensor, dims, dims_sender, dims_receiver, dims_mode,
                 context_lookup, unit_rows, codes, times,
-                ordered, qe::weight_model_from_string(weight), misses));
+                ordered, qe::weight_model_from_string(weight), misses, diagonal));
         });
 
     mod.method("weight_rows",

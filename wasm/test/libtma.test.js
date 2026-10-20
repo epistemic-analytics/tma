@@ -166,6 +166,28 @@ test('accumulate_unit_networks: finished vectors in one call', () => {
     expect(off.miss_counts).toBeUndefined();
 });
 
+test('accumulate_unit_networks: optional diagonal (self-connections in the counts)', () => {
+    const args = [
+        new Float64Array([1, 3]), new Int32Array([2]),
+        new Int32Array([]), new Int32Array([]), new Int32Array([]),
+        new Int32Array([0, 0, 0]), 3, 1,
+        new Int32Array([0, 1, 2]),
+        new Float64Array([2, 0, 1,  1, 3, 0,  0, 1, 2]), 3, 3,
+        new Float64Array([0, 1, 2]),
+    ];
+    // A & A, A & B, B & B, A & C, B & C, C & C
+    const d = qe.accumulate_unit_networks(...args, false, 'product', true, true);
+    expect(Array.from(d.connection_counts)).toEqual([2, 12, 3, 9, 12, 2]);
+    expect(d.row_connection_counts.cols).toBe(6);
+    // without the trailing argument: unchanged
+    expect(Array.from(qe.accumulate_unit_networks(...args, false, 'product', true).connection_counts))
+        .toEqual([12, 9, 12]);
+    const rc = qe.accumulate_tensor_unit(...args, true).row_connection_counts;
+    expect(Array.from(qe.aggregate_row_connections(rc.data, rc.rows, rc.cols, 3, false, 'product', true)))
+        .toEqual([2, 12, 3, 9, 12, 2]);
+    expect(qe.finalize_row_connections(rc.data, rc.rows, rc.cols, 3, false, 'product', true).cols).toBe(6);
+});
+
 test('weight_rows: weighted rows sum to the unit vector', () => {
     const args = [
         new Float64Array([1, 3]), new Int32Array([2]),

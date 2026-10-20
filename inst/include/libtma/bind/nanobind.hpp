@@ -211,11 +211,11 @@ inline void def_aggregate_row_connections(::nanobind::module_& m) {
     using namespace ::nanobind::literals;
         m.def("aggregate_row_connections",
             [](NpMat row_conn, int n_codes, bool ordered,
-                           std::variant<bool, std::string> weight) {
+                           std::variant<bool, std::string> weight, bool diagonal) {
                 return from_rowvec(qe::aggregate_row_connections(
-                    to_mat(row_conn), n_codes, ordered, weight_model_from_variant(weight)));
+                    to_mat(row_conn), n_codes, ordered, weight_model_from_variant(weight), diagonal));
             },
-            "row_conn"_a, "n_codes"_a, "ordered"_a = false, "weight"_a = "binary",
+            "row_conn"_a, "n_codes"_a, "ordered"_a = false, "weight"_a = "binary", "diagonal"_a = false,
             "Aggregate apply_tensor_unit's row_connection_counts into a unit vector,\n"
             "matching tma's R aggregation (as.unordered + colSums.ena.matrix), with the\n"
             "weight model applied per row before the sum (= rENA's weight.by).\n\n"
@@ -226,7 +226,9 @@ inline void def_aggregate_row_connections(::nanobind::module_& m) {
             "                        'product' (raw counts), 'sqrt', 'log1p' (alias 'log');\n"
             "                        a bool is the legacy binary flag (True = 'binary',\n"
             "                        False = 'product')\n\n"
-            "Returns a 1-D ndarray of length p^2 (ordered) or choose(p,2) (unordered).");
+            "diagonal : bool         unordered only: keep self-connections (A & A, A & B, B & B, ...)\n\n"
+            "Returns a 1-D ndarray of length p^2 (ordered), choose(p,2) (unordered) or\n"
+            "p(p+1)/2 (unordered with diagonal)."); 
 }
 
 inline void def_finalize_row_connections(::nanobind::module_& m) {
@@ -234,11 +236,11 @@ inline void def_finalize_row_connections(::nanobind::module_& m) {
     using namespace ::nanobind::literals;
         m.def("finalize_row_connections",
             [](NpMat row_conn, int n_codes, bool ordered,
-                           std::variant<bool, std::string> weight) {
+                           std::variant<bool, std::string> weight, bool diagonal) {
                 return from_mat(qe::finalize_row_connections(
-                    to_mat(row_conn), n_codes, ordered, weight_model_from_variant(weight)));
+                    to_mat(row_conn), n_codes, ordered, weight_model_from_variant(weight), diagonal));
             },
-            "row_conn"_a, "n_codes"_a, "ordered"_a = false, "weight"_a = "binary",
+            "row_conn"_a, "n_codes"_a, "ordered"_a = false, "weight"_a = "binary", "diagonal"_a = false,
             "Per-row step of aggregate_row_connections (fold + weight model) without\n"
             "the sum; its rows sum to aggregate_row_connections.\n\n"
             "Returns a 2-D ndarray (n_response_rows x p^2 ordered, or x choose(p,2)).");
@@ -310,25 +312,26 @@ inline void def_accumulate_unit_networks(::nanobind::module_& m) {
                std::vector<int> dims_mode,
                NpIMat context_lookup, std::vector<int> unit_rows,
                NpMat codes, NpVec times, bool ordered,
-               std::variant<bool, std::string> weight, bool misses) {
+               std::variant<bool, std::string> weight, bool misses, bool diagonal) {
                 return to_dict(qe::accumulate_unit_networks(
                     to_vec(tensor), dims, dims_sender, dims_receiver, dims_mode,
                     to_imat(context_lookup), unit_rows,
                     to_mat(codes), to_vec(times), ordered,
-                    weight_model_from_variant(weight), misses));
+                    weight_model_from_variant(weight), misses, diagonal));
             },
             "tensor"_a, "dims"_a,
             "dims_sender"_a, "dims_receiver"_a, "dims_mode"_a,
             "context_lookup"_a, "unit_rows"_a,
             "codes"_a, "times"_a, "ordered"_a = false, "weight"_a = "binary",
-            "misses"_a = true,
+            "misses"_a = true, "diagonal"_a = false,
             "One unit's networks end to end: apply_tensor_unit, then fold (unordered),\n"
             "per-line weight model, unit sum and the self-connection diagonal, for hits\n"
             "and (misses=True, default) missed co-occurrences.\n\n"
             "Returns a dict with connection_counts, row_connection_counts (raw; folded\n"
             "when unordered), self_connection_counts, row_self_connection_counts, and\n"
             "with misses miss_counts, row_miss_counts, self_miss_counts,\n"
-            "row_self_miss_counts.");
+            "row_self_miss_counts. diagonal=True (unordered only) also puts the\n"
+            "self-connections into the connection / miss vectors: A & A, A & B, B & B, ...");
 }
 
 /// All of libtma's functions.

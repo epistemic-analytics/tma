@@ -12,7 +12,8 @@ accumulate(
   ordered = FALSE,
   binary = TRUE,
   weight_by = NULL,
-  misses = TRUE
+  misses = TRUE,
+  self_connections = FALSE
 )
 }
 \arguments{
@@ -31,6 +32,8 @@ accumulate(
 \item{weight_by}{Weight model applied to each line's connection counts before they are summed into the unit network (= rENA's `weight.by`): `"binary"` (unordered: each positive count becomes 1; ordered: raw directed counts), `"product"` (the raw, non-binarized counts), `"sqrt"`, or `"log1p"` (alias `"log"`). For unordered networks the weight is applied after each line is folded to the upper triangle; for ordered networks, to each directed cell. Defaults to `"binary"` when `binary = TRUE`, otherwise `"product"`. `model$row.connection.counts` always holds the raw, unweighted line counts.}
 
 \item{misses}{Logical; if TRUE, also accumulate missed co-occurrences: for each response line, the (window-weighted) ground count of code i when code j is absent from the response, with no response self-term. Misses follow the connection counts through the same steps: ordered models keep the directed layout (ground i -> response j); unordered models fold each line to the upper triangle (i & j = i -> j + j -> i, self-misses dropped), and `weight_by` is applied per line. Defaults to TRUE; set FALSE to skip them (less memory for many codes or long data).}
+
+\item{self_connections}{Logical, default FALSE. Unordered networks only: also include each code's self-connection (ground i x response i, weighted per line like the other columns) as a column of `connection.counts` (and of `miss.counts`, the self-misses), so the model's line weights, rotation and nodes include them. Columns then run A & A, A & B, B & B, A & C, ... (the upper triangle with the diagonal; see the adjacency key). Ordered networks always include the diagonal, so it has no effect there. `self.connection.counts` is kept separately either way.}
 }
 \value{
 The input `context_model` with additional fields:

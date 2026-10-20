@@ -146,8 +146,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // finalize_row_connections
-arma::mat finalize_row_connections(arma::mat row_conn, int n_codes, bool ordered, SEXP weight);
-RcppExport SEXP _tma_finalize_row_connections(SEXP row_connSEXP, SEXP n_codesSEXP, SEXP orderedSEXP, SEXP weightSEXP) {
+arma::mat finalize_row_connections(arma::mat row_conn, int n_codes, bool ordered, SEXP weight, bool diagonal);
+RcppExport SEXP _tma_finalize_row_connections(SEXP row_connSEXP, SEXP n_codesSEXP, SEXP orderedSEXP, SEXP weightSEXP, SEXP diagonalSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -155,13 +155,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type n_codes(n_codesSEXP);
     Rcpp::traits::input_parameter< bool >::type ordered(orderedSEXP);
     Rcpp::traits::input_parameter< SEXP >::type weight(weightSEXP);
-    rcpp_result_gen = Rcpp::wrap(finalize_row_connections(row_conn, n_codes, ordered, weight));
+    Rcpp::traits::input_parameter< bool >::type diagonal(diagonalSEXP);
+    rcpp_result_gen = Rcpp::wrap(finalize_row_connections(row_conn, n_codes, ordered, weight, diagonal));
     return rcpp_result_gen;
 END_RCPP
 }
 // aggregate_row_connections
-NumericVector aggregate_row_connections(arma::mat row_conn, int n_codes, bool ordered, SEXP weight);
-RcppExport SEXP _tma_aggregate_row_connections(SEXP row_connSEXP, SEXP n_codesSEXP, SEXP orderedSEXP, SEXP weightSEXP) {
+NumericVector aggregate_row_connections(arma::mat row_conn, int n_codes, bool ordered, SEXP weight, bool diagonal);
+RcppExport SEXP _tma_aggregate_row_connections(SEXP row_connSEXP, SEXP n_codesSEXP, SEXP orderedSEXP, SEXP weightSEXP, SEXP diagonalSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -169,7 +170,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type n_codes(n_codesSEXP);
     Rcpp::traits::input_parameter< bool >::type ordered(orderedSEXP);
     Rcpp::traits::input_parameter< SEXP >::type weight(weightSEXP);
-    rcpp_result_gen = Rcpp::wrap(aggregate_row_connections(row_conn, n_codes, ordered, weight));
+    Rcpp::traits::input_parameter< bool >::type diagonal(diagonalSEXP);
+    rcpp_result_gen = Rcpp::wrap(aggregate_row_connections(row_conn, n_codes, ordered, weight, diagonal));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -215,8 +217,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // accumulate_unit_networks
-List accumulate_unit_networks(arma::vec tensor, std::vector<int> dims, std::vector<int> dims_sender, std::vector<int> dims_receiver, std::vector<int> dims_mode, arma::imat context_lookup, std::vector<int> unit_rows, arma::mat codes, arma::vec times, bool ordered, SEXP weight, bool misses);
-RcppExport SEXP _tma_accumulate_unit_networks(SEXP tensorSEXP, SEXP dimsSEXP, SEXP dims_senderSEXP, SEXP dims_receiverSEXP, SEXP dims_modeSEXP, SEXP context_lookupSEXP, SEXP unit_rowsSEXP, SEXP codesSEXP, SEXP timesSEXP, SEXP orderedSEXP, SEXP weightSEXP, SEXP missesSEXP) {
+List accumulate_unit_networks(arma::vec tensor, std::vector<int> dims, std::vector<int> dims_sender, std::vector<int> dims_receiver, std::vector<int> dims_mode, arma::imat context_lookup, std::vector<int> unit_rows, arma::mat codes, arma::vec times, bool ordered, SEXP weight, bool misses, bool diagonal);
+RcppExport SEXP _tma_accumulate_unit_networks(SEXP tensorSEXP, SEXP dimsSEXP, SEXP dims_senderSEXP, SEXP dims_receiverSEXP, SEXP dims_modeSEXP, SEXP context_lookupSEXP, SEXP unit_rowsSEXP, SEXP codesSEXP, SEXP timesSEXP, SEXP orderedSEXP, SEXP weightSEXP, SEXP missesSEXP, SEXP diagonalSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -232,7 +234,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< bool >::type ordered(orderedSEXP);
     Rcpp::traits::input_parameter< SEXP >::type weight(weightSEXP);
     Rcpp::traits::input_parameter< bool >::type misses(missesSEXP);
-    rcpp_result_gen = Rcpp::wrap(accumulate_unit_networks(tensor, dims, dims_sender, dims_receiver, dims_mode, context_lookup, unit_rows, codes, times, ordered, weight, misses));
+    Rcpp::traits::input_parameter< bool >::type diagonal(diagonalSEXP);
+    rcpp_result_gen = Rcpp::wrap(accumulate_unit_networks(tensor, dims, dims_sender, dims_receiver, dims_mode, context_lookup, unit_rows, codes, times, ordered, weight, misses, diagonal));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -247,12 +250,12 @@ static const R_CallMethodDef CallEntries[] = {
     {"_tma_accumulate_unit_with_rows", (DL_FUNC) &_tma_accumulate_unit_with_rows, 4},
     {"_tma_apply_tensor", (DL_FUNC) &_tma_apply_tensor, 11},
     {"_tma_apply_tensor_members", (DL_FUNC) &_tma_apply_tensor_members, 10},
-    {"_tma_finalize_row_connections", (DL_FUNC) &_tma_finalize_row_connections, 4},
-    {"_tma_aggregate_row_connections", (DL_FUNC) &_tma_aggregate_row_connections, 4},
+    {"_tma_finalize_row_connections", (DL_FUNC) &_tma_finalize_row_connections, 5},
+    {"_tma_aggregate_row_connections", (DL_FUNC) &_tma_aggregate_row_connections, 5},
     {"_tma_finalize_self_connections", (DL_FUNC) &_tma_finalize_self_connections, 4},
     {"_tma_aggregate_self_connections", (DL_FUNC) &_tma_aggregate_self_connections, 4},
     {"_tma_weight_rows", (DL_FUNC) &_tma_weight_rows, 3},
-    {"_tma_accumulate_unit_networks", (DL_FUNC) &_tma_accumulate_unit_networks, 12},
+    {"_tma_accumulate_unit_networks", (DL_FUNC) &_tma_accumulate_unit_networks, 13},
     {NULL, NULL, 0}
 };
 

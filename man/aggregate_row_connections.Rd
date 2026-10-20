@@ -4,7 +4,13 @@
 \alias{aggregate_row_connections}
 \title{Aggregate per-response-row tensor connections into a unit vector}
 \usage{
-aggregate_row_connections(row_conn, n_codes, ordered = FALSE, weight = NULL)
+aggregate_row_connections(
+  row_conn,
+  n_codes,
+  ordered = FALSE,
+  weight = NULL,
+  diagonal = FALSE
+)
 }
 \arguments{
 \item{row_conn}{Numeric matrix (n_response_rows x n_codes^2) of per-row
@@ -18,6 +24,9 @@ directed counts, i.e. \code{apply_tensor()$row_connection_counts}}
 \code{"sqrt"}, \code{"log1p"}), or TRUE/FALSE for the legacy binary flag
 (TRUE = \code{"binary"}, FALSE = \code{"product"}). NULL (default) =
 \code{"binary"}.}
+
+\item{diagonal}{Unordered only: keep self-connections in the folded rows,
+as columns A & A, A & B, B & B, ... (ordered rows always carry them)}
 }
 \value{
 Numeric vector of length n_codes^2 (ordered) or choose(n_codes, 2)

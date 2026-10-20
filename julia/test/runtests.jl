@@ -97,6 +97,20 @@ end
           [4.73205080756888, 4.86370330515627, 4.73205080756888]
 end
 
+@testset "accumulate_unit_networks diagonal" begin
+    codes = Float64[2 0 1; 1 3 0; 0 1 2]
+    args  = (codes, [1.0, 3.0], Int32[2], Int32[], Int32[], Int32[],
+             zeros(Int32, 3, 0), Int32[0, 1, 2], [0.0, 1.0, 2.0])
+    d = accumulate_unit_networks(args...; weight = "product", diagonal = true)
+    @test d.connection_counts == [2.0, 12.0, 3.0, 9.0, 12.0, 2.0]   # A & A, A & B, B & B, A & C, B & C, C & C
+    @test size(d.row_connection_counts) == (3, 6)
+    @test d.connection_counts[[1, 3, 6]] == d.self_connection_counts
+    @test accumulate_unit_networks(args...; weight = "product").connection_counts == [12.0, 9.0, 12.0]
+    rc = Float64[1 2 3 4; 5 0 0 2]
+    @test aggregate_row_connections(rc, 2; weight = "product", diagonal = true) == [6.0, 5.0, 6.0]
+    @test size(finalize_row_connections(rc, 2; weight = "product", diagonal = true)) == (2, 3)
+end
+
 @testset "accumulate_unit_networks" begin
     codes = Float64[2 0 1; 1 3 0; 0 1 2]
     args  = (codes, [1.0, 3.0], Int32[2], Int32[], Int32[], Int32[],

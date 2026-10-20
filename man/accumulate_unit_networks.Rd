@@ -16,7 +16,8 @@ accumulate_unit_networks(
   times,
   ordered = FALSE,
   weight = NULL,
-  misses = TRUE
+  misses = TRUE,
+  diagonal = FALSE
 )
 }
 \arguments{
@@ -46,6 +47,10 @@ NULL (default) = \code{"binary"}.}
 
 \item{misses}{TRUE (default) = also accumulate missed co-occurrences and
 self-misses.}
+
+\item{diagonal}{Unordered only: self-connections (and self-misses) are also
+columns of the connection (and miss) vectors, in the A & A, A & B,
+B & B, ... layout. The separate self vectors are returned either way.}
 }
 \value{
 List with \code{connection_counts} (n_codes^2 ordered, or

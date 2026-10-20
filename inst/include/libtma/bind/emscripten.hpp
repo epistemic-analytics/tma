@@ -269,27 +269,40 @@ inline qe::WeightModel weight_model_from_val(const val& weight) {
 //   row_conn — Float64Array, row-major (rows × cols), cols == n_codes²
 //              (TensorNetworks.row_connection_counts from accumulate_tensor_unit)
 //   weight   — weight-model name, or boolean binary flag (legacy)
-// → Float64Array — unit vector, length n_codes² (ordered) or choose_two (unordered)
+//   diagonal — optional trailing boolean, unordered only: keep self-connections
+//              (A & A, A & B, B & B, ...)
+// → Float64Array — unit vector, length n_codes² (ordered), choose_two
+//   (unordered) or n_codes(n_codes+1)/2 (unordered, diagonal)
+inline val aggregate_row_connections_d(
+        const val& row_conn_val, int rows, int cols,
+        int n_codes, bool ordered, const val& weight, bool diagonal) {
+    arma::mat row_conn = js_to_mat(row_conn_val, rows, cols);
+    arma::rowvec out = qe::aggregate_row_connections(
+        row_conn, n_codes, ordered, weight_model_from_val(weight), diagonal);
+    std::vector<double> v(out.memptr(), out.memptr() + out.n_elem);
+    return val::array(v.begin(), v.end());
+}
 inline val aggregate_row_connections(
         const val& row_conn_val, int rows, int cols,
         int n_codes, bool ordered, const val& weight) {
-    arma::mat row_conn = js_to_mat(row_conn_val, rows, cols);
-    arma::rowvec out = qe::aggregate_row_connections(
-        row_conn, n_codes, ordered, weight_model_from_val(weight));
-    std::vector<double> v(out.memptr(), out.memptr() + out.n_elem);
-    return val::array(v.begin(), v.end());
+    return aggregate_row_connections_d(row_conn_val, rows, cols, n_codes, ordered, weight, false);
 }
 
 // finalize_row_connections(row_conn, rows, cols, n_codes, ordered, weight)
 //   Per-row fold + weight model, before the unit sum.
 // → { data: Float64Array, rows, cols } — row-major, cols = n_codes² (ordered)
-//   or choose_two (unordered)
+//   or choose_two (unordered); optional trailing diagonal as above
+inline val finalize_row_connections_d(
+        const val& row_conn_val, int rows, int cols,
+        int n_codes, bool ordered, const val& weight, bool diagonal) {
+    arma::mat row_conn = js_to_mat(row_conn_val, rows, cols);
+    return mat_to_js(qe::finalize_row_connections(
+        row_conn, n_codes, ordered, weight_model_from_val(weight), diagonal));
+}
 inline val finalize_row_connections(
         const val& row_conn_val, int rows, int cols,
         int n_codes, bool ordered, const val& weight) {
-    arma::mat row_conn = js_to_mat(row_conn_val, rows, cols);
-    return mat_to_js(qe::finalize_row_connections(
-        row_conn, n_codes, ordered, weight_model_from_val(weight)));
+    return finalize_row_connections_d(row_conn_val, rows, cols, n_codes, ordered, weight, false);
 }
 
 // accumulate_unit_networks(tensor, dims, dims_sender, dims_receiver, dims_mode,
@@ -300,8 +313,9 @@ inline val finalize_row_connections(
 //     self_miss_counts, row_self_miss_counts] }
 //   One unit's finished networks (fold, per-line weight model, unit sum, self
 //   diagonal) in one call; arguments as accumulate_tensor_unit plus weight
-//   (model name or legacy boolean) and misses.
-inline val accumulate_unit_networks(
+//   (model name or legacy boolean), misses and an optional trailing diagonal
+//   (unordered only: self-connections also in the connection / miss vectors).
+inline val accumulate_unit_networks_d(
         const val& tensor_val,
         const val& dims_val,
         const val& dims_sender_val,
@@ -311,7 +325,7 @@ inline val accumulate_unit_networks(
         const val& unit_rows_val,
         const val& codes_val, int rows, int cols,
         const val& times_val,
-        bool ordered, const val& weight, bool misses) {
+        bool ordered, const val& weight, bool misses, bool diagonal) {
     std::vector<double> tv = vecFromJSArray<double>(tensor_val);
     arma::vec tensor(tv.data(), tv.size());
     std::vector<int> dims          = vecFromJSArray<int>(dims_val);
@@ -326,7 +340,20 @@ inline val accumulate_unit_networks(
     return to_js(qe::accumulate_unit_networks(
         tensor, dims, dims_sender, dims_receiver, dims_mode,
         context_lookup, unit_rows, codes_mat, times_vec,
-        ordered, weight_model_from_val(weight), misses));
+        ordered, weight_model_from_val(weight), misses, diagonal));
+}
+inline val accumulate_unit_networks(
+        const val& tensor_val, const val& dims_val,
+        const val& dims_sender_val, const val& dims_receiver_val, const val& dims_mode_val,
+        const val& context_lookup_val, int cl_rows, int cl_cols,
+        const val& unit_rows_val,
+        const val& codes_val, int rows, int cols,
+        const val& times_val,
+        bool ordered, const val& weight, bool misses) {
+    return accumulate_unit_networks_d(tensor_val, dims_val, dims_sender_val, dims_receiver_val,
+                                      dims_mode_val, context_lookup_val, cl_rows, cl_cols,
+                                      unit_rows_val, codes_val, rows, cols, times_val,
+                                      ordered, weight, misses, false);
 }
 
 // weight_rows(rows_data, rows, cols, ordered, weight)
@@ -376,11 +403,21 @@ inline void register_accumulate_unit() { ::emscripten::function("accumulate_unit
 inline void register_accumulate_unit_with_rows() { ::emscripten::function("accumulate_unit_with_rows", &tma_fn::accumulate_unit_with_rows); }
 inline void register_accumulate_tensor_unit() { ::emscripten::function("accumulate_tensor_unit", &tma_fn::accumulate_tensor_unit); }
 inline void register_accumulate_tensor_unit_misses() { ::emscripten::function("accumulate_tensor_unit_misses", &tma_fn::accumulate_tensor_unit_misses); }
-inline void register_aggregate_row_connections() { ::emscripten::function("aggregate_row_connections", &tma_fn::aggregate_row_connections); }
-inline void register_finalize_row_connections() { ::emscripten::function("finalize_row_connections", &tma_fn::finalize_row_connections); }
+// Overloads by argument count: the trailing `diagonal` is optional.
+inline void register_aggregate_row_connections() {
+    ::emscripten::function("aggregate_row_connections", &tma_fn::aggregate_row_connections);
+    ::emscripten::function("aggregate_row_connections", &tma_fn::aggregate_row_connections_d);
+}
+inline void register_finalize_row_connections() {
+    ::emscripten::function("finalize_row_connections", &tma_fn::finalize_row_connections);
+    ::emscripten::function("finalize_row_connections", &tma_fn::finalize_row_connections_d);
+}
 inline void register_finalize_self_connections() { ::emscripten::function("finalize_self_connections", &tma_fn::finalize_self_connections); }
 inline void register_weight_rows() { ::emscripten::function("weight_rows", &tma_fn::weight_rows); }
-inline void register_accumulate_unit_networks() { ::emscripten::function("accumulate_unit_networks", &tma_fn::accumulate_unit_networks); }
+inline void register_accumulate_unit_networks() {
+    ::emscripten::function("accumulate_unit_networks", &tma_fn::accumulate_unit_networks);
+    ::emscripten::function("accumulate_unit_networks", &tma_fn::accumulate_unit_networks_d);
+}
 inline void register_aggregate_self_connections() { ::emscripten::function("aggregate_self_connections", &tma_fn::aggregate_self_connections); }
 
 /// All of libtma's functions.

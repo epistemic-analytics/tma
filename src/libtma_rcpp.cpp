@@ -284,15 +284,19 @@ static qe::WeightModel weight_model_from_sexp(SEXP weight) {
 //'   \code{"sqrt"}, \code{"log1p"}), or TRUE/FALSE for the legacy binary flag
 //'   (TRUE = \code{"binary"}, FALSE = \code{"product"}). NULL (default) =
 //'   \code{"binary"}.
-//' @return Numeric matrix (n_response_rows x n_codes^2, or x choose(n_codes, 2))
+//' @param diagonal Unordered only: keep self-connections in the folded rows,
+//'   as columns A & A, A & B, B & B, ... (ordered rows always carry them)
+//' @return Numeric matrix (n_response_rows x n_codes^2, or x choose(n_codes, 2),
+//'   or x n_codes(n_codes + 1)/2 with \code{diagonal})
 //' @export
 // [[Rcpp::export]]
 arma::mat finalize_row_connections(arma::mat row_conn,
                                    int  n_codes,
                                    bool ordered = false,
-                                   SEXP weight  = R_NilValue) {
+                                   SEXP weight  = R_NilValue,
+                                   bool diagonal = false) {
     return qe::finalize_row_connections(row_conn, n_codes, ordered,
-                                        weight_model_from_sexp(weight));
+                                        weight_model_from_sexp(weight), diagonal);
 }
 
 //' Aggregate per-response-row tensor connections into a unit vector
@@ -308,9 +312,10 @@ arma::mat finalize_row_connections(arma::mat row_conn,
 NumericVector aggregate_row_connections(arma::mat row_conn,
                                         int  n_codes,
                                         bool ordered = false,
-                                        SEXP weight  = R_NilValue) {
+                                        SEXP weight  = R_NilValue,
+                                        bool diagonal = false) {
     arma::rowvec out = qe::aggregate_row_connections(row_conn, n_codes, ordered,
-                                                     weight_model_from_sexp(weight));
+                                                     weight_model_from_sexp(weight), diagonal);
     return NumericVector(out.begin(), out.end());
 }
 
@@ -381,6 +386,9 @@ arma::mat weight_rows(arma::mat rows, bool ordered = false, SEXP weight = R_NilV
 //'   NULL (default) = \code{"binary"}.
 //' @param misses  TRUE (default) = also accumulate missed co-occurrences and
 //'   self-misses.
+//' @param diagonal Unordered only: self-connections (and self-misses) are also
+//'   columns of the connection (and miss) vectors, in the A & A, A & B,
+//'   B & B, ... layout. The separate self vectors are returned either way.
 //' @return List with \code{connection_counts} (n_codes^2 ordered, or
 //'   choose(n_codes, 2)), \code{row_connection_counts} (raw per line, folded
 //'   when unordered), \code{self_connection_counts} (n_codes),
@@ -400,11 +408,12 @@ List accumulate_unit_networks(arma::vec tensor,
                               arma::vec times,
                               bool ordered = false,
                               SEXP weight  = R_NilValue,
-                              bool misses  = true) {
+                              bool misses  = true,
+                              bool diagonal = false) {
     qe::UnitAccumulation r = qe::accumulate_unit_networks(
         tensor, dims, dims_sender, dims_receiver, dims_mode,
         context_lookup, unit_rows, codes, times,
-        ordered, weight_model_from_sexp(weight), misses);
+        ordered, weight_model_from_sexp(weight), misses, diagonal);
     List out = List::create(
         _("connection_counts")          = NumericVector(r.connection_counts.begin(), r.connection_counts.end()),
         _("row_connection_counts")      = r.row_connection_counts,
