@@ -93,6 +93,7 @@ def contexts(
     *,
     hoo_rules: Optional[list[Callable]] = None,
     include_self: bool = True,
+    split_by: Optional[Union[str, list[str]]] = None,
 ) -> "ContextModel":
     """Build a context model defining each unit's visible rows.
 
@@ -123,6 +124,14 @@ def contexts(
     include_self : bool
         If True (default), a unit's own rows are always included in its
         context regardless of rules.
+    split_by : str | list[str] | None
+        Column(s) splitting each unit's context into separate contexts
+        (= R tma's ``contexts(split_rules = <columns>)``): one per distinct
+        value, in order of first appearance, each accumulated on its own
+        (windows do not cross a split) and summed per unit. rENA splits by the
+        conversation (its ``horizon``) so a unit in several conversations
+        never connects lines across them. None (default): one context per
+        unit.
 
     Returns
     -------
@@ -212,12 +221,33 @@ def contexts(
 
         contexts_map[unit_label] = sorted(visible)
 
+    # Split each context by split_by's values (= R's split(by =)): groups in
+    # order of first appearance, rows in context order.
+    split_cols = None if split_by is None else (
+        [split_by] if isinstance(split_by, str) else list(split_by)
+    )
+    if split_cols is not None:
+        missing = [c for c in split_cols if c not in df.columns]
+        if missing:
+            raise KeyError(f"split_by column(s) not found in data: {', '.join(missing)}")
+    splits_map: dict[str, list[list[int]]] = {}
+    for unit_label, rows in contexts_map.items():
+        if split_cols is None:
+            splits_map[unit_label] = [rows]
+            continue
+        groups: dict[tuple, list[int]] = {}
+        keys = df.loc[rows, split_cols].astype(str).itertuples(index=False, name=None)
+        for row, key in zip(rows, keys):
+            groups.setdefault(key, []).append(row)
+        splits_map[unit_label] = list(groups.values())
+
     return ContextModel(
         data=df,
         unit_labels=unit_labels,
         unit_cols=units_cols,
         contexts_map=contexts_map,
         unit_own_rows=unit_own_rows,
+        splits_map=splits_map,
     )
 
 
@@ -242,6 +272,10 @@ class ContextModel:
     unit_own_rows : dict[str, list[int]]
         ``unit_label`` → sorted list of row indices *belonging* to that
         unit (rows where it is the responder).
+    splits_map : dict[str, list[list[int]]]
+        ``unit_label`` → the unit's context split by ``split_by`` (= R's
+        ``model$contexts[[unit]]`` list of split contexts); one list, the
+        whole context, when not split.  Each is accumulated on its own.
     """
 
     def __init__(
@@ -251,12 +285,16 @@ class ContextModel:
         unit_cols: list[str],
         contexts_map: dict[str, list[int]],
         unit_own_rows: dict[str, list[int]],
+        splits_map: Optional[dict[str, list[list[int]]]] = None,
     ) -> None:
         self.data          = data
         self.unit_labels   = unit_labels
         self.unit_cols     = unit_cols
         self.contexts_map  = contexts_map
         self.unit_own_rows = unit_own_rows
+        self.splits_map    = splits_map if splits_map is not None else {
+            u: [rows] for u, rows in contexts_map.items()
+        }
 
     def __repr__(self) -> str:
         return (

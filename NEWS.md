@@ -1,5 +1,18 @@
 # tma (development version)
 
+* qe-tma's `accumulate()` matches R's on data where conversations interleave
+  or a unit is in several conversations:
+  - `contexts()` / `accumulate()` gain `split_by` (= R's `contexts(split_rules
+    = <columns>)`): each unit's context is split by those columns, each split
+    accumulated on its own (windows never cross one) and summed per unit.
+    rENA's accumulation splits by the conversation; with
+    `split_by=<conversation>`, qe-tma equals the stanza window exactly.
+  - Without `time_col`, a row's time is its position within its context
+    (= R's context row id), not its row number in the whole data, so windows
+    count the lines a unit can see. Results were wrong whenever other
+    conversations' rows came in between.
+  Tests: R tma reference (`python/tests/fixtures/contexts-split.R`), unsplit
+  and split, binary / product / ordered.
 * qe-tma (Python) accumulates only, as R's tma does; modeling is qe-ena's.
   Breaking: `TMA().fit()` is replaced by `tma.accumulate()`, which returns a
   `TMAAccumulation` with R's fields -- `connection_counts_`,

@@ -44,7 +44,8 @@ from tma import accumulate, context_tensor
 
 # rules / contexts / context_tensor / accumulate mirror tma's R functions.
 accum = accumulate(data, units="speaker", conversations="group", codes=CODES,
-                   tensor=context_tensor(data, default_window=4), ordered=True)
+                   tensor=context_tensor(data, default_window=4), ordered=True,
+                   split_by="group")   # windows stay within a conversation, as rENA
 accum.connection_counts_        # units x connections (= R connection.counts)
 
 # Model it with qe-ena (pip install qe-ena):

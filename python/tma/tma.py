@@ -93,6 +93,7 @@ def accumulate(
     weight_by: Optional[str] = None,
     misses: bool = True,
     self_connections: bool = False,
+    split_by: Optional[Union[str, List[str]]] = None,
 ) -> TMAAccumulation:
     """Accumulate each unit's network (= R tma's ``accumulate()``).
 
@@ -109,7 +110,9 @@ def accumulate(
         Weight/window tensor. If None, builds a default tensor with
         window=1, weight=1 (equivalent to a single-step window).
     time_col : str | None
-        Timestamp column. If None, uses row order as integer timestamps.
+        Timestamp column. If None, each row's position within its context
+        (1, 2, ...; = R tma's context row id), so windows count the lines a
+        unit can see, not rows of the whole data.
     ordered : bool
         True = directed/ONA adjacency; False = undirected/ENA.
     binary : bool
@@ -135,6 +138,12 @@ def accumulate(
         ...), so a model built on the counts includes them. Ordered networks
         always carry the diagonal. ``self_connection_counts_`` is kept
         either way. Default False.
+    split_by : str | list[str] | None
+        Column(s) splitting each unit's context (= R tma's
+        ``contexts(split_rules = <columns>)``): each split is accumulated on
+        its own -- windows never cross one -- and summed per unit. Pass the
+        conversation column(s) for rENA's accumulation (which splits by its
+        horizon). Default None: one context per unit.
 
     Returns
     -------
@@ -151,7 +160,7 @@ def accumulate(
     n_connections = n_codes * n_codes if ordered else adjacency.n_connections(n_codes, diagonal)
 
     # 1. Build contexts
-    ctx_model = make_contexts(data, units, conversations)
+    ctx_model = make_contexts(data, units, conversations, split_by=split_by)
     df = ctx_model.data
     n_rows = len(df)
 
@@ -167,11 +176,9 @@ def accumulate(
             default_weight=1.0,
         )
 
-    # 3. Build per-row integer timestamp vector
-    if time_col is not None:
-        times = df[time_col].astype(float).values
-    else:
-        times = np.arange(n_rows, dtype=np.float64)
+    # 3. Timestamps from time_col; without one, each context's own row ids
+    # (below), as R's CONTEXT_COL_ID = seq.int(nrow(context)).
+    times = df[time_col].astype(float).values if time_col is not None else None
 
     # 4. Accumulate per unit
     unit_labels = ctx_model.unit_labels
@@ -206,34 +213,34 @@ def accumulate(
         # Default tensor path: empty context_lookup (IS_DEFAULT branch in C++)
         context_lookup = np.zeros((n_rows, 0), dtype=np.int32)
 
-    for unit_idx, unit_label in enumerate(unit_labels):
-        ctx_rows = ctx_model.contexts_map[unit_label]
-        own_rows = ctx_model.unit_own_rows[unit_label]
+    def contexts_of(unit_label):
+        """(own rows, visible rows) per split context of the unit: its rows
+        up to and including the unit's last row in it (= R's unit_to_last)."""
+        own = set(ctx_model.unit_own_rows[unit_label])
+        for ctx_rows in ctx_model.splits_map[unit_label]:
+            own_here = [r for r in ctx_rows if r in own]
+            if not own_here:
+                continue
+            last = ctx_rows.index(own_here[-1])
+            yield own_here, ctx_rows[:last + 1]
 
-        if not own_rows:
-            continue
-
-        # context: all rows up to and including last unit row, within ctx_rows
-        last_unit_row = max(own_rows)
-        visible_rows = [r for r in ctx_rows if r <= last_unit_row]
-
-        # Remap own_rows to indices within visible_rows
+    unit_contexts = ((unit_idx, own_visible, visible_rows)
+                     for unit_idx, unit_label in enumerate(unit_labels)
+                     for own_visible, visible_rows in contexts_of(unit_label))
+    for unit_idx, own_visible, visible_rows in unit_contexts:
         vis_idx = {r: i for i, r in enumerate(visible_rows)}
-        own_visible = [r for r in own_rows if r in vis_idx]
         unit_rows_local = [vis_idx[r] for r in own_visible]
-
-        if not unit_rows_local:
-            continue
 
         # copy=True: under pandas copy-on-write a single-row selection is a
         # read-only view, which the extension's (writable) ndarray rejects.
         codes_mat = np.ascontiguousarray(
             df.iloc[visible_rows][codes].to_numpy(dtype=np.float64, copy=True)
         )
-        times_sub = np.ascontiguousarray(times[visible_rows])
+        times_sub = (np.ascontiguousarray(times[visible_rows]) if times is not None
+                     else np.arange(1, len(visible_rows) + 1, dtype=np.float64))
         ctx_lookup_sub = np.ascontiguousarray(context_lookup[visible_rows])
 
-        # One libtma call per unit, as tma's R accumulate(): fold
+        # One libtma call per context, as tma's R accumulate(): fold
         # (unordered), per-line weight model, unit sum and the
         # self-connection diagonal, for hits and misses.
         result = libtma.accumulate_unit_networks(
@@ -243,13 +250,14 @@ def accumulate(
             codes_mat, times_sub,
             ordered, weight_by, misses, diagonal,
         )
-        connection_counts[unit_idx] = result.connection_counts
-        self_counts[unit_idx] = result.self_connection_counts
+        # Unit vectors are additive over lines: sum the split contexts.
+        connection_counts[unit_idx] += result.connection_counts
+        self_counts[unit_idx] += result.self_connection_counts
         row_connection_counts[own_visible] = result.row_connection_counts
         row_self_counts[own_visible] = result.row_self_connection_counts
         if misses:
-            miss_counts[unit_idx] = result.miss_counts
-            self_miss_counts[unit_idx] = result.self_miss_counts
+            miss_counts[unit_idx] += result.miss_counts
+            self_miss_counts[unit_idx] += result.self_miss_counts
             row_miss_counts[own_visible] = result.row_miss_counts
             row_self_miss_counts[own_visible] = result.row_self_miss_counts
 
