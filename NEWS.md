@@ -1,6 +1,7 @@
 # tma (development version)
 
-* TMA.jl gets the high-level accumulation of R tma and qe-tma:
+* TMA.jl 0.1.6 (released on its own, tag `julia/v0.1.6`) gets the high-level
+  accumulation of R tma and qe-tma:
   `TMA.accumulate(data, units, conversations, codes; tensor, time_col,
   ordered, binary, weight_by, misses, self_connections, split_by)` returns a
   `TMAAccumulation` (connection / self / miss counts, the per-line tables,
