@@ -1,13 +1,3 @@
-#' Sample Data
-#'
-#' A dataset containing threads
-"test_reddit"
-
-#' Sample Data
-#'
-#' A dataset containing threads
-"test_reddit2"
-
 #' Coded Rescushell Chat Data
 #'
 #' A dataset containing sample chat data from the Rescushell Virtual

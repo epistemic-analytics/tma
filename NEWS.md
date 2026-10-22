@@ -1,5 +1,11 @@
 # tma (development version)
 
+* Data: the email addresses in `RS.data` (2 messages) and `RS.data.multimodal`
+  (4) are replaced by `[EMAIL]`, as in rENA's `RS.data` (whose `text` column
+  `RS.data`'s now matches); nothing else in either dataset changes. The
+  `test_reddit` and `test_reddit2` datasets, which held real Reddit usernames
+  and posts and were not used by any test or vignette, are removed.
+
 # tma 0.3.10
 
 * qe-tma's `accumulate()` matches R's on data where conversations interleave
