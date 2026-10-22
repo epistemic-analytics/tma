@@ -40,3 +40,4 @@ julia/Manifest.toml
 # libtma Conan test package build output
 conan/conan-test/build/
 conan/conan-test/CMakeUserPresets.json
+julia/dev/*_jll/

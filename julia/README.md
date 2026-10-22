@@ -22,16 +22,23 @@ Pkg.Registry.add(RegistrySpec(url = "https://gitlab.com/epistemic-analytics/qe-p
 Pkg.add("TMA")
 ```
 
-Its C++ library (`lib/libtma_julia`) is built with CMake; it needs a C++17
-compiler, CMake, [Armadillo](https://arma.sourceforge.net/) and CxxWrap 0.15
-(Julia 1.11; CxxWrap 0.15 has no Julia 1.13 binary).
+Its C++ library comes prebuilt from **TMA_jll** (built by cranqe with
+BinaryBuilder for Linux x86_64 / aarch64 and Windows x86_64; Julia 1.11 and
+CxxWrap 0.15), so `Pkg.add("TMA")` needs no compiler there. Elsewhere (macOS
+for now) TMA.jl loads a local CMake build from `julia/lib/libtma_julia`, which
+needs a C++17 compiler, CMake and [Armadillo](https://arma.sourceforge.net/).
 
-From a tma checkout, vendor the headers first:
+### Development
+
+TMA.jl pins `TMA_jll` to its own version, which is registered only at
+release, so a checkout develops a local stand-in for it (`dev/local_jll.jl`,
+once; `dev/TMA_jll/` is git-ignored) that points at the CMake build in `lib/`.
+Run it before CMake: it also installs CxxWrap, which CMake asks for.
 
 ```sh
 sh scripts/sync-headers.sh            # repo root: libtma + libqe (from Conan) → julia/include
 cd julia
-julia --project=. -e 'using Pkg; Pkg.instantiate()'
+julia --project=. dev/local_jll.jl
 cmake -B build -DCMAKE_BUILD_TYPE=Release .
 cmake --build build && cmake --install build      # → julia/lib/libtma_julia
 julia --project=. -e 'using Pkg; Pkg.test()'

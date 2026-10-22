@@ -47,16 +47,22 @@ export
 # The library built by CMake is installed into julia/lib/ (one level up from
 # this file's julia/src/ directory).  cranqe runs the build step before
 # invoking Pkg.test(); for local testing build it manually first (see above).
+# From TMA_jll (built by cranqe with BinaryBuilder, installed by Pkg) when it
+# has a build for this platform; otherwise (macOS for now, or another Julia
+# version) from a local CMake build in julia/lib/ (README: Development).
+using TMA_jll
+
 const _lib_dir  = joinpath(@__DIR__, "..", "lib")
 const _lib_name = "libtma_julia"
 
 function _lib_path()
+    TMA_jll.is_available() && return TMA_jll.libtma_julia
     for ext in ("", ".so", ".dylib", ".dll")
         p = joinpath(_lib_dir, _lib_name * ext)
         isfile(p) && return p
     end
-    error("libtma_julia shared library not found in $(_lib_dir). " *
-          "Build it first: cd julia && cmake -B build -DCMAKE_BUILD_TYPE=Release . " *
+    error("TMA_jll has no build for this platform and libtma_julia was not found in " *
+          "$(_lib_dir). Build it: cd julia && cmake -B build -DCMAKE_BUILD_TYPE=Release . " *
           "&& cmake --build build && cmake --install build")
 end
 
