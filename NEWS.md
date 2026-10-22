@@ -1,5 +1,7 @@
 # tma (development version)
 
+# tma 0.3.10
+
 * qe-tma's `accumulate()` matches R's on data where conversations interleave
   or a unit is in several conversations:
   - `contexts()` / `accumulate()` gain `split_by` (= R's `contexts(split_rules
