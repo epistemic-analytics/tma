@@ -12,7 +12,7 @@ qe-ena's, as in R, where rENA models tma's accumulation:
 """
 from __future__ import annotations
 
-from typing import List, Optional, Union
+from typing import Callable, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -84,8 +84,8 @@ def _connection_key(codes: List[str], ordered: bool, diagonal: bool) -> List[Lis
 def accumulate(
     data: pd.DataFrame,
     units: Union[str, List[str]],
-    conversations: Union[str, List[str]],
-    codes: List[str],
+    conversations: Optional[Union[str, List[str]]] = None,
+    codes: Optional[List[str]] = None,
     tensor: Optional[ContextTensor] = None,
     time_col: Optional[str] = None,
     ordered: bool = False,
@@ -94,6 +94,8 @@ def accumulate(
     misses: bool = True,
     self_connections: bool = False,
     split_by: Optional[Union[str, List[str]]] = None,
+    *,
+    hoo_rules: Optional[List[Callable]] = None,
 ) -> TMAAccumulation:
     """Accumulate each unit's network (= R tma's ``accumulate()``).
 
@@ -102,8 +104,11 @@ def accumulate(
     data : pd.DataFrame
     units : str | list[str]
         Column(s) identifying units of analysis.
-    conversations : str | list[str]
-        Column(s) segmenting conversations (context scope).
+    conversations : str | list[str] | None
+        Column(s) segmenting conversations (context scope): a unit sees the
+        rows sharing its values in them. Shorthand for
+        ``hoo_rules=conversation_rules(*conversations)``; ORed with
+        ``hoo_rules`` when both are given.
     codes : list[str]
         Code column names.
     tensor : ContextTensor | None
@@ -144,11 +149,18 @@ def accumulate(
         its own -- windows never cross one -- and summed per unit. Pass the
         conversation column(s) for rENA's accumulation (which splits by its
         horizon). Default None: one context per unit.
+    hoo_rules : list[callable] | None
+        Horizon-of-observation rules (= R tma's ``contexts(hoo_rules =)``),
+        as for :func:`tma.contexts`: ``rule(df, unit) -> bool Series``; a
+        unit sees the rows matching any rule. Give this, ``conversations``,
+        or both.
 
     Returns
     -------
     TMAAccumulation
     """
+    if codes is None:
+        raise ValueError("accumulate() requires codes=")
     if weight_by is None:
         weight_by = "binary" if binary else "product"
     if not isinstance(weight_by, str):
@@ -160,7 +172,8 @@ def accumulate(
     n_connections = n_codes * n_codes if ordered else adjacency.n_connections(n_codes, diagonal)
 
     # 1. Build contexts
-    ctx_model = make_contexts(data, units, conversations, split_by=split_by)
+    ctx_model = make_contexts(data, units, conversations,
+                              hoo_rules=hoo_rules, split_by=split_by)
     df = ctx_model.data
     n_rows = len(df)
 

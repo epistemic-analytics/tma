@@ -13,6 +13,16 @@
   depends on LibQE (>= 0.2.1, for the connection layout, as qe-tma uses
   qe-lib) and Tables.
 
+* qe-tma's `accumulate()` takes `hoo_rules=` (keyword only), as
+  `contexts()` does: horizon-of-observation rules, so a unit's context can
+  be other than its conversation (R tma's `contexts(hoo_rules =)`).
+  `conversations` is now optional; give it, `hoo_rules`, or both (ORed).
+  Equal to R tma on the getting-started vignette, ordered and unordered.
+* qe-tma ships R's `test_mockdata` as `tma.datasets.load_test_mockdata()`.
+* qe-tma has a getting-started walkthrough,
+  `python/docs/getting-started.ipynb`, the Python port of the R vignette.
+  The README quick start now runs as written, on the bundled data.
+
 # tma 0.3.11
 
 0.3.10 (libtma 0.3.10, qe-tma 0.1.8 / 0.1.9, tma-wasm 0.1.4, TMA.jl 0.1.4)

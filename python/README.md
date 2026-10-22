@@ -39,19 +39,28 @@ pytest python/tests --import-mode=importlib   # tests the installed package
 ## Quick start
 
 ```python
-import pandas as pd
 from tma import accumulate, context_tensor
+from tma.datasets import load_test_mockdata
+
+data = load_test_mockdata()     # = R's data("test_mockdata", package = "tma")
 
 # rules / contexts / context_tensor / accumulate mirror tma's R functions.
-accum = accumulate(data, units="speaker", conversations="group", codes=CODES,
+accum = accumulate(data, units="userID", conversations="chatGroup",
+                   codes=["A", "B", "C"],
                    tensor=context_tensor(data, default_window=4), ordered=True,
-                   split_by="group")   # windows stay within a conversation, as rENA
+                   split_by="chatGroup")   # windows stay within a conversation, as rENA
 accum.connection_counts_        # units x connections (= R connection.counts)
 
-# Model it with qe-ena (pip install qe-ena):
+# Model it with qe-ena (pip install qe-ena; 0.1.10 or later):
 from ena import ENA
 model = ENA().fit(accum)
+model.points_
 ```
+
+For a full walkthrough (horizon-of-observation rules, per-modality time
+windows and weights, directed vs. undirected networks), see
+[Getting Started with TMA in Python](https://gitlab.com/epistemic-analytics/qe-packages/tma/-/blob/main/python/docs/getting-started.ipynb),
+the Python port of the R package's getting-started vignette.
 
 The low-level accumulation functions (`apply_tensor_unit`,
 `aggregate_row_connections`, `accumulate_stanza`, ...) are in `tma.libtma`.

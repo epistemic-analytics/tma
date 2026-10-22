@@ -270,3 +270,49 @@ class TestSelfConnectionsInCounts:
         assert self.accum().connection_counts_.shape[1] == 3
         o = self.accum(ordered=True, self_connections=True)
         assert o.self_connections_ is False and o.connection_counts_.shape[1] == 9
+
+
+class TestHooRules:
+    """accumulate(hoo_rules=) = R tma's contexts(hoo_rules =) + accumulate():
+    the getting-started vignette (chats public to the group, resources
+    private to the user), against R tma's values."""
+
+    @staticmethod
+    def vignette(ordered):
+        from tma import rules
+        from tma.datasets import load_test_mockdata
+        df = load_test_mockdata()
+        df = df[df["chatGroup"] == "PAM"]
+        hoo = rules(
+            lambda d, u: (d["modality"] == "chat") & (d["chatGroup"] == u["chatGroup"])
+                         & (d["condition"] == u["condition"]),
+            lambda d, u: (d["modality"] == "resource") & (d["userID"] == u["userID"])
+                         & (d["condition"] == u["condition"]),
+        )
+        t = context_tensor(df, mode_col="modality", default_window=0, default_weight=0)
+        chat, resource = t.mode_levels.index("chat"), t.mode_levels.index("resource")
+        t[chat, 1], t[resource, 1] = 360, 180
+        t[chat, 0], t[resource, 0] = 1, 2
+        return accumulate(df, ["userID", "condition"], codes=["A", "B", "C"],
+                          hoo_rules=hoo, tensor=t, time_col="timeStamp",
+                          ordered=ordered)
+
+    def test_ordered_matches_r(self):
+        a = self.vignette(ordered=True)
+        assert a.unit_labels_ == ["User1::FirstHalf", "User2::FirstHalf", "User3::FirstHalf"]
+        assert a.connection_names_ == ["A & A", "B & A", "C & A", "A & B", "B & B",
+                                       "C & B", "A & C", "B & C", "C & C"]
+        np.testing.assert_allclose(a.connection_counts_, [
+            [0, 0, 0, 0, 0, 0, 2, 0, 0],
+            [0, 0, 0, 2, 0, 2, 1, 2, 0],
+            [1, 2, 1, 0, 0, 0, 1, 2, 0],
+        ])
+
+    def test_unordered_matches_r(self):
+        a = self.vignette(ordered=False)
+        assert a.connection_names_ == ["A & B", "A & C", "B & C"]
+        np.testing.assert_allclose(a.connection_counts_, [[0, 2, 0], [2, 1, 2], [2, 2, 2]])
+
+    def test_requires_conversations_or_rules(self):
+        with pytest.raises(ValueError):
+            accumulate(make_df(), "user", codes=CODES)
