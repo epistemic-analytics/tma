@@ -341,3 +341,34 @@ class TestDiagonalInCounts:
             np.testing.assert_allclose(
                 accumulation.aggregate_row_connections(rc, 3, False, w, True),
                 self.call(False, w, True).connection_counts)
+
+
+# ── unordered = directed sum folded once ─────────────────────────────────────
+# Folding the undirected connection_matrix counted every connection twice.
+
+def _fold(v, n):
+    """Column-major p² vector → upper triangle (0,1), (0,2), (1,2), …"""
+    m = np.asarray(v, dtype=np.float64).reshape(n, n, order="F")
+    m = m + m.T
+    return np.array([m[i, j] for j in range(1, n) for i in range(j)])
+
+
+def test_accumulate_unit_unordered_counts_each_connection_once():
+    codes = np.array([[1, 0, 0], [0, 2, 0]], dtype=np.float64)   # A = 1, then B = 2
+    out = accumulation.accumulate_unit(codes, [1], window_decay, False)
+    np.testing.assert_allclose(out, [2, 0, 0])                  # A & B = 2, not 4
+
+
+def test_accumulate_unit_unordered_is_fold_of_ordered_nonbinary():
+    rng = np.random.default_rng(42)
+    codes = rng.integers(0, 4, size=(6, 4)).astype(np.float64)
+    rows = [1, 2, 4, 5]
+    decay = lambda d: np.exp(-np.asarray(d) / 2)
+    ordered = accumulation.accumulate_unit(codes, rows, decay, True)
+    np.testing.assert_allclose(accumulation.accumulate_unit(codes, rows, decay, False),
+                               _fold(ordered, 4))
+    # accumulate_unit_with_rows calls decay_fn(unit_row, ground_indices).
+    decay2 = lambda unit_row, idx: np.exp(-(unit_row - np.asarray(idx)) / 2)
+    w = accumulation.accumulate_unit_with_rows(codes, rows, decay2, False)
+    np.testing.assert_allclose(w.networks, _fold(ordered, 4))
+    np.testing.assert_allclose(w.row_networks.sum(axis=0), ordered)

@@ -13,6 +13,16 @@
     conversations' rows came in between.
   Tests: R tma reference (`python/tests/fixtures/contexts-split.R`), unsplit
   and split, binary / product / ordered.
+* `accumulate_unit()` and `accumulate_unit_with_rows()` with `ordered = FALSE`
+  (the default) counted every connection twice: they built the undirected
+  connection matrix and then folded it as if it were directed. They now
+  accumulate directed and fold once, as `accumulate_unit_networks()` and tma's
+  original `accumulate_network()` do, so unordered output is the folded ordered
+  output (A then B = 2 gave A & B = 4; now 2). Binary results were unaffected;
+  weighted / non-binary counts halve. `accumulate_unit_with_rows()`'s
+  `row_networks` are now directed in both modes. Same fix in qe-tma, tma-wasm
+  and TMA.jl.
+
 * qe-tma (Python) accumulates only, as R's tma does; modeling is qe-ena's.
   Breaking: `TMA().fit()` is replaced by `tma.accumulate()`, which returns a
   `TMAAccumulation` with R's fields -- `connection_counts_`,

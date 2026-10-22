@@ -38,6 +38,15 @@ end
     @test length(result) == 3     # choose_two(3)
 end
 
+@testset "accumulate_unit: unordered counts each connection once" begin
+    # Unordered = the directed sum folded once; folding the undirected
+    # connection_matrix counted every connection twice.
+    codes = Float64[1 0 0; 0 2 0]                  # A = 1, then B = 2
+    one   = d -> ones(Float64, length(d))
+    @test accumulate_unit(codes, Int32[1], one; ordered = true) ≈ [0, 0, 0, 2, 0, 0, 0, 0, 0]
+    @test accumulate_unit(codes, Int32[1], one; ordered = false) ≈ [2, 0, 0]   # not 4
+end
+
 # ── Added with the move: functions LibQE.jl's tests did not cover ─────────────
 
 @testset "connection_matrix" begin

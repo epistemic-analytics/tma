@@ -79,9 +79,34 @@ test('accumulate_unit_with_rows: networks + row_networks returned', () => {
     const out = qe.accumulate_unit_with_rows(codes, 3, 2, unitRows, decayFn, false);
     // choose(2,2) = 1 connection
     expect(out.networks.length).toBe(1);
-    // row_networks: always 3 rows × n_codes² cols (full square, before folding)
+    // row_networks: always 3 rows × n_codes² cols (directed, before folding)
     expect(out.row_networks.rows).toBe(3);
     expect(out.row_networks.cols).toBe(4);   // 2² = 4 for n_codes=2
+});
+
+test('accumulate_unit(_with_rows): unordered is the directed sum folded once', () => {
+    // Folding the undirected connection_matrix counted every connection twice.
+    const n = 3;
+    const fold = v => {           // column-major p² → upper triangle (0,1),(0,2),(1,2)
+        const out = [];
+        for (let j = 1; j < n; j++)
+            for (let i = 0; i < j; i++) out.push(v[j * n + i] + v[i * n + j]);
+        return out;
+    };
+    const decay = d => d.map(x => Math.exp(-x / 2));
+    const codes = new Float64Array([1,0,2, 0,1,1, 2,1,0, 1,3,1, 0,2,1]);   // 5 × 3, non-binary
+    const rows  = [1, 2, 4];
+
+    const ord = Array.from(qe.accumulate_unit(codes, 5, n, rows, decay, true));
+    const un  = Array.from(qe.accumulate_unit(codes, 5, n, rows, decay, false));
+    fold(ord).forEach((v, k) => expect(un[k]).toBeCloseTo(v, 12));
+
+    const w = qe.accumulate_unit_with_rows(codes, 5, n, rows, decay, false);
+    fold(ord).forEach((v, k) => expect(w.networks[k]).toBeCloseTo(v, 12));
+
+    // A = 1 then B = 2: A & B = 2 (was 4).
+    const two = qe.accumulate_unit(new Float64Array([1,0,0, 0,2,0]), 2, n, [1], d => d.map(() => 1), false);
+    expect(Array.from(two)).toEqual([2, 0, 0]);
 });
 
 test('accumulate_tensor_unit: default 1-D tensor smoke test', () => {
@@ -309,7 +334,9 @@ describe('libtma module vs libqe-wasm', () => {
         row_connections:          m => m.row_connections(codes, 5, 3, false),
         rolling_window_sum:       m => m.rolling_window_sum(codes, 5, 3, 3),
         flat_index:               m => m.flat_index([1, 2, 3], [2, 3, 4]),
-        accumulate_unit:          m => m.accumulate_unit(codes, 5, 3, [2, 4], decay, false),
+        // Ordered only: libqe-wasm's unordered accumulate_unit counted each
+        // connection twice (fixed here; see the fold-once test above).
+        accumulate_unit:          m => m.accumulate_unit(codes, 5, 3, [2, 4], decay, true),
         accumulate_unit_with_rows: m => m.accumulate_unit_with_rows(codes, 5, 3, [2, 4], decay, true),
         accumulate_tensor_unit:   m => m.accumulate_tensor_unit([1, 3], [2], [], [], [],
                                         new Int32Array(0), 5, 0, [2, 3, 4], codes, 5, 3,

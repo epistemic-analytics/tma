@@ -85,6 +85,39 @@ test_that("accumulate_unit: output length is n_codes^2 when ordered", {
     expect_length(out, 3^2)
 })
 
+# Unordered = the directed sum folded once (as tma's original accumulate_network
+# and accumulate_unit_networks do).  Building the undirected connection_matrix
+# and then folding it counted every connection twice.
+test_that("accumulate_unit: unordered counts each connection once", {
+    codes    <- rbind(c(1, 0, 0),    # ground: A = 1
+                      c(0, 2, 0))    # response: B = 2
+    decay_fn <- function(d) rep(1, length(d))
+    expect_equal(as.vector(accumulate_unit(codes, 1L, decay_fn, TRUE)),
+                 c(0, 0, 0, 2, 0, 0, 0, 0, 0))            # A -> B = 2
+    expect_equal(as.vector(accumulate_unit(codes, 1L, decay_fn, FALSE)),
+                 c(2, 0, 0))                              # A & B = 2, not 4
+})
+
+test_that("accumulate_unit(_with_rows): unordered = fold(ordered) for non-binary codes", {
+    set.seed(42)
+    codes     <- matrix(sample(0:3, 6 * 4, replace = TRUE), nrow = 6, ncol = 4)
+    unit_rows <- c(1L, 2L, 4L, 5L)
+    decay     <- function(d) exp(-d / 2)
+    fold      <- function(v) libqe::fold_directed_network(v)
+
+    ord <- accumulate_unit(codes, unit_rows, decay, TRUE)
+    expect_equal(as.vector(accumulate_unit(codes, unit_rows, decay, FALSE)),
+                 as.vector(fold(ord)))
+
+    w_ord <- accumulate_unit_with_rows(codes, unit_rows, decay, TRUE)
+    w_un  <- accumulate_unit_with_rows(codes, unit_rows, decay, FALSE)
+    expect_equal(as.vector(w_ord$networks), as.vector(ord))
+    expect_equal(as.vector(w_un$networks), as.vector(fold(ord)))
+    # Per-row networks are directed in both modes and sum to the unit vector.
+    expect_equal(w_un$row_networks, w_ord$row_networks)
+    expect_equal(as.vector(colSums(w_ord$row_networks)), as.vector(ord))
+})
+
 # --- rows_to_co_occurrences ---
 
 test_that("rows_to_co_occurrences: output dimensions are n_rows x choose_two(n_codes)", {

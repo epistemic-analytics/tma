@@ -183,9 +183,12 @@ inline arma::mat accumulate_stanza(
  *  connection_matrix().
  *
  *  @par Ordering semantics
- *  When @p ordered is @c false (default), the result is folded into the
- *  upper-triangle representation (length choose_two(p)).  When @p ordered is
- *  @c true, the full directed p² vector is returned.
+ *  The connections are always accumulated directed (ground → response, as
+ *  accumulate_unit_networks() does).  When @p ordered is @c false (default),
+ *  that directed sum is folded once into the upper-triangle representation
+ *  (length choose_two(p)); when @c true, the directed p² vector is returned.
+ *  (Building the undirected connection_matrix() and then folding it would
+ *  count every connection twice.)
  *
  *  @param[in] codes      Full context matrix visible to this unit (n × p).
  *  @param[in] unit_rows  0-based indices of the rows that belong to this unit.
@@ -233,7 +236,8 @@ inline arma::rowvec accumulate_unit(
         // Exclude the response row's own contribution from the ground
         arma::rowvec g_no_resp   = g_summed - weighted.tail_rows(1).row(0);
 
-        g_w_vec += connection_matrix(g_no_resp, response, 1.0, ordered);
+        // Directed always; the fold below makes it undirected exactly once.
+        g_w_vec += connection_matrix(g_no_resp, response, 1.0, /*ordered=*/true);
     }
 
     if (!ordered) return fold_directed_network(arma::vectorise(g_w_vec));
@@ -252,7 +256,7 @@ inline arma::rowvec accumulate_unit(
  */
 struct UnitNetworks {
     arma::rowvec networks;      ///< Flat connection vector (choose_two(p) or p²).
-    arma::mat    row_networks;  ///< Per-response-row full p² matrix (n_unit_rows × p²).
+    arma::mat    row_networks;  ///< Per-response-row directed p² matrix (n_unit_rows × p²), whatever @c ordered.
 };
 
 /** @brief Like accumulate_unit() but also returns the per-response-row connection
@@ -267,9 +271,10 @@ struct UnitNetworks {
  *                        callers (e.g. the tma Rcpp wrapper) set R environment
  *                        variables before invoking the actual R decay function,
  *                        without any R-specific code leaking into libqe.
- *  @param[in] ordered    When @c true, return directed flat vectors (length p²);
- *                        when @c false, return undirected upper-triangle flat
- *                        vectors (length choose_two(p)).
+ *  @param[in] ordered    When @c true, @c networks is the directed flat vector
+ *                        (length p²); when @c false, the directed sum folded
+ *                        once to the undirected upper triangle (length
+ *                        choose_two(p)).  @c row_networks are always directed.
  *
  *  @returns A UnitNetworks struct containing the aggregated connection vector
  *           and the per-response-row connection matrices.
@@ -300,7 +305,8 @@ inline UnitNetworks accumulate_unit_with_rows(
         arma::rowvec g_no_resp    = g_summed - weighted.tail_rows(1).row(0);
 
         arma::rowvec response = codes.row(unit_row);
-        arma::mat    conn     = connection_matrix(g_no_resp, response, 1.0, ordered);
+        // Directed always; the fold below makes it undirected exactly once.
+        arma::mat    conn     = connection_matrix(g_no_resp, response, 1.0, /*ordered=*/true);
         g_w_mat += conn;
         row_networks.row(i) = arma::vectorise(conn).t();
     }
