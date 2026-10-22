@@ -1,7 +1,7 @@
 name = "TMA"
 uuid = "7ba660bc-c62b-4c57-b875-5821cfe207a6"
 authors = ["Cody L Marquart <cody.marquart@wisc.edu>"]
-version = "0.1.6"
+version = "0.1.7"
 
 [deps]
 CxxWrap = "1f15a43c-97ca-5a2a-ae31-89f07a497df4"
@@ -12,7 +12,7 @@ Tables = "bd369af6-aec1-5ad0-b16a-f7cc5008161c"
 [compat]
 CxxWrap = "0.15"
 LibQE = "0.2.1"
-TMA_jll = "=0.1.6"
+TMA_jll = "=0.1.7"
 Tables = "1"
 julia = "1.9"
 
