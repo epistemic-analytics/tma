@@ -57,9 +57,37 @@ cmake -B build -DCMAKE_BUILD_TYPE=Release \
 
 ## Quick start
 
+`TMA.accumulate` accumulates each unit's network from a table, as R tma's
+`accumulate()` and qe-tma's `tma.accumulate()` do, with the same results. Any
+Tables.jl table works (a `NamedTuple` of vectors, a DataFrame, a CSV.File):
+
 ```julia
 using TMA
 
+data = (speaker = ["ann", "bob", "ann", "cat", "bob"],
+        group   = ["g1",  "g1",  "g1",  "g2",  "g2"],
+        A = [1, 0, 1, 1, 0], B = [0, 1, 1, 0, 1], C = [1, 1, 0, 0, 1])
+
+accum = TMA.accumulate(data, :speaker, :group, [:A, :B, :C];
+                       tensor   = context_tensor(data; default_window = 4),
+                       split_by = :group)       # windows stay within a conversation
+accum.connection_counts       # units × connections (= R connection.counts)
+accum.connection_names        # ["A & B", "A & C", "B & C"]
+accum.unit_labels             # ["ann", "bob", "cat"]
+
+# Ordered (ONA) networks, missed co-occurrences, self-connections:
+TMA.accumulate(data, :speaker, :group, [:A, :B, :C]; ordered = true)
+TMA.accumulate(data, :speaker, :group, [:A, :B, :C]; self_connections = true).connection_names
+```
+
+`accumulate` is not exported (Base has one); call it `TMA.accumulate`.
+`contexts`, `context_tensor`, `rules` and `conversation_rules` are, as in R.
+The keywords mirror R's: `weight_by` (`"binary"`, `"product"`, `"sqrt"`,
+`"log1p"`), `misses`, `time_col`, and `hoo_rules` via `contexts`.
+
+The kernels underneath are exported too:
+
+```julia
 codes = Float64[2 0 1; 1 3 0; 0 1 2]          # 3 rows × 3 codes
 
 accumulate_stanza(codes; window_back = 2)      # 3 × choose(3, 2) co-occurrences

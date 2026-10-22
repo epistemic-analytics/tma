@@ -1,5 +1,18 @@
 # tma (development version)
 
+* TMA.jl gets the high-level accumulation of R tma and qe-tma:
+  `TMA.accumulate(data, units, conversations, codes; tensor, time_col,
+  ordered, binary, weight_by, misses, self_connections, split_by)` returns a
+  `TMAAccumulation` (connection / self / miss counts, the per-line tables,
+  `meta`, unit labels, connection names, adjacency key), with
+  `context_tensor`, `contexts` (`split_by`, per-context time axis), `rules`
+  and `conversation_rules`. Any Tables.jl table is accepted. Results equal R
+  tma's: the R reference values of qe-tma's tests and the interleaved-
+  conversation fixture (unsplit and split by conversation), 62 tests.
+  `accumulate` is called as `TMA.accumulate` (Base has one). TMA.jl now
+  depends on LibQE (>= 0.2.1, for the connection layout, as qe-tma uses
+  qe-lib) and Tables.
+
 # tma 0.3.11
 
 0.3.10 (libtma 0.3.10, qe-tma 0.1.8 / 0.1.9, tma-wasm 0.1.4, TMA.jl 0.1.4)

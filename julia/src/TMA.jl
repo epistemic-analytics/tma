@@ -33,6 +33,8 @@ __precompile__(false)
 module TMA
 
 using CxxWrap
+using Tables
+import LibQE      # adjacency layout (connection names / counts), as qe-tma uses qe-lib
 
 # ── Public API ────────────────────────────────────────────────────────────────
 export
@@ -41,7 +43,11 @@ export
     accumulate_unit_with_rows, accumulate_tensor_unit,
     aggregate_row_connections, finalize_row_connections,
     aggregate_self_connections, finalize_self_connections,
-    accumulate_unit_networks, weight_rows
+    accumulate_unit_networks, weight_rows,
+    # High-level accumulation (src/accumulate.jl); `accumulate` itself is
+    # TMA.accumulate (Base has one).
+    context_tensor, contexts, rules, conversation_rules,
+    ContextTensor, ContextModel, TMAAccumulation
 
 # ── Load shared library ───────────────────────────────────────────────────────
 # The library built by CMake is installed into julia/lib/ (one level up from
@@ -411,5 +417,7 @@ function weight_rows(rows::Matrix{Float64}; ordered::Bool = false,
     reshape(collect(Float64, weight_rows(vec(rows), Int32(r), Int32(c), ordered,
                                          _weight_name(weight))), r, c)
 end
+
+include("accumulate.jl")
 
 end # module TMA

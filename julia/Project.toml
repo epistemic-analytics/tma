@@ -4,18 +4,23 @@ authors = ["Cody L Marquart <cody.marquart@wisc.edu>"]
 version = "0.1.6"
 
 [deps]
-TMA_jll = "9c2f2c37-4fd5-578a-9921-d41a2928508e"
 CxxWrap = "1f15a43c-97ca-5a2a-ae31-89f07a497df4"
+LibQE = "a4e3b0f2-5c1d-4f7a-9e8d-2b6c3d4e5f6a"
+LibQE_jll = "4fef5773-71cb-5d31-b73b-cc2c91da1c0f"
+TMA_jll = "9c2f2c37-4fd5-578a-9921-d41a2928508e"
+Tables = "bd369af6-aec1-5ad0-b16a-f7cc5008161c"
 
 [compat]
-# The library: exactly this version (built from the same commit by cranqe).
-TMA_jll = "=0.1.6"
 CxxWrap = "0.15"
+LibQE = "0.2.1"
+TMA_jll = "=0.1.6"
+Tables = "1"
 julia = "1.9"
 
 [extras]
+JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test", "LinearAlgebra"]
+test = ["Test", "LinearAlgebra", "JSON"]

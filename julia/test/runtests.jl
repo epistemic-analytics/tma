@@ -165,3 +165,5 @@ end
     @test !haskey(plain, :miss_counts)
     @test plain.row_connection_counts == r.row_connection_counts
 end
+
+include("accumulate.jl")
