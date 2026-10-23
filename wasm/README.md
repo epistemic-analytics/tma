@@ -16,7 +16,11 @@ npm install @qe-libs/tma-wasm
 
 ## Usage
 
-```js
+On [qe-libs.org/npm/qe-libs-tma-wasm/](https://qe-libs.org/npm/qe-libs-tma-wasm/)
+the `js run` examples have a **Run** button: they run in your browser on this
+WebAssembly build, with `console.log` printed under the example.
+
+```js run
 import loadTMA from '@qe-libs/tma-wasm';
 const tma = await loadTMA();
 
@@ -24,6 +28,7 @@ const tma = await loadTMA();
 const codes = new Float64Array([1,1,0, 1,0,1, 0,1,1]);
 const out = tma.accumulate_stanza(codes, 3, 3, 2, 0, true, false);
 // → { data: Float64Array, rows: 3, cols: 3 }   (choose_two(3) connections)
+console.log('stanza:', out);
 
 // Context-tensor accumulation for one unit, then the unit vector with a weight model
 const t = tma.accumulate_tensor_unit([1, 3], [2], [], [], [], new Int32Array(0), 3, 0,
@@ -31,6 +36,8 @@ const t = tma.accumulate_tensor_unit([1, 3], [2], [], [], [], new Int32Array(0),
 const v = tma.aggregate_row_connections(t.row_connection_counts.data,
                                         t.row_connection_counts.rows,
                                         t.row_connection_counts.cols, 3, false, 'sqrt');
+console.log('row connections:', t.row_connection_counts);
+console.log('unit vector (sqrt):', v);
 ```
 
 Matrices are flat row-major `Float64Array`s with explicit `rows`/`cols`;
