@@ -21,8 +21,11 @@
   Equal to R tma on the getting-started vignette, ordered and unordered.
 * qe-tma ships R's `test_mockdata` as `tma.datasets.load_test_mockdata()`.
 * qe-tma has a getting-started walkthrough,
-  `python/docs/getting-started.ipynb`, the Python port of the R vignette.
-  The README quick start now runs as written, on the bundled data.
+  `python/docs/getting-started.ipynb`, the Python port of the R vignette,
+  published with the API docs at
+  https://qe-libs.org/py/docs/qe-tma/getting-started.html (dev builds:
+  `py/dev/docs/qe-tma/`). The README quick start now runs as written, on
+  the bundled data.
 
 # tma 0.3.11
 
