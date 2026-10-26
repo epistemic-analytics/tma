@@ -242,6 +242,8 @@ The resulting `accum_result` object contains:
 * **`meta.data`**: The unit metadata corresponding to each row.
 * **`model`**: Internal representations and parameters used for reproducibility.
 
+It also contains missed co-occurrences (`miss.counts`) and self-connections (`self.connection.counts`, `self.miss.counts`); see `vignette("accumulation-results", package = "tma")` for what each of these counts.
+
 Let's inspect the accumulated co-occurrences:
 
 ```{r inspect_counts}

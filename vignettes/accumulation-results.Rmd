@@ -1,0 +1,332 @@
+---
+title: "Reading Accumulation Results: Connections, Misses, and Self-Connections"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Reading Accumulation Results: Connections, Misses, and Self-Connections}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  warning = FALSE,
+  message = FALSE
+)
+options(width = 100)
+```
+
+## Introduction
+
+`accumulate()` returns more than one network per unit. Alongside the familiar
+**`connection.counts`**, it returns **`miss.counts`** (missed co-occurrences)
+and **`self.connection.counts`** / **`self.miss.counts`** (each code's
+connection to itself). Each comes in two forms: a unit-level table, and a
+line-level table under `model$`.
+
+This page explains what each table counts, how it is laid out, and how the
+tables relate to one another. It uses the same sample data, horizons and
+context tensor as `vignette("getting-started", package = "tma")`.
+
+```{r model}
+library(tma)
+
+data("test_mockdata", package = "tma")
+sample_df <- test_mockdata[test_mockdata$chatGroup == "PAM", ]
+
+context_model <- contexts(
+  x = sample_df,
+  units = c("userID", "condition"),
+  hoo_rules = rules(
+    modality %in% "chat" & chatGroup %in% UNIT$chatGroup & condition %in% UNIT$condition,
+    modality %in% "resource" & userID %in% UNIT$userID & condition %in% UNIT$condition
+  )
+)
+
+tensor <- context_tensor(
+  sample_df,
+  sender_cols = NULL,
+  receiver_cols = NULL,
+  mode_column = "modality",
+  default_window = 0,
+  default_weight = 0
+)
+tensor["chat", "window"] <- 360
+tensor["resource", "window"] <- 180
+tensor["chat", "weight"] <- 1.0
+tensor["resource", "weight"] <- 2.0
+
+codes <- c("A", "B", "C")
+
+accum <- accumulate(
+  context_model = context_model,
+  tensor = tensor,
+  time_column = "timeStamp",
+  codes = codes,
+  ordered = TRUE,
+  weight_by = "product"
+)
+```
+
+A small helper prints a unit-level table as a plain grid, one row per unit:
+
+```{r helper}
+by_unit <- function(x, cols) {
+  d <- as.data.frame(x)[, cols]
+  rownames(d) <- as.character(x$ENA_UNIT)
+  d
+}
+```
+
+We use an ordered (directed) model with the `"product"` weight model so that
+the numbers below are the raw, unweighted counts; [Weight
+models](#weight-models) covers the other options.
+
+---
+
+## What is returned
+
+| Unit level (one row per unit) | Line level (one row per line) | Counts |
+|---|---|---|
+| `connection.counts` | `model$row.connection.counts` | Ground code *i* → response code *j*, both present |
+| `miss.counts` | `model$row.miss.counts` | Ground code *i* present, response code *j* **absent** |
+| `self.connection.counts` | `model$row.self.connection.counts` | Ground code *i* → response code *i* |
+| `self.miss.counts` | `model$row.self.miss.counts` | Ground code *i* present, response code *i* **absent** |
+
+The miss tables are only present with `misses = TRUE` (the default). Set
+`misses = FALSE` to skip them, which saves memory with many codes or long data.
+
+Line-level tables always hold the **raw** counts for each line. Unit-level
+tables apply the weight model to each line and then sum the lines for each
+unit.
+
+---
+
+## Lines, grounds, and responses
+
+Every row of a unit (every **line**) is accumulated as a **response**, $r$.
+Its **ground**, $g$, is the weighted sum of the codes on the earlier rows in
+the unit's horizon that are still inside their modality's window:
+
+$$
+g = \sum_{\text{in-window rows } k} W_{m(k)} \, c_k
+$$
+
+where $c_k$ is the code vector of row $k$ and $W_{m(k)}$ is the weight of its
+modality. Everything below is computed from $g$ and $r$ for one line at a time.
+
+Here are the rows of our sample, with the codes each one carries:
+
+```{r rows}
+sample_df[, c("userID", "modality", "timeStamp", "A", "B", "C")]
+```
+
+---
+
+## `connection.counts`: connections made
+
+For one line, the directed connection from code $i$ to code $j$ is
+
+$$
+\text{conn}_{i \to j} = g_i \, r_j \;+\; \tfrac{1}{2} \, W_r \, r_i \, r_j \quad (i \neq j)
+$$
+
+* **$g_i \, r_j$** — code $i$ in the ground, code $j$ in the response.
+* **$\tfrac{1}{2} W_r \, r_i \, r_j$** — codes $i$ and $j$ appearing together
+  *in the response itself*, weighted by the response's own modality weight
+  $W_r$. Half goes to $i \to j$ and half to $j \to i$, so the pair counts once
+  in total.
+
+Columns are named **`"ground & response"`**: `"B & C"` is B in the ground
+connecting to C in the response.
+
+```{r row_conn}
+cols <- grep(" & ", colnames(accum$connection.counts), value = TRUE)
+row_conn <- as.data.frame(accum$model$row.connection.counts)
+row_conn[, c("QEUNIT", cols)]
+```
+
+Three lines worked by hand:
+
+* **Line 2** (User2 resource click, `B, C`). The ground is line 1 (User1 chat,
+  `A`, 106 s earlier, inside the 360 s chat window), so `A & B` = `A & C` = 1.
+  B and C also co-occur in the response, a resource click with weight 2, so
+  `B & C` and `C & B` each get ½ × 2 = 1.
+* **Line 4** (User1 resource click, `C`). Line 3 (User3 chat, `A`, 194 s
+  earlier) is in the ground; line 1 is 529 s back and has expired. So
+  `A & C` = 1.
+* **Line 6** (User3 chat, `A, C`). The ground is line 5 (User2 chat, `B`), so
+  `B & A` = `B & C` = 1. A and C co-occur in the chat response (weight 1), so
+  `A & C` and `C & A` each get ½.
+
+The unit-level table is the sum of each unit's lines, after the weight model:
+
+```{r conn}
+by_unit(accum$connection.counts, cols)
+```
+
+### Unordered networks
+
+With `ordered = FALSE`, each line is folded to the upper triangle before it is
+weighted and summed: the undirected `"A & B"` is $\text{conn}_{A \to B} +
+\text{conn}_{B \to A}$. Self-connections (`A & A`, …) are dropped from
+`connection.counts` unless you set `self_connections = TRUE`. See
+[Self-connections](#self-connection-counts-a-code-following-itself).
+
+---
+
+## `miss.counts`: connections not made
+
+A miss is the other side of a connection: the ground carried code $i$, but the
+response did **not** carry code $j$.
+
+$$
+\text{miss}_{i \to j} = g_i \, [\, r_j = 0 \,]
+$$
+
+There is no within-response term: a miss is always between the ground and the
+response. Columns use the same `"ground & response"` names and layout as
+`connection.counts`.
+
+```{r row_miss}
+row_miss <- as.data.frame(accum$model$row.miss.counts)
+row_miss[, c("QEUNIT", cols)]
+```
+
+* **Line 3** (User3 chat, `A`). The ground is line 1 (`A`). The response has
+  no B and no C, so `A & B` = `A & C` = 1.
+* **Line 4** (User1 resource, `C`). The ground is line 3 (`A`); the response
+  has no A or B, so `A & A` = `A & B` = 1. `A & C` is a connection, not a miss.
+* **Line 6** (User3 chat, `A, C`). The ground is line 5 (`B`); the response
+  has no B, so `B & B` = 1.
+
+```{r miss}
+by_unit(accum$miss.counts, cols)
+```
+
+Use misses where the absence of a connection is informative: how often a code
+in the ground was *not* followed by another code, rather than only how often it
+was.
+
+### Connections and misses together
+
+With 0/1 codes, every unit of ground weight on code $i$ is either followed by
+code $j$ or not, so for each line
+
+$$
+g_i \, r_j + \text{miss}_{i \to j} = g_i .
+$$
+
+That gives the share of code $i$'s ground in which $j$ followed. The
+connection also contains the within-response term, so remove that first; for
+self-connections there is no such term (see below), and the identity holds as
+it stands.
+
+With unordered networks, misses are folded like connections: the undirected
+`"A & B"` miss is $\text{miss}_{A \to B} + \text{miss}_{B \to A}$.
+
+---
+
+## `self.connection.counts`: a code following itself
+
+The self-connection of code $i$ is the diagonal of the directed network:
+
+$$
+\text{self}_i = g_i \, r_i
+$$
+
+Code $i$ is in the ground and in the response: the code persists or recurs.
+There is no within-response term (a code does not co-occur with itself).
+
+* Ordered networks already contain it, as the `"A & A"`, `"B & B"`, `"C & C"`
+  columns of `connection.counts`.
+* Unordered networks fold the diagonal away, so `connection.counts` has no
+  self columns by default.
+
+`self.connection.counts` keeps the self-connections either way, one column per
+code. It is reported alongside the model and does not enter it.
+
+```{r self}
+by_unit(accum$self.connection.counts, codes)
+as.data.frame(accum$model$row.self.connection.counts)[, c("QEUNIT", codes)]
+```
+
+Line 3 (User3 chat, `A`) has line 1 (`A`) in its ground, so its self-connection
+for A is 1. That is the same value as the `"A & A"` column of
+`row.connection.counts` above.
+
+### `self.miss.counts`
+
+The self-miss is code $i$ in the ground and absent from the response:
+
+$$
+\text{selfmiss}_i = g_i \, [\, r_i = 0 \,]
+$$
+
+```{r self_miss}
+by_unit(accum$self.miss.counts, codes)
+```
+
+With 0/1 codes, self-connections and self-misses split the ground exactly, so
+their sum is each unit's total ground weight on each code, and
+`self / (self + self.miss)` is how often a code in the ground was repeated:
+
+```{r self_identity}
+by_unit(accum$self.connection.counts, codes) + by_unit(accum$self.miss.counts, codes)
+```
+
+### Self-connections in an unordered model
+
+To make self-connections part of an unordered network, so that they count
+toward the line weights, the rotation and the node positions, pass
+`self_connections = TRUE`. The diagonal is then added to `connection.counts`
+(and the self-misses to `miss.counts`), in the order `A & A`, `A & B`,
+`B & B`, `A & C`, …:
+
+```{r self_unordered}
+accum_self <- accumulate(
+  context_model = context_model,
+  tensor = tensor,
+  time_column = "timeStamp",
+  codes = codes,
+  ordered = FALSE,
+  self_connections = TRUE
+)
+grep(" & ", colnames(accum_self$connection.counts), value = TRUE)
+```
+
+`self_connections` has no effect on ordered models, which always carry the
+diagonal.
+
+---
+
+## Weight models
+
+`weight_by` sets how each line's counts are transformed before the lines are
+summed into a unit's network. It applies the same way to connections, misses,
+self-connections and self-misses.
+
+| `weight_by` | Each line's count becomes |
+|---|---|
+| `"binary"` (default with `binary = TRUE`) | Unordered: 1 if positive, else 0. Ordered: unchanged. |
+| `"product"` (default with `binary = FALSE`) | Unchanged |
+| `"sqrt"` | $\sqrt{x}$ |
+| `"log1p"` (alias `"log"`) | $\log(1 + x)$ |
+
+For unordered models the weight is applied after each line is folded to the
+upper triangle; for ordered models, to each directed cell. The line-level
+`model$row.*` tables always hold the raw, unweighted counts, so you can
+re-weight them yourself.
+
+---
+
+## Summary
+
+* **`connection.counts`** — ground code *i* followed by response code *j*,
+  plus *i* and *j* together in the response.
+* **`miss.counts`** — ground code *i* *not* followed by response code *j*.
+* **`self.connection.counts`** — ground code *i* followed by itself; part of
+  ordered networks, kept separately for unordered ones.
+* **`self.miss.counts`** — ground code *i* not followed by itself.
+* **`model$row.*`** — the same quantities for every line, raw and unweighted.
