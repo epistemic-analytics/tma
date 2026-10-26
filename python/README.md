@@ -62,7 +62,9 @@ windows and weights, directed vs. undirected networks), see
 [Getting Started with TMA in Python](https://qe-libs.org/py/docs/qe-tma/getting-started.html),
 the Python port of the R package's getting-started vignette
 ([for the latest development build](https://qe-libs.org/py/dev/docs/qe-tma/getting-started.html)).
-Its notebook is `python/docs/getting-started.ipynb`.
+Its notebook is `python/docs/getting-started.ipynb`. What the connection,
+miss and self-connection arrays count is in
+`python/docs/accumulation-results.ipynb`.
 
 The low-level accumulation functions (`apply_tensor_unit`,
 `aggregate_row_connections`, `accumulate_stanza`, ...) are in `tma.libtma`.
